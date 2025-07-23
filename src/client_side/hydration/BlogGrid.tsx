@@ -11,7 +11,6 @@ export default function BlogGrid() {
             .catch((err) => console.error("Blog fetch failed", err))
             .finally(() => setLoading(false));
     }, []);
-
     if (loading) return <p>Loading blog posts...</p>;
 
     return (

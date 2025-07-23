@@ -6,6 +6,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
         "slug",
         "subject",
         "content",
+        "category",
         "date_created",
         "og_image"
     ].join(',');
@@ -28,7 +29,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
         author: "Admin",
         authorRole: "Content Writer",
         authorAvatar: "https://randomuser.me/api/portraits/lego/1.jpg",
-        category: "Marketing",
+        category: post.category,
         image: post.og_image ? `${DIRECTUS_URL}/assets/${post.og_image}` : null,
     }));
 }
@@ -42,6 +43,7 @@ export interface BlogPostRaw {
     slug: string;
     subject: string;
     content: string;
+    category: string;
     date_created: string;
     og_image: string | null;
 }
