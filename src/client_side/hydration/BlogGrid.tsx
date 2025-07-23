@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import fetchBlogPostModel, { DIRECTUS_URL, type BlogPostResponseData } from '../fetch/BlogPosts';
+import fetchBlogPostModel, { type BlogPostResponseData } from '../fetch/BlogPosts';
 
 export default function BlogGrid() {
     const [posts, setPosts] = useState<BlogPostResponseData[]>([]);
     const [loading, setLoading] = useState(true);
+    const quality = 50;    // on a scale from 1-100
 
     useEffect(() => {
         fetchBlogPostModel()
