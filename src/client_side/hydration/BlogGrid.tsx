@@ -4,7 +4,6 @@ import fetchBlogPostModel, { type BlogPostResponseData } from '../fetch/BlogPost
 export default function BlogGrid() {
     const [posts, setPosts] = useState<BlogPostResponseData[]>([]);
     const [loading, setLoading] = useState(true);
-    const quality = 50;    // on a scale from 1-100
 
     useEffect(() => {
         fetchBlogPostModel()
@@ -18,11 +17,11 @@ export default function BlogGrid() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post, index) => (
                 <div
-                    key={post.id}
+                    key={post.slug}
                     className="card border border-gray-200 dark:border-gray-700 overflow-hidden slide-up"
                     style={{ animationDelay: `${index * 100}ms` }}
                 >
-                    <a href={`/blog/${post.id}`} className="block">
+                    <a href={`/blog/${post.slug}`} className="block">
                         <img
                             src={post.image ?? '/gradient.jpg'}
                             alt={post.title}
