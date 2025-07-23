@@ -37,7 +37,7 @@ export default function BlogGrid() {
                             <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
                             <span className="text-sm text-gray-500 dark:text-gray-400">{post.date}</span>
                         </div>
-                        <a href={`/blog/${post.id}`} className="block mb-3">
+                        <a href={`/blog/${post.slug}`} className="block mb-3">
                             <h2 className="text-xl font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                                 {post.title}
                             </h2>
