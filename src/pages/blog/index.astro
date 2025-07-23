@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 import HeroSection from "../../components/HeroSection.astro";
+import BlogGrid from "../../client_side/hydration/BlogGrid";
 
 // Fetch from your API
 const apiUrl = "https://directus.ismail.to/items/blog_posts"; // replace with real endpoint
@@ -48,98 +49,9 @@ const categories = [...new Set(posts.map((post) => post.category))];
       description="Stay up to date with our latest product updates, feature releases, and company news."
     />
 
-    <!-- Category Filter -->
+    <!-- BlogGrid -->
     <div class="container-custom py-8">
-      <div class="flex flex-wrap gap-4 justify-center mb-12">
-        <a
-          href="#"
-          class="px-4 py-2 rounded-full bg-primary-600 text-white font-medium text-sm hover:bg-primary-700 transition-colors"
-        >
-          All Posts
-        </a>
-        {
-          categories.map((category) => (
-            <a
-              href={"#" + category.toLowerCase().replace(/\s+/g, "-")}
-              class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              {category}
-            </a>
-          ))
-        }
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {
-          posts.map((post, index) => (
-            <div
-              class="card border border-gray-200 dark:border-gray-700 overflow-hidden slide-up"
-              style={"animation-delay: " + index * 100 + "ms"}
-            >
-              <a href={"/blog/" + post.id} class="block">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  class="w-full h-48 object-cover"
-                  loading="lazy"
-                />
-              </a>
-              <div class="p-6">
-                <div class="flex items-center mb-4">
-                  <span class="text-sm font-medium text-primary-600 dark:text-primary-400">
-                    {post.category}
-                  </span>
-                  <span class="mx-2 text-gray-300 dark:text-gray-600">•</span>
-                  <span class="text-sm text-gray-500 dark:text-gray-400">
-                    {post.date}
-                  </span>
-                </div>
-                <a href={"/blog/" + post.id} class="block mb-3">
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                    {post.title}
-                  </h2>
-                </a>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">
-                  {post.excerpt}
-                </p>
-                <div class="flex items-center">
-                  <img
-                    src={post.authorAvatar}
-                    alt={post.author}
-                    class="w-10 h-10 rounded-full mr-3 object-cover"
-                    loading="lazy"
-                  />
-                  <div>
-                    <p class="font-medium text-gray-900 dark:text-white">
-                      {post.author}
-                    </p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      {post.authorRole}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        }
-      </div>
-
-      <div class="mt-12 flex justify-center">
-        <a href="#" class="btn-outline">
-          Load More Articles
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 ml-2"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 3a1 1 0 011 1v10.586l3.293-3.293a1 1 0 011.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L9 14.586V4a1 1 0 011-1z"
-              clip-rule="evenodd"></path>
-          </svg>
-        </a>
-      </div>
+      <BlogGrid client:load />
     </div>
   </main>
   <Footer />
