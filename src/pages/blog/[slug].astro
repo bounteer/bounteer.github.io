@@ -48,7 +48,13 @@ const content = post.content;
 const category = post.category;
 ---
 
-<Layout title={title} name={author} url={post_url} image_url={image_url}>
+<Layout
+  title={title}
+  description=""
+  name={author}
+  url={post_url}
+  image_url={image_url}
+>
   <Header>
     <!-- whatsapp/linkedin -->
     <meta name="title" property="og:title" content={title} />
