@@ -19,7 +19,7 @@ export async function getStaticPaths() {
 // Get post content
 const { slug } = Astro.params;
 
-const postUrl = `https://ismail.to/blog/${slug}`;
+const post_url = `https://ismail.to/blog/${slug}`;
 const apiUrl = `https://directus.ismail.to/items/blog_posts?filter[slug][_eq]=${slug}&fields=*,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`;
 const baseImageUrl = "https://directus.ismail.to/assets/";
 
@@ -31,7 +31,7 @@ if (!post) throw new Error("Post not found");
 
 // Post data
 const title = post.subject;
-const description = post.description;
+const description = post.content;
 const author =
   post.user_created?.first_name + " " + post.user_created?.last_name || "Admin";
 const role = post.user_created?.role?.name || "Content Writer";
@@ -52,10 +52,17 @@ const category = post.category;
   title={title}
   description={description}
   name={author}
-  url={postUrl}
+  url={post_url}
   image_url={image_url}
 >
   <Header>
+    <!-- whatsapp/linkedin -->
+    <meta name="title" property="og:title" content={title} />
+    <meta name="description" property="og:description" content={description} />
+    <meta name="image" property="og:image" content={image_url} />
+    <meta name="url" property="og:url" content={post_url} />
+    <meta name="type" property="og:type" content="website" />
+    <!-- twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
@@ -88,7 +95,7 @@ const category = post.category;
       />
 
       <!-- Share Dropdown -->
-      <ShareButton client:load postUrl={postUrl} title={title} />
+      <ShareButton client:load postUrl={post_url} title={title} />
 
       <!-- Author -->
       <div class="flex items-center mt-10 pt-6 border-t dark:border-gray-700">
