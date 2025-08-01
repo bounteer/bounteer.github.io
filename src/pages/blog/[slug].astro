@@ -24,6 +24,7 @@ const apiUrl = `https://directus.ismail.to/items/blog_posts?filter[slug][_eq]=${
 const baseImageUrl = "https://directus.ismail.to/assets/";
 
 const res = await fetch(apiUrl);
+htmlToText();
 if (!res.ok) throw new Error("Failed to fetch blog post");
 
 const post = (await res.json()).data?.[0];
@@ -31,7 +32,6 @@ if (!post) throw new Error("Post not found");
 
 // Post data
 const title = post.subject;
-const description = post.content;
 const author =
   post.user_created?.first_name + " " + post.user_created?.last_name || "Admin";
 const role = post.user_created?.role?.name || "Content Writer";
@@ -48,24 +48,18 @@ const content = post.content;
 const category = post.category;
 ---
 
-<Layout
-  title={title}
-  description={description}
-  name={author}
-  url={post_url}
-  image_url={image_url}
->
+<Layout title={title} name={author} url={post_url} image_url={image_url}>
   <Header>
     <!-- whatsapp/linkedin -->
     <meta name="title" property="og:title" content={title} />
-    <meta name="description" property="og:description" content={description} />
+    <meta name="description" property="og:description" content="" />
     <meta name="image" property="og:image" content={image_url} />
     <meta name="url" property="og:url" content={post_url} />
     <meta name="type" property="og:type" content="website" />
     <!-- twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:description" content="" />
     <meta name="twitter:image" content={image_url} />
   </Header>
   <main class="container-custom pt-30 py-16">
