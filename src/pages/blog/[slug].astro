@@ -61,20 +61,22 @@ const category = post.category;
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image_url} />
   </Header>
-  <main class="container-custom py-16">
+  <main class="container-custom pt-30 py-16">
     <article class="max-w-3xl mx-auto">
       {
         image_url && (
           <img
             src={image_url}
             alt={title}
-            class="w-full h-64 object-cover mb-8 rounded-xl"
+            class="w-full object-cover mb-8 rounded-xl"
           />
         )
       }
       <div class="mb-6">
         <p class="text-sm text-primary-600 font-medium">{category}</p>
-        <h1 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+        <h1
+          class="text-5xl scroll-mt-24 font-bold mb-2 text-gray-900 dark:text-white"
+        >
           {title}
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">{date}</p>
