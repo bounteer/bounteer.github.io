@@ -1,7 +1,8 @@
 export const DIRECTUS_URL = 'https://directus.ismail.to';
 
 export default async function fetchAffiliateProgramModel(): Promise<AffiliateProgramResponseData[]> {
-    const activeFilter = "filter[is_active][_eq]=true";
+    const sort = "sort=id";
+    const filter = "filter[is_active][_eq]=true";
     const fields = [
         "id",
         "referral_link",
@@ -14,7 +15,7 @@ export default async function fetchAffiliateProgramModel(): Promise<AffiliatePro
         "tags.tags_id.name"
     ].join(',');
 
-    const url = `${DIRECTUS_URL}/items/affiliate_programs?${activeFilter}&fields=${encodeURIComponent(fields)}`;
+    const url = `${DIRECTUS_URL}/items/affiliate_programs?${sort}&${filter}&fields=${encodeURIComponent(fields)}`;
 
     const res = await fetch(url);
 

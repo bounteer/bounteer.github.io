@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
+import ShareButton from "../../components/interactive/ShareButton";
 
 // Get all slugs for SSG
 export async function getStaticPaths() {
@@ -79,46 +80,7 @@ const category = post.category;
       />
 
       <!-- Share Dropdown -->
-      <div class="relative inline-block mt-8">
-        <button
-          id="share-button"
-          class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-        >
-          Share
-        </button>
-        <div
-          id="share-menu"
-          class="hidden absolute z-10 mt-2 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
-        >
-          <button
-            class="flex items-center w-full px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-800"
-            onclick={`copyLink('${postUrl}')`}
-          >
-            🔗 Copy link
-          </button>
-          <a
-            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(title)}`}
-            target="_blank"
-            class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            🐦 Share on X
-          </a>
-          <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`}
-            target="_blank"
-            class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            📘 Share on Facebook
-          </a>
-          <a
-            href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(postUrl)}&title=${encodeURIComponent(title)}`}
-            target="_blank"
-            class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            💼 Share on LinkedIn
-          </a>
-        </div>
-      </div>
+      <ShareButton client:load postUrl={postUrl} title={title} />
 
       <!-- Author -->
       <div class="flex items-center mt-10 pt-6 border-t dark:border-gray-700">
@@ -135,30 +97,4 @@ const category = post.category;
     </article>
   </main>
   <Footer />
-
-  <script is:client>
-    const button = document.getElementById("share-button");
-    const menu = document.getElementById("share-menu");
-
-    button?.addEventListener("click", () => {
-      menu?.classList.toggle("hidden");
-    });
-
-    window.copyLink = function (url) {
-      navigator.clipboard
-        .writeText(url)
-        .then(() => {
-          alert("Link copied to clipboard!");
-        })
-        .catch(() => {
-          alert("Failed to copy link.");
-        });
-    };
-
-    document.addEventListener("click", (e) => {
-      if (!button.contains(e.target) && !menu.contains(e.target)) {
-        menu?.classList.add("hidden");
-      }
-    });
-  </script>
 </Layout>

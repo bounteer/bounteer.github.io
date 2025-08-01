@@ -2,8 +2,8 @@ const DIRECTUS_URL = 'https://directus.ismail.to';
 
 export default async function fetchBlogPostModel(): Promise<BlogPostResponseData[]> {
     const quality = 50;
-    const filter = "filter[is_enabled][_eq]=true";
     const sort = "sort=-date_created";
+    const filter = "filter[is_enabled][_eq]=true";
     const fields = [
         "id",
         "slug",
