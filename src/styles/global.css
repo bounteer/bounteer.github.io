@@ -199,3 +199,14 @@
 :focus-visible {
   @apply outline-hidden ring-2 ring-primary-500 dark:ring-primary-400;
 }
+
+@layer base {
+  h4 {
+    @apply text-xl md:text-2xl font-semibold mt-8;
+    /* Adds 2rem above every H4 */
+  }
+
+  hr {
+    @apply my-8 border-t border-secondary-200 dark:border-secondary-700;
+  }
+}
