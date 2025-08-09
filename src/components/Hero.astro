@@ -1,8 +1,4 @@
----
-
----
-
-<section class="relative pt-32 pb-20 md:pt-40 overflow-hidden hero-section">
+<section class="relative pt-32 md:pb-8 md:pt-40 overflow-hidden hero-section">
   <div class="container-custom relative z-10">
     <div class="grid md:grid-cols-2 gap-12 items-center">
       <div class="slide-up" transition:animate="slide">
@@ -22,121 +18,55 @@
         </p>
         <div class="flex flex-wrap gap-4">
           <a href="/contact" class="btn-primary"> Contact IsMail </a>
-          <!-- 
-          <a
-            href="https://larryxue.dev"
-            target="_blank"
-            class="btn-outline flex items-center"
+        </div>
+      </div>
+
+      <!-- image location -->
+      <div class="relative fade-in pb-12 md:pb-0" transition:animate="fade">
+        <!-- Resize this wrapper to make both circle + avatar smaller -->
+        <div class="relative w-[50%] max-w-[34rem] mx-auto md:ml-auto">
+          <div
+            class="relative aspect-square w-full flex items-center justify-center"
           >
-            Author
-          </a>
-          <a
-            href="https://github.com/larry-xue/astro-IsMail-template"
-            target="_blank"
-            class="btn-outline flex items-center"
-          >
-            <svg
-              class="w-5 h-5 mr-2"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"
-              ></path>
-            </svg>
-            Repo
-          </a> 
-          -->
-        </div>
-      </div>
-
-      <div class="relative fade-in" transition:animate="fade">
-        <div class="w-full max-w-lg mx-auto">
-          <script
-            src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-            type="module"></script>
-
-          <dotlottie-player
-            src="https://lottie.host/8d32abe9-d016-4c0e-8d96-053a2e49d749/eO4Tc9RcfJ.lottie"
-            background="transparent"
-            speed="1"
-            style="width: 400px; height: 400px"
-            loop
-            autoplay></dotlottie-player>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Teal section at the bottom with Trusted By -->
-  <div class="mt-10 w-full overflow-hidden -z-10" transition:animate="slide">
-    <div class="relative bg-teal-400 dark:bg-teal-500 py-12 md:py-16">
-      <div class="container-custom">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
+            <!-- Orange circle -->
             <div
-              class="text-3xl md:text-4xl font-bold text-black dark:text-black"
+              class="absolute inset-0 rounded-full
+               bg-gradient-to-br from-amber-300 via-orange-400 to-amber-500
+               shadow-2xl"
             >
-              <span class="bg-accent-400 px-2 py-1">AI agent</span> that drives actual
-              sales via emails.
             </div>
-          </div>
 
-          <!--
-          <div class="flex flex-col items-start md:items-end justify-center">
-            <p
-              class="text-sm uppercase tracking-wider text-teal-800 dark:text-teal-800 font-medium mb-4"
-            >
-              TRUSTED BY
-            </p>
-            <div
-              class="flex flex-wrap justify-start md:justify-end gap-x-8 gap-y-4"
-            >
-              <div class="h-8 flex items-center">
-                <span class="text-black dark:text-black font-medium"
-                  >Google</span
-                >
-              </div>
-              <div class="h-8 flex items-center">
-                <span class="text-black dark:text-black font-medium">Apple</span
-                >
-              </div>
-              <div class="h-8 flex items-center">
-                <span class="text-black dark:text-black font-medium"
-                  >Beebole</span
-                >
-              </div>
-              <div class="h-8 flex items-center">
-                <span class="text-black dark:text-black font-medium"
-                  >Deliverect</span
-                >
-              </div>
-            </div>
+            <!-- Avatar -->
+            <img
+              src="/avatar_cropped.png"
+              alt="IsMail avatar"
+              class="relative
+               rounded-full object-cover
+               ring-8 ring-white dark:ring-secondary-900
+               shadow-xl"
+              loading="eager"
+              decoding="async"
+            />
           </div>
-          -->
         </div>
       </div>
+
+      <style>
+        @keyframes float {
+          0% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+          100% {
+            transform: translateY(0px);
+          }
+        }
+        .fade-in svg {
+          animation: float 6s ease-in-out infinite;
+        }
+      </style>
     </div>
   </div>
 </section>
-
-<style>
-  /* Add keyframes for additional animations if needed */
-  @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-    100% {
-      transform: translateY(0px);
-    }
-  }
-
-  /* Apply floating animation to the entire SVG container */
-  .fade-in svg {
-    animation: float 6s ease-in-out infinite;
-  }
-</style>
