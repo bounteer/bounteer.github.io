@@ -20,7 +20,7 @@ const allPages = [
 ---
 
 <header
-  class="fixed w-full bg-white/90 dark:bg-secondary-950/90 backdrop-blur-xs z-50 py-4 transition-colors duration-300"
+  class="fixed w-full bg-white/90 backdrop-blur-xs z-50 py-2 transition-colors duration-300"
 >
   <div class="container-custom relative flex items-center">
     <!-- Logo (left) -->
@@ -30,9 +30,7 @@ const allPages = [
         alt="Logo"
         class="h-10 w-auto"
       />
-      <span
-        class="ml-2 text-xl font-display font-semibold text-secondary-900 dark:text-white"
-      >
+      <span class="ml-2 text-xl font-display font-semibold text-secondary-900">
         {KEYWORDS.name}
       </span>
     </a>
@@ -41,27 +39,27 @@ const allPages = [
     <nav class="hidden md:flex items-center space-x-8 flex-1 justify-center">
       <a
         href="/"
-        class="text-secondary-600 hover:text-primary-600 dark:text-secondary-300 dark:hover:text-primary-400 font-medium transition-colors"
+        class="text-secondary-600 hover:text-accent-600 font-medium transition-colors"
         >Home</a
       >
       <a
         href="/partners"
-        class="text-secondary-600 hover:text-primary-600 dark:text-secondary-300 dark:hover:text-primary-400 font-medium transition-colors"
+        class="text-secondary-600 hover:text-accent-600 font-medium transition-colors"
         >Partners</a
       >
       <a
         href="/blog"
-        class="text-secondary-600 hover:text-primary-600 dark:text-secondary-300 dark:hover:text-primary-400 font-medium transition-colors"
+        class="text-secondary-600 hover:text-accent-600 font-medium transition-colors"
         >Blog</a
       >
       <a
         href="/career"
-        class="text-secondary-600 hover:text-primary-600 dark:text-secondary-300 dark:hover:text-primary-400 font-medium transition-colors"
+        class="text-secondary-600 hover:text-accent-600 font-medium transition-colors"
         >Careers</a
       >
       <a
         href="/contact"
-        class="text-secondary-600 hover:text-primary-600 dark:text-secondary-300 dark:hover:text-primary-400 font-medium transition-colors"
+        class="text-secondary-600 hover:text-accent-600 font-medium transition-colors"
         >Contact</a
       >
 
@@ -71,7 +69,7 @@ const allPages = [
         <button
           @click="open = !open"
           @click.away="open = false"
-          class="flex items-center text-secondary-600 hover:text-primary-600 dark:text-secondary-300 dark:hover:text-primary-400 font-medium transition-colors"
+          class="flex items-center text-secondary-600 hover:text-primary-600 font-medium transition-colors"
         >
           All Pages
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +85,7 @@ const allPages = [
           x-transition:leave="transition ease-in duration-150"
           x-transition:leave-start="opacity-100 scale-100"
           x-transition:leave-end="opacity-0 scale-95"
-          class="absolute left-0 mt-2 w-56 bg-white dark:bg-secondary-900 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden z-50 max-h-96 overflow-y-auto"
+          class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden z-50 max-h-96 overflow-y-auto"
           x-cloak
         >
           <div class="py-2 grid grid-cols-1 gap-1">
@@ -95,7 +93,7 @@ const allPages = [
               allPages.map((page) => (
                 <a
                   href={page.url}
-                  class="block px-4 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800"
+                  class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
                 >
                   {page.text}
                 </a>
@@ -118,7 +116,7 @@ const allPages = [
       <div x-data="{ open: false, showAllPages: false }" class="relative">
         <button
           @click="open = !open"
-          class="md:hidden p-2 rounded-md text-secondary-600 hover:text-secondary-900 dark:text-secondary-300 dark:hover:text-white focus:outline-hidden focus:ring-2 focus:ring-primary-500"
+          class="md:hidden p-2 rounded-md text-secondary-600 hover:text-secondary-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
           aria-label="Toggle menu"
         >
           <svg
@@ -159,27 +157,27 @@ const allPages = [
           x-transition:leave="transition ease-in duration-150"
           x-transition:leave-start="opacity-100 scale-100"
           x-transition:leave-end="opacity-0 scale-95"
-          class="absolute top-12 right-0 w-48 py-2 bg-white dark:bg-secondary-900 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden z-50"
+          class="absolute top-12 right-0 w-48 py-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden z-50"
           x-cloak
         >
           <a
             href="/partners"
-            class="block px-4 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800"
+            class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
             >Partners</a
           >
           <a
             href="/blog"
-            class="block px-4 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800"
+            class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
             >Blog</a
           >
           <a
             href="/career"
-            class="block px-4 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800"
+            class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
             >Careers</a
           >
           <a
             href="/contact"
-            class="block px-4 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800"
+            class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
             >Contact</a
           >
 
@@ -187,19 +185,19 @@ const allPages = [
           <!--
           <button
             @click="showAllPages = !showAllPages"
-            class="w-full text-left px-4 py-2 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800 font-semibold border-t border-gray-200 dark:border-gray-700 mt-1 pt-1 flex items-center justify-between"
+            class="w-full text-left px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100 font-semibold border-t border-gray-200 mt-1 pt-1 flex items-center justify-between"
           >
             All Pages
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :class="{ 'transform rotate-180': showAllPages }">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
           </button>
-          <div x-show="showAllPages" class="py-1 bg-gray-50 dark:bg-secondary-800">
+          <div x-show="showAllPages" class="py-1 bg-gray-50">
             {
               allPages.map((page) => (
                 <a
                   href={page.url}
-                  class="block px-6 py-1 text-sm text-secondary-700 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-700"
+                  class="block px-6 py-1 text-sm text-secondary-700 hover:bg-secondary-100"
                 >
                   {page.text}
                 </a>

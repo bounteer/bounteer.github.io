@@ -44,17 +44,17 @@ export default function ShareButton({ postUrl, title }: Props) {
       {/* Main Share Button */}
       <button
         onClick={() => setIsOpen(!isOpen)} // Toggle the state on click
-        className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
       >
         Share
       </button>
 
       {/* Share Menu: Renders only if `isOpen` is true */}
       {isOpen && (
-        <div className="absolute bottom-full z-10 mb-2 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg flex flex-col">
+        <div className="absolute bottom-full z-10 mb-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col">
           <button
             onClick={copyLink}
-            className="flex items-center w-full px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex items-center w-full px-4 py-2 text-sm text-left hover:bg-gray-100"
           >
             🔗 Copy link
           </button>
@@ -62,7 +62,7 @@ export default function ShareButton({ postUrl, title }: Props) {
             href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(title)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
           >
             🐦 Share on X
           </a>
@@ -70,7 +70,7 @@ export default function ShareButton({ postUrl, title }: Props) {
             href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
           >
             📘 Share on Facebook
           </a>
@@ -78,7 +78,7 @@ export default function ShareButton({ postUrl, title }: Props) {
             href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(postUrl)}&title=${encodeURIComponent(title)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
           >
             💼 Share on LinkedIn
           </a>

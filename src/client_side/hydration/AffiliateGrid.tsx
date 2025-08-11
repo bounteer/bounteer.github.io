@@ -35,7 +35,7 @@ export default function AffiliateGrid() {
                         {/* Top section: name and summary */}
                         <div>
                             <h3 className="text-lg font-display font-semibold mb-2">{partner.name}</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{partner.summary}</p>
+                            <p className="text-sm text-gray-600 mb-3">{partner.summary}</p>
                         </div>
 
                         {/* Bottom section: tags and button */}
@@ -44,7 +44,7 @@ export default function AffiliateGrid() {
                                 {partner.tags.map((tag) => (
                                     <span
                                         key={tag.tags_id.name}
-                                        className="text-xs bg-secondary-100 dark:bg-secondary-800 text-secondary-800 dark:text-secondary-100 px-2 py-1"
+                                        className="text-xs bg-secondary-100 text-secondary-800 px-2 py-1"
                                     >
                                         {tag.tags_id.name}
                                     </span>

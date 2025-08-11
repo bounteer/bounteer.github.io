@@ -83,32 +83,27 @@ const category = post.category;
       }
       <div class="mb-6">
         <p class="text-sm text-primary-600 font-medium">{category}</p>
-        <h1
-          class="text-5xl scroll-mt-24 font-bold mb-2 text-gray-900 dark:text-white"
-        >
+        <h1 class="text-5xl scroll-mt-24 font-bold mb-2 text-gray-900">
           {title}
         </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400">{date}</p>
+        <p class="text-sm text-gray-500">{date}</p>
       </div>
 
-      <div
-        class="prose dark:prose-invert max-w-none mb-10"
-        set:html={content}
-      />
+      <div class="prose max-w-none mb-10" set:html={content} />
 
       <!-- Share Dropdown -->
       <ShareButton client:load postUrl={post_url} title={title} />
 
       <!-- Author -->
-      <div class="flex items-center mt-10 pt-6 border-t dark:border-gray-700">
+      <div class="flex items-center mt-10 pt-6 border-t">
         <img
           src={avatar}
           alt={author}
           class="w-12 h-12 rounded-full mr-4 object-cover"
         />
         <div>
-          <p class="font-semibold text-gray-900 dark:text-white">{author}</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">{role}</p>
+          <p class="font-semibold text-gray-900">{author}</p>
+          <p class="text-sm text-gray-600">{role}</p>
         </div>
       </div>
     </article>

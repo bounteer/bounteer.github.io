@@ -11,7 +11,7 @@ const plans = [
     ],
     cta: "Start For Free",
     popular: true,
-    color: "primary",
+    color: "accent",
   },
   {
     name: "Featured Newsletter & Blog Post",
@@ -22,9 +22,9 @@ const plans = [
       "featured IsMail blogposts",
       "feedback analytics",
     ],
-    cta: "Coming Soon",
+    cta: "Make A Request",
     popular: false,
-    color: "secondary",
+    color: "accent",
   },
   // {
   //   name: "Customized Mailing Service",
@@ -42,18 +42,16 @@ const plans = [
 ];
 ---
 
-<section id="pricing" class="section bg-gray-50 dark:bg-gray-800/50">
+<section id="pricing" class="section bg-gray-50">
   <div class="container-custom">
     <div class="text-center max-w-3xl mx-auto mb-16">
       <span
-        class="inline-block px-4 py-1 rounded-full bg-accent-100 dark:bg-accent-900 text-accent-600 dark:text-accent-300 font-medium text-sm mb-4"
+        class="inline-block px-4 py-1 rounded-full bg-accent-100 text-accent-600 font-medium text-sm mb-4"
       >
         Partnership Plans
       </span>
-      <h2 class="mb-6 text-gray-900 dark:text-white">
-        Simple, Transparent Partnership
-      </h2>
-      <p class="text-gray-600 dark:text-gray-300">
+      <h2 class="mb-6 text-gray-900">Simple, Transparent Partnership</h2>
+      <p class="text-gray-600">
         Choose the plan that works best for your team.
       </p>
     </div>
@@ -62,32 +60,27 @@ const plans = [
       {
         plans.map((plan, index) => (
           <div
-            class={`card p-6 border ${plan.popular ? `border-${plan.color}-500 dark:border-${plan.color}-400` : "border-gray-200 dark:border-gray-700"} slide-up relative`}
+            class={`card p-6 border ${plan.popular ? `border-${plan.color}-500` : "border-gray-200"} slide-up relative`}
             style={`animation-delay: ${index * 150}ms`}
           >
             {plan.popular && (
               <div
-                class={`absolute top-0 right-0 bg-${plan.color}-500 text-white px-4 py-1 text-sm font-medium rounded-bl-lg rounded-tr-lg`}
+                class={`absolute top-0 right-0 bg-accent-500 text-white px-4 py-1 text-sm font-medium rounded-bl-lg rounded-tr-lg`}
               >
                 Most Popular
               </div>
             )}
 
-            <h3 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+            <h3 class="text-xl font-semibold mb-2 text-gray-900">
               {plan.name}
             </h3>
             <div class="mb-4">
-              <span class="text-4xl font-bold text-gray-900 dark:text-white">
+              <span class="text-4xl font-bold text-gray-900">
                 ${plan.price}
               </span>
-              <span class="text-gray-500 dark:text-gray-400">
-                {" "}
-                onboarding price
-              </span>
+              <span class="text-gray-500"> onboarding price</span>
             </div>
-            <p class="text-gray-600 dark:text-gray-300 mb-6">
-              {plan.description}
-            </p>
+            <p class="text-gray-600 mb-6">{plan.description}</p>
 
             <ul class="space-y-3 mb-8">
               {plan.features.map((feature) => (
@@ -104,16 +97,14 @@ const plans = [
                       clip-rule="evenodd"
                     />
                   </svg>
-                  <span class="text-gray-600 dark:text-gray-300">
-                    {feature}
-                  </span>
+                  <span class="text-gray-600">{feature}</span>
                 </li>
               ))}
             </ul>
 
             <a
               href="/contact"
-              class={`w-full btn ${plan.popular ? `bg-${plan.color}-600 hover:bg-${plan.color}-700 text-white focus:ring-${plan.color}-500` : "btn-outline"}`}
+              class={`w-full btn ${plan.popular ? `bg-${plan.color}-500 hover:bg-${plan.color}-700 text-white focus:${plan.color}-500` : "btn-outline"}`}
             >
               {plan.cta}
             </a>
@@ -123,12 +114,10 @@ const plans = [
     </div>
 
     <div class="mt-12 text-center">
-      <p class="text-gray-600 dark:text-gray-300 mb-2">
+      <p class="text-gray-600 mb-2">
         Need a custom plan for your specific needs?
       </p>
-      <a
-        href="/contact"
-        class="text-primary-600 dark:text-primary-400 font-medium hover:underline"
+      <a href="/contact" class="text-accent-600 font-medium hover:underline"
         >Contact IsMail</a
       >
     </div>

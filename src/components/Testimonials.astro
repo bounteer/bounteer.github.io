@@ -27,19 +27,17 @@ const testimonials = [
 ];
 ---
 
-<section id="testimonials" class="section">
+<section id="testimonials" class="section bg-gray-50">
   <div class="container-custom">
     <!-- title -->
     <div class="text-center max-w-3xl mx-auto mb-16">
       <span
-        class="inline-block px-4 py-1 rounded-full bg-secondary-100 dark:bg-secondary-900 text-secondary-600 dark:text-secondary-300 font-medium text-sm mb-4"
+        class="inline-block px-4 py-1 rounded-full bg-accent-100 text-accent-600 font-medium text-sm mb-4"
       >
         Partner Stories
       </span>
-      <h2 class="mb-6 text-gray-900 dark:text-white">
-        What IsMail Partners Say
-      </h2>
-      <p class="text-gray-600 dark:text-gray-300">
+      <h2 class="mb-6 text-gray-900">What IsMail Partners Say</h2>
+      <p class="text-gray-600">
         Don't just take our word for it. Here's what IsMail partners have to say
         about their experience with our platform.
       </p>
@@ -50,7 +48,7 @@ const testimonials = [
       {
         testimonials.map((testimonial, index) => (
           <div
-            class="card p-6 border border-gray-200 dark:border-gray-700 slide-up"
+            class="card p-6 border border-gray-200 slide-up"
             style={`animation-delay: ${index * 150}ms`}
           >
             <div class="mb-6">
@@ -66,7 +64,7 @@ const testimonials = [
               ))}
             </div>
 
-            <blockquote class="mb-6 text-gray-700 dark:text-gray-300 italic">
+            <blockquote class="mb-6 text-gray-700 italic">
               "{testimonial.content}"
             </blockquote>
 
@@ -78,10 +76,8 @@ const testimonials = [
                 loading="lazy"
               />
               <div>
-                <p class="font-semibold text-gray-900 dark:text-white">
-                  {testimonial.author}
-                </p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="font-semibold text-gray-900">{testimonial.author}</p>
+                <p class="text-sm text-gray-500">
                   {testimonial.position}, {testimonial.company}
                 </p>
               </div>

@@ -18,7 +18,7 @@ export default function BlogGrid() {
             {posts.map((post, index) => (
                 <div
                     key={post.slug}
-                    className="card border border-gray-200 dark:border-gray-700 overflow-hidden slide-up"
+                    className="card border border-gray-200 overflow-hidden slide-up"
                     style={{ animationDelay: `${index * 100}ms` }}
                 >
                     <a href={`/blog/${post.slug}`} className="block">
@@ -31,19 +31,19 @@ export default function BlogGrid() {
                     </a>
                     <div className="p-6">
                         <div className="flex items-center mb-4">
-                            <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
+                            <span className="text-sm font-medium text-primary-600">
                                 {post.category}
                             </span>
-                            <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">{post.date}</span>
+                            <span className="mx-2 text-gray-300">•</span>
+                            <span className="text-sm text-gray-500">{post.date}</span>
                         </div>
 
                         <a href={`/blog/${post.slug}`} className="block mb-3">
-                            <h2 className="text-xl line-clamp-1 font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                            <h2 className="text-xl line-clamp-1 font-semibold text-gray-900 hover:text-primary-600 transition-colors">
                                 {post.title}
                             </h2>
                         </a>
-                        <p className="text-gray-600 dark:text-gray-300 mb-6 line-clamp-3">{post.excerpt}</p>
+                        <p className="text-gray-600 mb-6 line-clamp-3">{post.excerpt}</p>
                         <div className="flex items-center">
                             <img
                                 src={post.authorAvatar}
@@ -52,8 +52,8 @@ export default function BlogGrid() {
                                 loading="lazy"
                             />
                             <div>
-                                <p className="font-medium text-gray-900 dark:text-white">{post.author}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{post.authorRole}</p>
+                                <p className="font-medium text-gray-900">{post.author}</p>
+                                <p className="text-sm text-gray-500">{post.authorRole}</p>
                             </div>
                         </div>
                     </div>

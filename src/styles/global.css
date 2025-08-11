@@ -1,10 +1,9 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:is(.dark *));
 
 @theme {
   /* Sleek Indigo / Violet */
-    --color-primary-50: #f5f7ff;
+  --color-primary-50: #f5f7ff;
     --color-primary-100: #e7edff;
     --color-primary-200: #c9d6ff;
     --color-primary-300: #a5b4fc;
@@ -16,7 +15,7 @@
     --color-primary-900: #312e81;
     --color-primary-950: #1e1b4b;
 
-/* Sleek Graphite Gray */
+  /* Sleek Graphite Gray */
   --color-secondary-50: #f9fafb;
   --color-secondary-100: #f3f4f6;
   --color-secondary-200: #e5e7eb;
@@ -29,7 +28,7 @@
   --color-secondary-900: #111827;
   --color-secondary-950: #0a0f1c;
 
-/* Sleek Tangerine Orange (Accent) */
+  /* Sleek Tangerine Orange (Accent) */
   --color-accent-50: #fff7ed;
   --color-accent-100: #ffedd5;
   --color-accent-200: #fed7aa;
@@ -42,7 +41,7 @@
   --color-accent-900: #7c2d12;
   --color-accent-950: #431407;
 
-/* Sleek Amber Warning */
+  /* Sleek Amber Warning */
   --color-warning-50: #fffbea;
   --color-warning-100: #fef3c7;
   --color-warning-200: #fde68a;
@@ -57,8 +56,8 @@
 
   --font-sans: Inter, system-ui, sans-serif;
   --font-display: Lexend, system-ui, sans-serif;
-    /* --font-display: "Segoe UI", Roboto, sans-serif; */
-      /* --font-display: 'Playfair Display', serif; */
+  /* --font-display: "Segoe UI", Roboto, sans-serif; */
+    /* --font-display: 'Playfair Display', serif; */
 
   --animate-fade-in: fadeIn 0.5s ease-in-out;
   --animate-slide-up: slideUp 0.5s ease-in-out;
@@ -68,25 +67,30 @@
     0% {
       opacity: 0;
     }
+
     100% {
       opacity: 1;
     }
   }
+
   @keyframes slideUp {
     0% {
       transform: translateY(20px);
       opacity: 0;
     }
+
     100% {
       transform: translateY(0);
       opacity: 1;
     }
   }
+
   @keyframes slideDown {
     0% {
       transform: translateY(-20px);
       opacity: 0;
     }
+
     100% {
       transform: translateY(0);
       opacity: 1;
@@ -103,6 +107,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -114,25 +119,27 @@
 
 @utility btn {
   /* @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 focus:outline-hidden; */
-    @apply inline-flex items-center justify-center px-6 py-3 font-medium transition-all duration-300 focus:outline-hidden;
+  @apply inline-flex items-center justify-center px-6 py-3 font-medium transition-all duration-300 focus:outline-hidden;
 }
 
 @utility btn-primary {
-  /* @apply btn bg-accent-400 hover:bg-accent-500 text-black shadow-md hover:shadow-lg; */
-    @apply btn bg-accent-400 hover:bg-accent-600 text-black;
+  @apply btn bg-accent-400 hover:bg-accent-500 text-black shadow-md hover:shadow-lg;
 }
 
 @utility btn-secondary {
-  /* @apply btn bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg; */
-    @apply btn bg-primary-600 hover:bg-primary-700 text-white;
+  @apply btn bg-accent-600 hover:bg-accent-600 text-white shadow-md hover:shadow-lg;
 }
 
 @utility btn-accent {
-  @apply btn bg-accent-500 hover:bg-accent-600 text-black shadow-md hover:shadow-lg;
+  @apply btn bg-accent-600 hover:bg-accent-600 text-white shadow-md hover:shadow-lg;
 }
 
 @utility btn-outline {
-  @apply btn border-2 border-secondary-300 dark:border-secondary-700 hover:bg-secondary-100 dark:hover:bg-secondary-800 text-secondary-900 dark:text-secondary-100;
+  @apply btn border-2 border-secondary-300 hover:bg-secondary-100 text-secondary-900;
+  }
+  
+  @utility card {
+    @apply bg-white shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-secondary-200;
 }
 
 @utility container-custom {
@@ -143,37 +150,38 @@
   @apply py-16 md:py-24;
 }
 
-@utility card {
-  /* @apply bg-white dark:bg-secondary-900 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-secondary-200 dark:border-secondary-800; */
-    @apply bg-white dark:bg-secondary-900 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-secondary-200 dark:border-secondary-800;
-}
 
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
+h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-display;
   }
-  
+
   h1 {
     /* @apply text-4xl md:text-5xl lg:text-6xl font-bold; */
-      @apply text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight;
+    @apply text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight;
   }
-  
+
   h2 {
     /* @apply text-3xl md:text-4xl font-bold; */
-      @apply text-3xl md:text-4xl font-medium tracking-tight;
+    @apply text-3xl md:text-4xl font-medium tracking-tight;
   }
-  
+
   h3 {
     @apply text-2xl md:text-3xl font-semibold;
   }
-  
+
   h4 {
     @apply text-xl md:text-2xl font-semibold;
   }
-  
+
   p {
     /* @apply text-base md:text-lg leading-relaxed; */
-      @apply text-base md:text-lg leading-8;
+    @apply text-base md:text-lg leading-8;
   }
 }
 
@@ -195,9 +203,8 @@
   @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
 }
 
-/* Focus styles for keyboard navigation */
 :focus-visible {
-  @apply outline-hidden ring-2 ring-primary-500 dark:ring-primary-400;
+  @apply outline-hidden ring-2 ring-primary-500;
 }
 
 @layer base {
@@ -207,6 +214,6 @@
   }
 
   hr {
-    @apply my-8 border-t border-secondary-200 dark:border-secondary-700;
+    @apply my-8 border-t border-secondary-200;
   }
 }

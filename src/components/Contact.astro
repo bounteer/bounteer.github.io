@@ -2,19 +2,17 @@
 import { KEYWORDS } from "../constant";
 ---
 
-<section id="contact" class="section bg-gray-50 dark:bg-gray-800/50">
+<section id="contact" class="section bg-gray-50/50">
   <div class="container-custom">
     <div class="grid md:grid-cols-2 gap-12">
       <div class="slide-up">
         <span
-          class="inline-block px-4 py-1 rounded-full bg-secondary-100 dark:bg-secondary-900 text-secondary-600 dark:text-secondary-300 font-medium text-sm mb-4"
+          class="inline-block px-4 py-1 rounded-full bg-accent-100 text-accent-600 font-medium text-sm mb-4"
         >
           Get In Touch
         </span>
-        <h2 class="mb-6 text-gray-900 dark:text-white">
-          We'd Love to Hear From You
-        </h2>
-        <p class="text-gray-600 dark:text-gray-300 mb-8">
+        <h2 class="mb-6 text-gray-900">We'd Love to Hear From You</h2>
+        <p class="text-gray-600 mb-8">
           Let's get IsMail onboarded into your team or need help getting
           started? Our team is here to assist you every step of the way.
         </p>
@@ -38,10 +36,8 @@ import { KEYWORDS } from "../constant";
               </svg>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                Email Us
-              </h3>
-              <p class="text-gray-600 dark:text-gray-300">{KEYWORDS.email}</p>
+              <h3 class="text-lg font-semibold text-gray-900">Email Us</h3>
+              <p class="text-gray-600">{KEYWORDS.email}</p>
             </div>
           </div>
           <!-- 
@@ -63,10 +59,10 @@ import { KEYWORDS } from "../constant";
               </svg>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 class="text-lg font-semibold text-gray-900">
                 Call Us
               </h3>
-              <p class="text-gray-600 dark:text-gray-300">+1 (555) 123-4567</p>
+              <p class="text-gray-600">+1 (555) 123-4567</p>
             </div>
           </div>
 
@@ -93,10 +89,10 @@ import { KEYWORDS } from "../constant";
               </svg>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 class="text-lg font-semibold text-gray-900">
                 Visit Us
               </h3>
-              <p class="text-gray-600 dark:text-gray-300">
+              <p class="text-gray-600">
                 123 SaaS Street, Tech City, TC 12345
               </p>
             </div>
@@ -106,13 +102,13 @@ import { KEYWORDS } from "../constant";
 
         <!-- 
         <div class="mt-8">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">
             Follow Us
           </h3>
           <div class="flex space-x-4">
             <a
               href="#"
-              class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+              class="text-gray-500 hover:text-primary-600 transition-colors"
               aria-label="Twitter"
             >
               <svg
@@ -128,7 +124,7 @@ import { KEYWORDS } from "../constant";
             </a>
             <a
               href="#"
-              class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+              class="text-gray-500 hover:text-primary-600 transition-colors"
               aria-label="LinkedIn"
             >
               <svg
@@ -144,7 +140,7 @@ import { KEYWORDS } from "../constant";
             </a>
             <a
               href="#"
-              class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+              class="text-gray-500 hover:text-primary-600 transition-colors"
               aria-label="Facebook"
             >
               <svg
@@ -160,7 +156,7 @@ import { KEYWORDS } from "../constant";
             </a>
             <a
               href="#"
-              class="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+              class="text-gray-500 hover:text-primary-600 transition-colors"
               aria-label="GitHub"
             >
               <svg
@@ -180,8 +176,8 @@ import { KEYWORDS } from "../constant";
       </div>
 
       <div class="slide-up" style="animation-delay: 150ms">
-        <div class="card p-6 border border-gray-200 dark:border-gray-700">
-          <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">
+        <div class="card p-6 border border-gray-200">
+          <h3 class="text-xl font-semibold mb-6 text-gray-900">
             Send IsMail a Message
           </h3>
 
@@ -191,14 +187,13 @@ import { KEYWORDS } from "../constant";
             <div class="mb-4">
               <label
                 for="name"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >Name</label
+                class="block text-sm font-medium text-gray-700 mb-1">Name</label
               >
               <input
                 type="text"
                 id="name"
                 x-model="name"
-                class="w-full px-4 py-2 border border-secondary-300 dark:border-secondary-700 bg-white dark:bg-secondary-900 text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400"
+                class="w-full px-4 py-2 border border-secondary-300 bg-white text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
                 placeholder="Your name"
               />
               <p
@@ -212,14 +207,14 @@ import { KEYWORDS } from "../constant";
             <div class="mb-4">
               <label
                 for="contact-email"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 mb-1"
                 >Email</label
               >
               <input
                 type="email"
                 id="contact-email"
                 x-model="email"
-                class="w-full px-4 py-2 border border-secondary-300 dark:border-secondary-700 bg-white dark:bg-secondary-900 text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400"
+                class="w-full px-4 py-2 border border-secondary-300 bg-white text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
                 placeholder="Your email"
               />
               <p
@@ -233,14 +228,14 @@ import { KEYWORDS } from "../constant";
             <div class="mb-6">
               <label
                 for="message"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 mb-1"
                 >Message</label
               >
               <textarea
                 id="message"
                 x-model="message"
                 rows="5"
-                class="w-full px-4 py-2 border border-secondary-300 dark:border-secondary-700 bg-white dark:bg-secondary-900 text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400"
+                class="w-full px-4 py-2 border border-secondary-300 bg-white text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
                 placeholder="Your message"></textarea>
               <p
                 class="text-red-500 text-sm mt-1"
@@ -294,7 +289,7 @@ import { KEYWORDS } from "../constant";
             </div>
 
             <div
-              class="text-center p-6 bg-primary-50 dark:bg-primary-900/30 rounded-lg"
+              class="text-center p-6 bg-primary-50/30 rounded-lg"
               x-show="submitted"
               x-cloak
             >
@@ -311,12 +306,10 @@ import { KEYWORDS } from "../constant";
                   stroke-width="2"
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              <h3
-                class="text-xl font-semibold text-gray-900 dark:text-white mb-2"
-              >
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">
                 Message Sent!
               </h3>
-              <p class="text-gray-600 dark:text-gray-300">
+              <p class="text-gray-600">
                 Thank you for reaching out. We'll get back to you as soon as
                 possible.
               </p>

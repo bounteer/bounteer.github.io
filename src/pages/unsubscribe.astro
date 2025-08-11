@@ -10,9 +10,7 @@ import Footer from "../components/Footer.astro";
         <section class="py-20 md:py-32">
             <div class="container-custom text-center" id="content">
                 <!-- JavaScript dynamically updates this -->
-                <p class="text-gray-600 dark:text-gray-300">
-                    Processing your request...
-                </p>
+                <p class="text-gray-600">Processing your request...</p>
             </div>
         </section>
     </main>
@@ -28,7 +26,7 @@ import Footer from "../components/Footer.astro";
         if (!email) {
             content.innerHTML = `
         <h1 class="text-4xl font-bold text-red-500 mb-4">Email Required</h1>
-        <p class="text-xl text-gray-600 dark:text-gray-300">Please provide an email address to unsubscribe.</p>
+        <p class="text-xl text-gray-600">Please provide an email address to unsubscribe.</p>
       `;
             document.title = "Email Required - IsMail";
             return;
@@ -48,8 +46,8 @@ import Footer from "../components/Footer.astro";
 
             if (response.ok) {
                 content.innerHTML = `
-          <h1 class="text-4xl font-bold text-primary-600 dark:text-primary-400 mb-4">Unsubscribed Successfully</h1>
-          <p class="text-xl text-gray-600 dark:text-gray-300">
+          <h1 class="text-4xl font-bold text-primary-600 mb-4">Unsubscribed Successfully</h1>
+          <p class="text-xl text-gray-600">
             The email <strong>${email}</strong> has been opted out successfully.
           </p>
         `;
@@ -60,7 +58,7 @@ import Footer from "../components/Footer.astro";
         } catch (err) {
             content.innerHTML = `
         <h1 class="text-4xl font-bold text-red-500 mb-4">Error</h1>
-        <p class="text-xl text-gray-600 dark:text-gray-300">Something went wrong: ${err.message}</p>
+        <p class="text-xl text-gray-600">Something went wrong: ${err.message}</p>
       `;
             document.title = "Error - IsMail";
         }
