@@ -9,14 +9,14 @@ export const JOBS = [
         title: "Business Development Manager",
         location: "Remote",
         description:
-            "We are looking for an ambitious and energetic Business Development Manager to help us expand our clientele. You will be the front of the company and will have the dedication to create and apply an effective sales strategy.",
+            "We’re seeking a driven and visionary Business Development Manager to spearhead our client acquisition and growth initiatives. In this role, you’ll represent the face of our company, forging strategic partnerships, identifying new market opportunities, and executing high-impact sales strategies. If you’re passionate about building relationships, closing deals, and driving measurable business growth, we’d love to have you on our team.",
         tags: ["BD", "7+ Years Experience"],
     },
     {
         title: "AI Automation Intern",
         location: "Remote",
         description:
-            "We're looking for an aspirant who wants to explore career in AI automation insdustry. You will have hands on experience setting up N8N automation and software development.",
+            "Join us as an AI Automation Intern and gain hands-on experience at the forefront of the AI automation industry. You’ll work directly with our technical team to design and implement N8N workflows, assist in software development projects, and explore real-world applications of cutting-edge AI tools. This is a unique opportunity to develop valuable skills, contribute to live projects, and kickstart your career in one of the fastest-growing tech sectors.",
         tags: ["N8N"],
     },
     // {
