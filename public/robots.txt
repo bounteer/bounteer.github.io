@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Keep crawlers out of non-public areas
+Disallow: /admin/
+Disallow: /dashboard/
+
+# Point to your sitemap (adjust the domain)
+Sitemap: https://ismail.to/sitemap.xml
