@@ -1,4 +1,6 @@
 ---
+import { Image } from "astro:assets";
+import IsmailRoundedSquareOrange from "../assets/ismail_rounded_square_orange.png";
 import { KEYWORDS } from "../constant";
 
 const allPages = [
@@ -25,10 +27,11 @@ const allPages = [
   <div class="container-custom relative flex items-center">
     <!-- Logo (left) -->
     <a href="/" class="flex items-center" aria-label="Go to homepage">
-      <img
-        src="/ismail_rounded_square_orange.png"
+      <Image
+        src={IsmailRoundedSquareOrange}
         alt="Logo"
         class="h-10 w-auto"
+        loading="eager"
       />
       <span class="ml-2 text-xl font-display font-semibold text-secondary-900">
         {KEYWORDS.name}

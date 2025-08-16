@@ -1,5 +1,7 @@
 ---
 import { KEYWORDS } from "../constant";
+import { Image } from "astro:assets";
+import IsmailRoundedSquareOrange from "../assets/ismail_rounded_square_orange.png";
 
 const currentYear = new Date().getFullYear();
 
@@ -49,9 +51,10 @@ const footerLinks = [
       <div class="md:col-span-2 lg:col-span-2">
         <a href="/" class="flex items-center mb-6" aria-label="Go to homepage">
           <!-- Favicon image -->
-          <img
-            src="/ismail_rounded_square_orange.png"
+          <Image
+            src={IsmailRoundedSquareOrange}
             alt="Logo"
+            loading="lazy"
             class="h-10 w-auto"
           />
           <span
@@ -176,7 +179,7 @@ const footerLinks = [
             >Terms of Service</a
           >
           <a
-            href="#"
+            href="/"
             class="text-gray-400 hover:text-primary-400 text-sm transition-colors"
             >Cookie Policy</a
           >
