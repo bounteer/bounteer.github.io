@@ -1,4 +1,5 @@
 ---
+import { EXTERNAL_LINKS } from "../constant";
 const plans = [
   {
     name: "Cost-Per-Sale (CPS) Affiliate",
@@ -10,7 +11,7 @@ const plans = [
       "free onboarding",
     ],
     cta: "Start For Free",
-    link: "https://form.typeform.com/to/FOz4fXGm",
+    link: EXTERNAL_LINKS.onboarding_form,
     popular: true,
     color: "accent",
   },
@@ -67,7 +68,7 @@ const plans = [
           >
             {plan.popular && (
               <div
-                class={`absolute top-0 right-0 bg-accent-500 text-white px-4 py-1 text-sm font-medium rounded-bl-lg rounded-tr-lg`}
+                class={`absolute top-0 right-0 bg-accent-600 text-white px-4 py-1 text-sm font-medium rounded-bl-lg`}
               >
                 Most Popular
               </div>
@@ -106,7 +107,7 @@ const plans = [
 
             <a
               href={`${plan.link}`}
-              class={`w-full btn ${plan.popular ? `bg-${plan.color}-500 hover:bg-${plan.color}-700 text-white focus:${plan.color}-500` : "btn-outline"}`}
+              class={`w-full btn ${plan.popular ? `bg-${plan.color}-600 hover:bg-${plan.color}-700 text-white` : "btn-outline"}`}
             >
               {plan.cta}
             </a>

@@ -127,7 +127,7 @@
 }
 
 @utility btn-secondary {
-  @apply btn bg-accent-600 hover:bg-accent-600 text-white shadow-md hover:shadow-lg;
+  @apply btn bg-accent-600 hover:bg-accent-700 text-white shadow-md hover:shadow-lg;
 }
 
 @utility btn-accent {

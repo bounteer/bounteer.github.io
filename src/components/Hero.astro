@@ -4,32 +4,14 @@ import IsmailSquare from "../assets/ismail_square_clear.png"; // adjust path
 ---
 
 <section
-  class="relative pt-32 md:pb-20 md:pt-40 overflow-hidden hero-section bg-gray-50"
+  class="relative pt-32 pb-10 lg:pt-40 lg:pb-20 overflow-hidden hero-section bg-gray-50 antialiased"
 >
   <div class="container-custom relative z-10">
-    <div class="grid md:grid-cols-2 gap-12 items-center">
-      <div class="slide-up" transition:animate="slide">
-        <h1 class="mb-6 text-secondary-900 leading-tight">
-          Your
-          <span class="text-accent-600">Ultimate</span>
-          <br />
-          Sales Email Agent
-        </h1>
-        <p class="text-xl text-secondary-600 mb-8 max-w-lg">
-          IsMail is your AI-powered sales partner, reaching thousands of leads
-          with precision and impact.
-          <br />
-          No upfront fees. You pay only for results.
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <a href="/contact" class="btn-primary"> Contact IsMail </a>
-        </div>
-      </div>
-
-      <!-- image location -->
-      <div class="relative fade-in pb-12 md:pb-0" transition:animate="fade">
-        <!-- Resize this wrapper to make both circle + avatar smaller -->
-        <div class="relative w-[50%] max-w-[34rem] mx-auto md:ml-auto">
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <!-- left: image location -->
+      <div class="relative fade-" transition:animate="fade">
+        <!-- Wrapper -->
+        <div class="relative w-56 lg:w-80 mx-auto lg:ml-auto">
           <div
             class="relative aspect-square w-full flex items-center justify-center"
           >
@@ -50,6 +32,29 @@ import IsmailSquare from "../assets/ismail_square_clear.png"; // adjust path
               class="relative rounded-full object-cover ring-8 ring-white shadow-xl"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- right: text location -->
+      <div class="slide-up" transition:animate="slide">
+        <h1
+          class="mb-6 text-secondary-900 leading-[1.1] tracking-tight text-4xl sm:text-5xl lg:text-6xltext-balance"
+        >
+          Your
+          <span class="text-accent-600">Ultimate</span>
+          <br />
+          Sales Email Agent
+        </h1>
+        <p
+          class="text-secondary-600 mb-8 max-w-xl text-lg lg:text-2xl leading-relaxed"
+        >
+          IsMail is your AI-powered sales partner, reaching thousands of email
+          leads with precision and impact.
+          <br />
+          No upfront fees. You pay only for results.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a href="/contact" class="btn-primary"> Contact IsMail </a>
         </div>
       </div>
 
