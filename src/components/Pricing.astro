@@ -10,6 +10,7 @@ const plans = [
       "free onboarding",
     ],
     cta: "Start For Free",
+    link: "https://form.typeform.com/to/FOz4fXGm",
     popular: true,
     color: "accent",
   },
@@ -23,6 +24,7 @@ const plans = [
       "feedback analytics",
     ],
     cta: "Make A Request",
+    link: "/contact",
     popular: false,
     color: "accent",
   },
@@ -103,7 +105,7 @@ const plans = [
             </ul>
 
             <a
-              href="/contact"
+              href={`${plan.link}`}
               class={`w-full btn ${plan.popular ? `bg-${plan.color}-500 hover:bg-${plan.color}-700 text-white focus:${plan.color}-500` : "btn-outline"}`}
             >
               {plan.cta}

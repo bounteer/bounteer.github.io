@@ -1,0 +1,99 @@
+---
+/**
+ * OnboardingSteps.astro
+ * A responsive step-by-step "How It Works" section for IsMail.
+ * - Desktop: horizontal timeline
+ * - Mobile: vertical stack
+ * - Uses semantic <ol> and schema.org HowTo for rich snippets
+ */
+const steps = [
+  {
+    title: "Onboard",
+    desc: "Fill out the quick form to join IsMail",
+    icon: "M12 6v12M6 12h12", // plus (iterate)
+  },
+  {
+    title: "Set up affiliate program",
+    desc: "Submit your affiliate program for approval.",
+    icon: "M3 7h18M3 12h18M3 17h18", // sliders-ish
+  },
+  {
+    title: "Launch",
+    desc: "IsMail sends campaigns for your products.",
+    icon: "M12 2a10 10 0 100 20 10 10 0 000-20Zm1 5v5l4 2", // clock-like
+  },
+  {
+    title: "Track Sales Monthly",
+    desc: "Review results and pay only on sales.",
+    icon: "M5 12l4 4L19 6", // success
+  },
+];
+---
+
+<section
+  id="onboarding"
+  class="section py-12 md:py-16 bg-secondary-50"
+  itemscope
+  itemtype="https://schema.org/HowTo"
+>
+  <div class="container-custom">
+    <div class="text-center max-w-3xl mx-auto mb-8 md:mb-8 px-4">
+      <span class="inline-block px-4 py-1 rounded-full bg-accent-100 text-accent-600 font-medium text-sm mb-4">
+        How It Works
+      </span>
+      <h2 class="mb-3 text-gray-900" itemprop="name">
+        Getting Started with IsMail is Simple
+      </h2>
+      <p class="text-gray-600" itemprop="description">
+        Follow these steps to launch your AI sales email agent and start generating results.
+      </p>
+    </div>
+
+    <!-- Timeline -->
+    <ol
+      class=`relative md:grid md:grid-cols-4 gap-6 md:gap-8 px-6 md:px-0`
+      itemprop="step"
+    >
+      {steps.map((s, i) => (
+        <li
+          class="relative group md:text-center mb-8 md:mb-0"
+          itemscope
+          itemprop="HowToStep"
+          itemtype="https://schema.org/HowToStep"
+        >
+          <!-- connector line (desktop) -->
+          <div
+            class="hidden md:block absolute top-6 left-1/2 -translate-x-1/2 w-full h-[2px] bg-secondary-200"
+            aria-hidden="true"
+            style={`width: calc(100% + ${i === 0 ? '0' : '0'}px);`}
+          ></div>
+
+          <!-- node -->
+          <div class="relative z-10 inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md ring-2 ring-secondary-200 mx-auto">
+            <svg viewBox="0 0 24 24" class="w-6 h-6">
+              <path d={s.icon} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+
+          <!-- number -->
+          <div class="mt-3 text-accent-700 font-semibold md:mt-4">
+            Step {i + 1}
+          </div>
+
+          <h3 class="text-lg font-semibold text-gray-900 mt-1" itemprop="name">
+            {s.title}
+          </h3>
+          <p class="text-gray-600 mt-1" itemprop="text">
+            {s.desc}
+          </p>
+        </li>
+      ))}
+    </ol>
+
+    <!-- CTA -->
+    <div class="text-center mt-10 md:mt-12">
+      <a href="https://form.typeform.com/to/FOz4fXGm" class="btn-secondary">Onboard Now</a>
+      <p class="text-xs text-gray-500 mt-2">Takes ~1 minute.</p>
+    </div>
+  </div>
+</section>
