@@ -4,7 +4,7 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import HeroSection from "../components/HeroSection.astro";
 import JobQuirdCard from "../components/JobQuirkCard.astro";
-import { JOBS, FEATURES, JON_QUIRKS } from "../constant";
+import { JOBS, JON_QUIRKS } from "../constant";
 ---
 
 <Layout title="Careers - IsMail">
@@ -15,58 +15,70 @@ import { JOBS, FEATURES, JON_QUIRKS } from "../constant";
       description="We're looking for talents to build the future of email marketing."
     />
 
-    <section class="py-16 bg-gray-50">
+    <section
+      class="section bg-gray-50 relative z-10 overflow-hidden py-12 md:py-16"
+    >
       <div class="container-custom">
-        <div class="max-w-4xl mx-auto">
-          <h2 class="text-3xl font-bold text-gray-900 mb-8">
-            Why Work With Us?
-          </h2>
+        <h2 class="text-3xl font-bold text-gray-900 mb-8">Why Work With Us?</h2>
 
-          <div class="grid md:grid-cols-2 gap-8 mb-16">
+        <div
+          class="grid lg:grid-cols-[300px_minmax(0,1fr)] gap-10 md:gap-12 items-center mb-16"
+        >
+          <!-- Left: IsMail standing image -->
+          <div class="flex justify-center lg:justify-end">
+            <img
+              src="/join_portrait_clear.png"
+              alt="IsMail Character"
+              class="w-40 md:w-48 lg:w-56 h-auto"
+            />
+          </div>
+
+          <!-- Right: 2×2 features grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {JON_QUIRKS.map((feature) => <JobQuirdCard {...feature} />)}
           </div>
+        </div>
 
-          <h2 class="text-3xl font-bold text-gray-900 mb-8">Open Positions</h2>
+        <h2 class="text-3xl font-bold text-gray-900 mb-8">Open Positions</h2>
 
-          <div class="space-y-6 mb-16">
-            {
-              JOBS.map((job, _) => (
-                <div class="card p-6 border border-gray-200 ">
-                  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                    <h3 class="text-xl font-semibold text-gray-900  mb-2 md:mb-0">
-                      {job.title}
-                    </h3>
-                    <span class="inline-block px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
-                      {job.location}
-                    </span>
-                  </div>
-                  <p class="text-gray-600  mb-4">{job.description}</p>
-                  <div class="flex flex-wrap gap-2 mb-6">
-                    {job.tags.map((tag, _) => (
-                      <span class="inline-block px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <a href="/contact" class="btn-secondary">
-                    Apply Now
-                  </a>
+        <div class="space-y-6 mb-16">
+          {
+            JOBS.map((job, _) => (
+              <div class="card p-6 border border-gray-200 ">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                  <h3 class="text-xl font-semibold text-gray-900  mb-2 md:mb-0">
+                    {job.title}
+                  </h3>
+                  <span class="inline-block px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+                    {job.location}
+                  </span>
                 </div>
-              ))
-            }
-          </div>
+                <p class="text-gray-600  mb-4">{job.description}</p>
+                <div class="flex flex-wrap gap-2 mb-6">
+                  {job.tags.map((tag, _) => (
+                    <span class="inline-block px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <a href="/contact" class="btn-secondary">
+                  Apply Now
+                </a>
+              </div>
+            ))
+          }
+        </div>
 
-          <div class="text-center">
-            <h3 class="text-xl font-semibold text-gray-900 mb-4">
-              Don't see a position that fits your skills?
-            </h3>
-            <p class="text-gray-600 mb-6">
-              IsMail is actively looking for talented individuals to join our
-              team. Send IsMail your resume and we'll keep it on file for future
-              opportunities.
-            </p>
-            <a href="/contact" class="btn-secondary">Contact IsMail</a>
-          </div>
+        <div class="text-center">
+          <h3 class="text-xl font-semibold text-gray-900 mb-4">
+            Don't see a position that fits your skills?
+          </h3>
+          <p class="text-gray-600 mb-6">
+            IsMail is actively looking for talented individuals to join our
+            team. Send IsMail your resume and we'll keep it on file for future
+            opportunities.
+          </p>
+          <a href="/contact" class="btn-secondary">Contact IsMail</a>
         </div>
       </div>
     </section>
