@@ -6,10 +6,10 @@ export const KEYWORDS = {
 
 export const JOBS = [
     {
-        title: "Business Development Manager",
+        title: "Vice President of Business Development",
         location: "Remote",
         description:
-            "We’re seeking a driven and visionary Business Development Manager to spearhead our client acquisition and growth initiatives. In this role, you’ll represent the face of our company, forging strategic partnerships, identifying new market opportunities, and executing high-impact sales strategies. If you’re passionate about building relationships, closing deals, and driving measurable business growth, we’d love to have you on our team.",
+            "We’re looking for a dynamic and visionary VP of Business Development to lead our growth strategy and expand our market presence. As a key member of the leadership team, you will shape and drive our client acquisition strategy, build and scale high-value partnerships, and identify emerging opportunities that align with our long-term vision. This role goes beyond closing deals—you’ll architect the roadmap for sustainable revenue growth, mentor a high-performing team, and collaborate cross-functionally to unlock new verticals and markets. If you’re a strategic thinker with a proven track record in scaling businesses, building strong executive- level relationships, and delivering measurable results, we’d be excited to partner with you in shaping the future of our company",
         tags: ["BD", "7+ Years Experience"],
     },
     {
