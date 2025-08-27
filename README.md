@@ -1,6 +1,6 @@
-# IsMail website (Astro)
+# Bounteer website (Astro)
 
-This is the official website code of [IsMail](https://ismail.to). 
+This is the official website code of [Bounteer](https://bounteer.com). 
 
 ## 📦 Project Structure
 
@@ -65,4 +65,4 @@ You can customize these colors by editing the `tailwind.config.mjs` file.
 
 
 ## Dependencies
-- [Self-hosted Directus CMS](directus.ismail.to)
+- [Self-hosted Directus CMS](directus.bounteer.com)
