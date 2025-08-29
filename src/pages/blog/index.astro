@@ -6,8 +6,8 @@ import HeroSection from "../../components/HeroSection.astro";
 import BlogGrid from "../../client_side/hydration/BlogGrid";
 
 // Fetch from your API
-const apiUrl = "https://directus.ismail.to/items/blog_posts"; // replace with real endpoint
-const baseImageUrl = "https://directus.ismail.to/assets/"; // for og_image
+const apiUrl = "https://directus.bounteer.com/items/blog_posts"; // replace with real endpoint
+const baseImageUrl = "https://directus.bounteer.com/assets/"; // for og_image
 
 const res = await fetch(apiUrl);
 if (!res.ok) {
@@ -38,8 +38,8 @@ const categories = [...new Set(posts.map((post) => post.category))];
 ---
 
 <Layout
-  title="Blog - IsMail"
-  description="Latest product updates, feature releases, and company news from IsMail."
+  title="Blog - Bounteer"
+  description="Latest product updates, feature releases, and company news from Bounteer."
 >
   <Header />
   <main>

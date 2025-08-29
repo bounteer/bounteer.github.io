@@ -13,7 +13,7 @@ import { KEYWORDS } from "../constant";
         </span>
         <h2 class="mb-6 text-gray-900">We'd Love to Hear From You</h2>
         <p class="text-gray-600 mb-8">
-          Let's get IsMail onboarded into your team or need help getting
+          Let's get Bounteer onboarded into your team or need help getting
           started? Our team is here to assist you every step of the way.
         </p>
 
@@ -178,7 +178,7 @@ import { KEYWORDS } from "../constant";
       <div class="slide-up" style="animation-delay: 150ms">
         <div class="card p-6 border border-gray-200">
           <h3 class="text-xl font-semibold mb-6 text-gray-900">
-            Send IsMail a Message
+            Send Bounteer a Message
           </h3>
 
           <form
@@ -257,7 +257,7 @@ import { KEYWORDS } from "../constant";
                     errors.email = 'Please enter a valid email';
                   if (!message) errors.message = 'Please enter your message';
                   if (Object.keys(errors).length === 0) {
-                    fetch('https://directus.ismail.to/items/messages', {
+                    fetch('https://directus.bounteer.com/items/messages', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

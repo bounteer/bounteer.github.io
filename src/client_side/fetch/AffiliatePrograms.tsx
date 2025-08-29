@@ -1,4 +1,4 @@
-export const DIRECTUS_URL = 'https://directus.ismail.to';
+export const DIRECTUS_URL = 'https://directus.bounteer.com';
 
 export default async function fetchAffiliateProgramModel(): Promise<AffiliateProgramResponseData[]> {
     const sort = "sort=id";

@@ -4,7 +4,7 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 ---
 
-<Layout title="Unsubscribe - IsMail">
+<Layout title="Unsubscribe - Bounteer">
     <Header />
     <main>
         <section class="py-20 md:py-32">
@@ -28,13 +28,13 @@ import Footer from "../components/Footer.astro";
         <h1 class="text-4xl font-bold text-red-500 mb-4">Email Required</h1>
         <p class="text-xl text-gray-600">Please provide an email address to unsubscribe.</p>
       `;
-            document.title = "Email Required - IsMail";
+            document.title = "Email Required - Bounteer";
             return;
         }
 
         try {
             const response = await fetch(
-                `https://directus.ismail.to/items/subscribers/1`,
+                `https://directus.bounteer.com/items/subscribers/1`,
                 {
                     method: "PATCH",
                     headers: {
@@ -51,7 +51,7 @@ import Footer from "../components/Footer.astro";
             The email <strong>${email}</strong> has been opted out successfully.
           </p>
         `;
-                document.title = "Unsubscribed - IsMail";
+                document.title = "Unsubscribed - Bounteer";
             } else {
                 throw new Error(`HTTP error: ${response.status}`);
             }
@@ -60,7 +60,7 @@ import Footer from "../components/Footer.astro";
         <h1 class="text-4xl font-bold text-red-500 mb-4">Error</h1>
         <p class="text-xl text-gray-600">Something went wrong: ${err.message}</p>
       `;
-            document.title = "Error - IsMail";
+            document.title = "Error - Bounteer";
         }
     });
 </script>

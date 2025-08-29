@@ -1,4 +1,4 @@
-const DIRECTUS_URL = 'https://directus.ismail.to';
+const DIRECTUS_URL = 'https://directus.bounteer.com';
 
 export default async function fetchBlogPostModel(): Promise<BlogPostResponseData[]> {
     const quality = 50;

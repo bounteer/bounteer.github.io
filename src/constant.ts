@@ -2,9 +2,9 @@ export const EXTERNAL_LINKS = {
     onboarding_form: "https://form.typeform.com/to/FOz4fXGm"
 }
 export const KEYWORDS = {
-    name: "IsMail",
-    email: "join@ismail.to",
-    metaKeywords: ["IsMail", "sales", "ambient", "agent", "AI", "digital", "marketing", "social", "technology"].join(", "),
+    name: "Bounteer",
+    email: "join@bounteer.com",
+    metaKeywords: ["Bounteer", "sales", "ambient", "agent", "AI", "digital", "marketing", "social", "technology"].join(", "),
 };
 
 export const JOBS = [

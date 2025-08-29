@@ -6,4 +6,4 @@ Disallow: /admin/
 Disallow: /dashboard/
 
 # Point to your sitemap (adjust the domain)
-Sitemap: https://ismail.to/sitemap-index.xml
+Sitemap: https://bounteer.com/sitemap-index.xml

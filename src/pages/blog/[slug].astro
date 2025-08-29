@@ -7,7 +7,7 @@ import ShareButton from "../../components/interactive/ShareButton";
 // Get all slugs for SSG
 export async function getStaticPaths() {
   const res = await fetch(
-    "https://directus.ismail.to/items/blog_posts?fields=slug&filter[is_enabled][_eq]=true",
+    "https://directus.bounteer.com/items/blog_posts?fields=slug&filter[is_enabled][_eq]=true",
   );
   if (!res.ok) throw new Error("Failed to fetch slugs");
   const data = await res.json();
@@ -19,9 +19,9 @@ export async function getStaticPaths() {
 // Get post content
 const { slug } = Astro.params;
 
-const post_url = `https://ismail.to/blog/${slug}`;
-const apiUrl = `https://directus.ismail.to/items/blog_posts?filter[slug][_eq]=${slug}&fields=*,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`;
-const baseImageUrl = "https://directus.ismail.to/assets/";
+const post_url = `https://bounteer.com/blog/${slug}`;
+const apiUrl = `https://directus.bounteer.com/items/blog_posts?filter[slug][_eq]=${slug}&fields=*,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`;
+const baseImageUrl = "https://directus.bounteer.com/assets/";
 
 const res = await fetch(apiUrl);
 if (!res.ok) throw new Error("Failed to fetch blog post");
