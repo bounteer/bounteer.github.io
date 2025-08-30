@@ -1,0 +1,214 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+
+const DIRECTUS_URL = import.meta.env.PUBLIC_DIRECTUS_URL;
+const READ_TOKEN = import.meta.env.PUBLIC_DIRECTUS_READ_TOKEN;
+const WS_URL = import.meta.env.PUBLIC_WS_URL || "";
+const id = Astro.url.searchParams.get("id");
+---
+
+<Layout title={`Report ${id ? "#" + id : ""} - Bounteer`}>
+  <Header />
+
+  <main class="py-16 bg-white">
+    <div class="container-custom max-w-4xl mx-auto">
+      <div
+        class="relative rounded-2xl border border-gray-200 shadow-xl p-8 bg-white"
+        x-data="(() => {
+          const cfg = $el.dataset;
+          return {
+            // config
+            submissionId: cfg.id,
+            directusUrl: cfg.directusUrl,
+            readToken: cfg.readToken,
+            wsUrl: cfg.wsUrl,
+
+            // state
+            loading: true,
+            status: 'uploaded',
+            error: '',
+            report: null,
+
+            pretty(obj){ try{ return JSON.stringify(obj, null, 2); } catch { return '—'; } },
+
+            async init(){
+              if(!this.submissionId) return;
+              await this.fetchSubmission();
+              if(this.status !== 'completed'){
+                this.openWs();
+                this.startPolling();
+              }
+            },
+
+            async fetchSubmission(){
+              try{
+                this.loading = true;
+                // adjust fields to match your schema
+                const res = await fetch(`${this.directusUrl}/items/submissions/${this.submissionId}?fields=id,status,report,score,highlights`, {
+                  headers: { Authorization: `Bearer ${this.readToken}` }
+                });
+                const json = await res.json();
+                if(!res.ok) throw new Error(json?.errors?.[0]?.message || 'Fetch failed');
+                const data = json?.data || {};
+                this.status = data.status || 'uploaded';
+                this.report = data.report || { score: data.score, highlights: data.highlights };
+                this.error = '';
+              }catch(e){
+                this.error = e?.message || 'Unexpected error';
+              }finally{
+                this.loading = false;
+              }
+            },
+
+            openWs(){
+              if(!this.wsUrl) return;
+              try{
+                const url = new URL(this.wsUrl);
+                url.searchParams.set('submission_id', this.submissionId);
+                const ws = new WebSocket(url.toString());
+                ws.onmessage = async (evt) => {
+                  try{
+                    const msg = JSON.parse(evt.data);
+                    if(msg?.type === 'report_ready' && String(msg?.submission_id) === String(this.submissionId)){
+                      await this.fetchSubmission();
+                    }
+                  }catch{}
+                };
+              }catch{}
+            },
+
+            startPolling(){
+              const check = async () => {
+                await this.fetchSubmission();
+                return this.status === 'completed';
+              };
+              let tries = 0;
+              const timer = setInterval(async () => {
+                tries++;
+                const done = await check();
+                if(done || tries > 30) clearInterval(timer); // ~2 minutes
+              }, 4000);
+            }
+          }
+        })()"
+        x-init="init()"
+        data-id={id || ""}
+        data-directus-url={DIRECTUS_URL}
+        data-read-token={READ_TOKEN}
+        data-ws-url={WS_URL}
+      >
+        <template x-if="!submissionId">
+          <div class="text-center py-20 text-gray-500">
+            <p>
+              No <code>id</code> provided. Visit this page as <code
+                >/score/report?id=123</code
+              >.
+            </p>
+          </div>
+        </template>
+
+        <template x-if="submissionId">
+          <div>
+            <!-- overlay while loading/waiting -->
+            <div
+              x-show="loading || status!=='completed'"
+              class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+            >
+              <div class="flex flex-col items-center gap-4">
+                <svg class="h-10 w-10 animate-spin" viewBox="0 0 24 24">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    fill="none"
+                    opacity="0.25"></circle>
+                  <path
+                    d="M4 12a8 8 0 018-8"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    fill="none"></path>
+                </svg>
+                <p
+                  class="text-sm text-gray-700"
+                  x-text="loading ? 'Loading…' : 'Generating report…'"
+                >
+                </p>
+              </div>
+            </div>
+
+            <h1 class="text-2xl font-semibold text-gray-900 mb-4">Report</h1>
+            <p class="text-sm text-gray-500 mb-6">
+              Submission ID: <span x-text="submissionId"></span>
+            </p>
+
+            <template x-if="error">
+              <div
+                class="mb-6 p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+                x-text="error"
+              >
+              </div>
+            </template>
+
+            <!-- status pill -->
+            <div class="mb-6">
+              <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                :class="status==='completed' ? 'bg-green-100 text-green-700' :
+                         status==='uploaded'  ? 'bg-amber-100 text-amber-700' :
+                                                'bg-gray-100 text-gray-700'"
+                x-text="status"></span>
+            </div>
+
+            <!-- report content -->
+            <div x-show="status==='completed'">
+              <div class="grid gap-6">
+                <div class="p-4 rounded-xl border">
+                  <h2 class="font-semibold mb-2">Match Score</h2>
+                  <p class="text-3xl font-bold" x-text="report?.score ?? '—'">
+                  </p>
+                </div>
+
+                <div class="p-4 rounded-xl border">
+                  <h2 class="font-semibold mb-2">Highlights</h2>
+                  <ul class="list-disc ml-5 space-y-1">
+                    <template
+                      x-for="item in (report?.highlights || [])"
+                      :key="item"
+                    >
+                      <li x-text="item"></li>
+                    </template>
+                    <template x-if="!report?.highlights?.length">
+                      <li class="text-gray-500">No highlights available.</li>
+                    </template>
+                  </ul>
+                </div>
+
+                <div class="p-4 rounded-xl border">
+                  <h2 class="font-semibold mb-2">Raw JSON</h2>
+                  <pre
+                    class="text-xs bg-gray-50 p-3 rounded-lg overflow-auto"
+                    x-text="pretty(report)">
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-8">
+              <a
+                href="/score"
+                class="text-primary-600 underline hover:text-primary-800"
+                >&larr; New analysis</a
+              >
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
