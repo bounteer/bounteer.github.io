@@ -21,23 +21,17 @@ if (highlightText) {
 ---
 
 <!-- Hero Section -->
-<section
-  class="relative overflow-hidden bg-gradient-to-b from-orange-100 to-white pt-20 md:pt-28 pb-16 md:pb-20"
->
-  <div class="absolute inset-0 z-0 opacity-30">
-    <div class="absolute inset-0 bg-grid-pattern"></div>
-  </div>
-
+<section class="relative overflow-hidden bg-gradient-to-b pt-20 md:pt-28">
   <div class="container-custom relative z-10">
     <div class="text-center max-w-3xl mx-auto px-4">
       <h1
-        class="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 text-gray-900 animate-slide-down"
+        class="text-2xl lg:text-4xl mb-4 md:mb-6 text-gray-900 animate-slide-down"
       >
         {
           highlightText ? (
             <>
               {titleStart}
-              <span class="text-orange-500">{highlightText}</span>
+              <span class="text-primary-500">{highlightText}</span>
               {titleEnd}
             </>
           ) : (
@@ -51,14 +45,6 @@ if (highlightText) {
       >
         {description}
       </p>
-    </div>
-  </div>
-
-  <!-- Animated Shapes -->
-  <div class="absolute -bottom-16 left-0 right-0 flex justify-center">
-    <div
-      class="w-48 md:w-64 h-48 md:h-64 bg-orange-400 rounded-full filter blur-3xl opacity-20 animate-pulse"
-    >
     </div>
   </div>
 </section>

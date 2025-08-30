@@ -2,20 +2,34 @@
 
 
 @theme {
-  /* Sleek Indigo / Violet */
-  --color-primary-50: #f5f7ff;
-    --color-primary-100: #e7edff;
-    --color-primary-200: #c9d6ff;
-    --color-primary-300: #a5b4fc;
-    --color-primary-400: #818cf8;
-    --color-primary-500: #6366f1;
-    --color-primary-600: #4f46e5;
-    --color-primary-700: #4338ca;
-    --color-primary-800: #3730a3;
-    --color-primary-900: #312e81;
-    --color-primary-950: #1e1b4b;
+  /* Coral Red (Primary & Accent) */
+    --color-primary-50: #fff5f5;
+    --color-primary-100: #ffe5e5;
+    --color-primary-200: #ffbaba;
+    --color-primary-300: #ff8f8f;
+    --color-primary-400: #ff6464;
+    --color-primary-500: #ff4040;
+    /* Base coral red */
+    --color-primary-600: #e63636;
+    --color-primary-700: #cc2e2e;
+    --color-primary-800: #a32626;
+    --color-primary-900: #7a1d1d;
+    --color-primary-950: #4d1010;
+  
+    /* Accent = Same Coral Red Scale */
+    --color-accent-50: var(--color-primary-50);
+    --color-accent-100: var(--color-primary-100);
+    --color-accent-200: var(--color-primary-200);
+    --color-accent-300: var(--color-primary-300);
+    --color-accent-400: var(--color-primary-400);
+    --color-accent-500: var(--color-primary-500);
+    --color-accent-600: var(--color-primary-600);
+    --color-accent-700: var(--color-primary-700);
+    --color-accent-800: var(--color-primary-800);
+    --color-accent-900: var(--color-primary-900);
+    --color-accent-950: var(--color-primary-950);
 
-  /* Sleek Graphite Gray */
+  /* Secondary (keep gray scale as-is) */
   --color-secondary-50: #f9fafb;
   --color-secondary-100: #f3f4f6;
   --color-secondary-200: #e5e7eb;
@@ -27,19 +41,6 @@
   --color-secondary-800: #1f2937;
   --color-secondary-900: #111827;
   --color-secondary-950: #0a0f1c;
-
-  /* Sleek Tangerine Orange (Accent) */
-  --color-accent-50: #fff7ed;
-  --color-accent-100: #ffedd5;
-  --color-accent-200: #fed7aa;
-  --color-accent-300: #fdba74;
-  --color-accent-400: #fb923c;
-  --color-accent-500: #f97316;
-  --color-accent-600: #ea580c;
-  --color-accent-700: #c2410c;
-  --color-accent-800: #9a3412;
-  --color-accent-900: #7c2d12;
-  --color-accent-950: #431407;
 
   /* Sleek Amber Warning */
   --color-warning-50: #fffbea;

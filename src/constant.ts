@@ -3,7 +3,7 @@ export const EXTERNAL_LINKS = {
 }
 export const KEYWORDS = {
     name: "Bounteer",
-    email: "join@bounteer.com",
+    email: "sho@bounteer.com",
     metaKeywords: ["Bounteer", "sales", "ambient", "agent", "AI", "digital", "marketing", "social", "technology"].join(", "),
 };
 
