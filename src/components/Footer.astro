@@ -1,7 +1,7 @@
 ---
 import { KEYWORDS } from "../constant";
 import { Image } from "astro:assets";
-import IsmailRoundedSquareOrange from "../assets/ismail_rounded_square_orange.png";
+import Icon from "../assets/icon.png";
 
 const currentYear = new Date().getFullYear();
 
@@ -51,12 +51,7 @@ const footerLinks = [
       <div class="md:col-span-2 lg:col-span-2">
         <a href="/" class="flex items-center mb-6" aria-label="Go to homepage">
           <!-- Favicon image -->
-          <Image
-            src={IsmailRoundedSquareOrange}
-            alt="Logo"
-            loading="lazy"
-            class="h-10 w-auto"
-          />
+          <Image src={Icon} alt="Logo" loading="lazy" class="h-10 w-auto" />
           <span
             class="ml-2 text-xl font-display font-semibold text-secondary-900"
           >

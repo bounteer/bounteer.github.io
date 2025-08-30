@@ -1,6 +1,6 @@
 ---
 import { Image } from "astro:assets";
-import IsmailRoundedSquareOrange from "../assets/ismail_rounded_square_orange.png";
+import Icon from "../assets/icon.png";
 import { KEYWORDS, EXTERNAL_LINKS } from "../constant";
 
 const allPages = [
@@ -29,12 +29,7 @@ const allPages = [
   <div class="container-custom relative flex items-center">
     <!-- Logo (left) -->
     <a href="/" class="flex items-center" aria-label="Go to homepage">
-      <Image
-        src={IsmailRoundedSquareOrange}
-        alt="Logo"
-        class="h-10 w-auto"
-        loading="eager"
-      />
+      <Image src={Icon} alt="Logo" class="h-10 w-auto" loading="eager" />
       <span class="ml-2 text-xl font-display font-semibold text-secondary-900">
         {KEYWORDS.name}
       </span>
