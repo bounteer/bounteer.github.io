@@ -81,7 +81,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
 
                   // Create submission
                   this.buttonText = 'Saving submission…';
-                  const subRes = await fetch(`${this.directusUrl}/items/submissions`, {
+                  const subRes = await fetch(`${this.directusUrl}/items/role_fit_score_submission`, {
                     method: 'POST',
                     headers: {
                       Authorization: `Bearer ${this.writeToken}`,
