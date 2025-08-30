@@ -3,7 +3,16 @@ import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 import HeroSection from "../../components/HeroSection.astro";
+
+const DIRECTUS_URL = "https://directus.bounteer.com";
+const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
 ---
+
+<style is:global>
+  [x-cloak] {
+    display: none !important;
+  }
+</style>
 
 <Layout title="Role Fit Score - Bounteer">
   <Header />
@@ -34,7 +43,7 @@ import HeroSection from "../../components/HeroSection.astro";
               fileObj: null,
               error: '',
               step: 0,             // 0 idle, 1 uploading
-              buttonText: 'Analyze Role Fit',
+              buttonText: 'Analyze Role Fit now',
 
               // handlers
               handleFile(file){ this.validateFile(file); },
@@ -49,6 +58,7 @@ import HeroSection from "../../components/HeroSection.astro";
               },
 
               async analyze(){
+                console.log('analyze');
                 try{
                   if(!this.fileObj){ this.error='Please select a PDF'; return; }
                   const jdText = this.$refs.jdInput?.value?.trim();
@@ -93,8 +103,8 @@ import HeroSection from "../../components/HeroSection.astro";
               }
             }
           })()"
-          data-directus-url={import.meta.env.PUBLIC_DIRECTUS_URL}
-          data-write-token={import.meta.env.PUBLIC_DIRECTUS_CLIENT_TOKEN}
+          data-directus-url={DIRECTUS_URL}
+          data-write-token={READ_TOKEN}
         >
           <!-- FULL-CARD OVERLAY -->
           <div
@@ -206,31 +216,16 @@ import HeroSection from "../../components/HeroSection.astro";
             </div>
           </div>
 
-          <div class="mt-10">
+          <!-- BUTTON: visible only when not analyzing -->
+          <div class="mt-10 relative h-12">
             <button
-              class="btn-primary w-full flex items-center justify-center gap-2"
-              :disabled="isBusy || error || !fileObj || !$refs.jdInput.value.trim()"
-              @click="analyze()"
+              x-cloak
+              x-show="!isBusy && step === 0"
+              x-transition.opacity.scale
+              type="button"
+              class="btn-primary w-full h-12 flex items-center justify-center gap-2"
+              @click.prevent="analyze"
             >
-              <svg
-                x-show="isBusy"
-                class="h-5 w-5 animate-spin"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                  fill="none"
-                  opacity="0.25"></circle>
-                <path
-                  d="M4 12a8 8 0 018-8"
-                  stroke="currentColor"
-                  stroke-width="4"
-                  fill="none"></path>
-              </svg>
               <span x-text="buttonText"></span>
             </button>
           </div>

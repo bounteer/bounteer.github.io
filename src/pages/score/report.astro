@@ -3,8 +3,8 @@ import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 
-const DIRECTUS_URL = import.meta.env.PUBLIC_DIRECTUS_URL;
-const READ_TOKEN = import.meta.env.PUBLIC_DIRECTUS_READ_TOKEN;
+const DIRECTUS_URL = "https://directus.bounteer.com";
+const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
 const WS_URL = import.meta.env.PUBLIC_WS_URL || "";
 const id = Astro.url.searchParams.get("id");
 ---
