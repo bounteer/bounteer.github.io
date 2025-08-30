@@ -18,7 +18,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
         "user_created.role.name"
     ].join(',');
 
-    const res = await fetch(`${DIRECTUS_URL}/items/blog_posts?${sort}&${filter}&fields=${fields}`);
+    const res = await fetch(`${DIRECTUS_URL}/items/blog_post?${sort}&${filter}&fields=${fields}`);
     if (!res.ok) {
         throw new Error(`Failed to fetch blog posts: ${res.statusText},\nreturned: ${await res.text()}`);
     }

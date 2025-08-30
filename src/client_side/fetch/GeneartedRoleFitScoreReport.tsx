@@ -17,7 +17,7 @@ export async function waitForSubmissionStatusChange(
             ws.send(
                 JSON.stringify({
                     type: "subscribe",
-                    collection: "blog_posts",
+                    collection: "blog_post",
                     event: "items.update",
                 })
             );
@@ -41,7 +41,7 @@ export async function waitForSubmissionStatusChange(
 
                     // Fetch updated report (report id to be stored at submission ids)
                     // const res = await fetch(
-                    //     `${DIRECTUS_URL}/items/blog_posts/${id}?fields=id,slug,subject,content,category,date_created,og_image,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`,
+                    //     `${DIRECTUS_URL}/items/blog_post/${id}?fields=id,slug,subject,content,category,date_created,og_image,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`,
                     //     {
                     //         headers: {
                     //             Authorization: `Bearer ${accessToken}`,
