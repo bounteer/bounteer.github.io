@@ -5,11 +5,9 @@ import Footer from "../../components/Footer.astro";
 
 const DIRECTUS_URL = "https://directus.bounteer.com";
 const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
-const WS_URL = import.meta.env.PUBLIC_WS_URL || "";
-const id = Astro.url.searchParams.get("id");
 ---
 
-<Layout title={`Report ${id ? "#" + id : ""} - Bounteer`}>
+<Layout title={`Role Fit Report - Bounteer`}>
   <Header />
 
   <main class="py-16 bg-white">
@@ -20,100 +18,57 @@ const id = Astro.url.searchParams.get("id");
           const cfg = $el.dataset;
           return {
             // config
-            submissionId: cfg.id,
+            reportId: '',            // set in init()
             directusUrl: cfg.directusUrl,
             readToken: cfg.readToken,
-            wsUrl: cfg.wsUrl,
 
             // state
             loading: true,
-            status: 'uploaded',
             error: '',
             report: null,
 
             pretty(obj){ try{ return JSON.stringify(obj, null, 2); } catch { return '—'; } },
+            score(){ const r = this.report || {}; return r.score ?? r.data?.score ?? r.report?.score ?? '—'; },
+            highlights(){ const r = this.report || {}; return r.highlights ?? r.data?.highlights ?? r.report?.highlights ?? []; },
 
             async init(){
-              if(!this.submissionId) return;
-              await this.fetchSubmission();
-              if(this.status !== 'completed'){
-                this.openWs();
-                this.startPolling();
-              }
+              // ✅ read id from the URL at runtime
+              this.reportId = new URLSearchParams(window.location.search).get('id') || '';
+              if (!this.reportId) return;
+              await this.fetchReport();
             },
 
-            async fetchSubmission(){
+            async fetchReport(){
+              this.loading = true; this.error = '';
               try{
-                this.loading = true;
-                // adjust fields to match your schema
-                const res = await fetch(`${this.directusUrl}/items/submissions/${this.submissionId}?fields=id,status,report,score,highlights`, {
-                  headers: { Authorization: `Bearer ${this.readToken}` }
-                });
+                const url = `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}?fields=*.*`;
+                const res = await fetch(url, { headers: { Authorization: `Bearer ${this.readToken}` } });
                 const json = await res.json();
-                if(!res.ok) throw new Error(json?.errors?.[0]?.message || 'Fetch failed');
-                const data = json?.data || {};
-                this.status = data.status || 'uploaded';
-                this.report = data.report || { score: data.score, highlights: data.highlights };
-                this.error = '';
-              }catch(e){
-                this.error = e?.message || 'Unexpected error';
-              }finally{
-                this.loading = false;
-              }
-            },
-
-            openWs(){
-              if(!this.wsUrl) return;
-              try{
-                const url = new URL(this.wsUrl);
-                url.searchParams.set('submission_id', this.submissionId);
-                const ws = new WebSocket(url.toString());
-                ws.onmessage = async (evt) => {
-                  try{
-                    const msg = JSON.parse(evt.data);
-                    if(msg?.type === 'report_ready' && String(msg?.submission_id) === String(this.submissionId)){
-                      await this.fetchSubmission();
-                    }
-                  }catch{}
-                };
-              }catch{}
-            },
-
-            startPolling(){
-              const check = async () => {
-                await this.fetchSubmission();
-                return this.status === 'completed';
-              };
-              let tries = 0;
-              const timer = setInterval(async () => {
-                tries++;
-                const done = await check();
-                if(done || tries > 30) clearInterval(timer); // ~2 minutes
-              }, 4000);
+                if (!res.ok) throw new Error(json?.errors?.[0]?.message || 'Fetch failed');
+                this.report = json?.data ?? null;
+              }catch(e){ this.error = e?.message || 'Unexpected error'; }
+              finally{ this.loading = false; }
             }
           }
         })()"
         x-init="init()"
-        data-id={id || ""}
         data-directus-url={DIRECTUS_URL}
         data-read-token={READ_TOKEN}
-        data-ws-url={WS_URL}
       >
-        <template x-if="!submissionId">
+        <template x-if="!reportId">
           <div class="text-center py-20 text-gray-500">
             <p>
-              No <code>id</code> provided. Visit this page as <code
+              No <code>id</code> provided. Visit as <code
                 >/score/report?id=123</code
               >.
             </p>
           </div>
         </template>
 
-        <template x-if="submissionId">
+        <template x-if="reportId">
           <div>
-            <!-- overlay while loading/waiting -->
             <div
-              x-show="loading || status!=='completed'"
+              x-show="loading"
               class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
             >
               <div class="flex flex-col items-center gap-4">
@@ -132,17 +87,15 @@ const id = Astro.url.searchParams.get("id");
                     stroke-width="4"
                     fill="none"></path>
                 </svg>
-                <p
-                  class="text-sm text-gray-700"
-                  x-text="loading ? 'Loading…' : 'Generating report…'"
-                >
-                </p>
+                <p class="text-sm text-gray-700">Loading…</p>
               </div>
             </div>
 
-            <h1 class="text-2xl font-semibold text-gray-900 mb-4">Report</h1>
+            <h1 class="text-2xl font-semibold text-gray-900 mb-2">
+              Role Fit Score Report
+            </h1>
             <p class="text-sm text-gray-500 mb-6">
-              Submission ID: <span x-text="submissionId"></span>
+              Report ID: <span x-text="reportId"></span>
             </p>
 
             <template x-if="error">
@@ -153,47 +106,30 @@ const id = Astro.url.searchParams.get("id");
               </div>
             </template>
 
-            <!-- status pill -->
-            <div class="mb-6">
-              <span
-                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                :class="status==='completed' ? 'bg-green-100 text-green-700' :
-                         status==='uploaded'  ? 'bg-amber-100 text-amber-700' :
-                                                'bg-gray-100 text-gray-700'"
-                x-text="status"></span>
-            </div>
+            <div class="grid gap-6" x-show="!loading && !error && report">
+              <div class="p-4 rounded-xl border">
+                <h2 class="font-semibold mb-2">Match Score</h2>
+                <p class="text-3xl font-bold" x-text="score()"></p>
+              </div>
 
-            <!-- report content -->
-            <div x-show="status==='completed'">
-              <div class="grid gap-6">
-                <div class="p-4 rounded-xl border">
-                  <h2 class="font-semibold mb-2">Match Score</h2>
-                  <p class="text-3xl font-bold" x-text="report?.score ?? '—'">
-                  </p>
-                </div>
+              <div class="p-4 rounded-xl border">
+                <h2 class="font-semibold mb-2">Highlights</h2>
+                <ul class="list-disc ml-5 space-y-1">
+                  <template x-for="(item, idx) in highlights()" :key="idx">
+                    <li x-text="item"></li>
+                  </template>
+                  <template x-if="!highlights()?.length">
+                    <li class="text-gray-500">No highlights available.</li>
+                  </template>
+                </ul>
+              </div>
 
-                <div class="p-4 rounded-xl border">
-                  <h2 class="font-semibold mb-2">Highlights</h2>
-                  <ul class="list-disc ml-5 space-y-1">
-                    <template
-                      x-for="item in (report?.highlights || [])"
-                      :key="item"
-                    >
-                      <li x-text="item"></li>
-                    </template>
-                    <template x-if="!report?.highlights?.length">
-                      <li class="text-gray-500">No highlights available.</li>
-                    </template>
-                  </ul>
-                </div>
-
-                <div class="p-4 rounded-xl border">
-                  <h2 class="font-semibold mb-2">Raw JSON</h2>
-                  <pre
-                    class="text-xs bg-gray-50 p-3 rounded-lg overflow-auto"
-                    x-text="pretty(report)">
-                  </pre>
-                </div>
+              <div class="p-4 rounded-xl border">
+                <h2 class="font-semibold mb-2">Raw JSON</h2>
+                <pre
+                  class="text-xs bg-gray-50 p-3 rounded-lg overflow-auto"
+                  x-text="pretty(report)">
+                </pre>
               </div>
             </div>
 
