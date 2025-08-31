@@ -10,221 +10,299 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
 <Layout title="Role Fit Score Report - Bounteer">
   <Header />
 
+  <!-- Alpine (only include once globally; remove if already in Layout) -->
+  <script src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js" defer
+  ></script>
+  <style is:inline>
+    [x-cloak] {
+      display: none !important;
+    }
+  </style>
+
+  <!-- Component factory lives outside the attribute to avoid parser issues -->
+  <script is:inline>
+    window.reportViewer = ($el) => {
+      const cfg = $el.dataset;
+
+      return {
+        // config
+        directusUrl: cfg.directusUrl,
+        readToken: cfg.readToken,
+
+        // state
+        reportId: "",
+        loading: true,
+        error: "",
+        report: null,
+
+        // helpers
+        hasId() {
+          return !!this.reportId;
+        },
+        hasReport() {
+          return !!this.report;
+        },
+        pretty(obj) {
+          try {
+            return JSON.stringify(obj, null, 2);
+          } catch {
+            return "—";
+          }
+        },
+
+        // getters
+        overallScore() {
+          const r = this.report || {};
+          return r.overall_score ?? "—";
+        },
+        confidence() {
+          const r = this.report || {};
+          return typeof r.confidence_level === "number"
+            ? r.confidence_level + "%"
+            : "—";
+        },
+        prosList() {
+          const raw = (this.report?.pros ?? "").toString();
+          return raw
+            .split("\n")
+            .map((l) => l.replace(/^\s*-\s*/, "").trim())
+            .filter(Boolean);
+        },
+        consList() {
+          const raw = (this.report?.cons ?? "").toString();
+          return raw
+            .split("\n")
+            .map((l) => l.replace(/^\s*-\s*/, "").trim())
+            .filter(Boolean);
+        },
+        concernTags() {
+          const tags = this.report?.concern_tags;
+          return Array.isArray(tags) ? tags : [];
+        },
+        submissionId() {
+          return this.report?.submission ?? "—";
+        },
+        userCreated() {
+          // If Directus expands user, you may want `${first_name} ${last_name}` etc.
+          return this.report?.user_created ?? "—";
+        },
+        dateCreated() {
+          return this.report?.date_created ?? "—";
+        },
+        dateUpdated() {
+          return this.report?.date_updated ?? "—";
+        },
+
+        async init() {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            this.reportId = params.get("id") || "";
+            if (!this.hasId()) {
+              this.loading = false;
+              return;
+            }
+            await this.fetchReport();
+          } catch (e) {
+            this.error = e?.message || "Unexpected error";
+            this.loading = false;
+          }
+        },
+
+        async fetchReport() {
+          this.loading = true;
+          this.error = "";
+          try {
+            const url = `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}?fields=*.*`;
+            const res = await fetch(url, {
+              headers: { Authorization: `Bearer ${this.readToken}` },
+            });
+            const json = await res.json();
+            if (!res.ok)
+              throw new Error(
+                json?.errors?.[0]?.message || `Fetch failed (${res.status})`,
+              );
+            this.report = json?.data ?? null;
+          } catch (e) {
+            this.error = e?.message || "Unexpected error";
+          } finally {
+            this.loading = false;
+          }
+        },
+      };
+    };
+  </script>
+
   <main class="py-16 bg-white">
     <div class="container-custom max-w-4xl mx-auto">
       <div
         class="relative rounded-2xl border border-gray-200 shadow-xl p-8 bg-white"
-        x-data="(() => {
-          const cfg = $el.dataset;
-          return {
-            // config
-            directusUrl: cfg.directusUrl,
-            readToken: cfg.readToken,
-
-            // state
-            reportId: '',
-            loading: true,
-            error: '',
-            report: null,
-
-            // helpers
-            pretty(obj){ try{ return JSON.stringify(obj, null, 2); } catch { return '—'; } },
-            score(){ return this.report?.overall_score ?? '—'; },
-            confidence(){ return this.report?.confidence_level ?? null; },
-            concernTags(){ return Array.isArray(this.report?.concern_tags) ? this.report.concern_tags : []; },
-            prosList(){
-              const raw = this.report?.pros || '';
-              return raw.split('\n').map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
-            },
-            consList(){
-              const raw = this.report?.cons || '';
-              return raw.split('\n').map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
-            },
-
-            async init(){
-              // read id from URL at runtime (works on static hosting)
-              this.reportId = new URLSearchParams(window.location.search).get('id') || '';
-              if (!this.reportId){ this.loading = false; return; }
-              await this.fetchReport();
-            },
-
-            async fetchReport(){
-              this.loading = true; this.error = '';
-              try{
-                const url = `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}?fields=*.*`;
-                const res = await fetch(url, { headers: { Authorization: `Bearer ${this.readToken}` } });
-                const json = await res.json();
-                if (!res.ok) throw new Error(json?.errors?.[0]?.message || 'Fetch failed');
-                this.report = json?.data ?? null;
-              }catch(e){
-                this.error = e?.message || 'Unexpected error';
-              }finally{
-                this.loading = false;
-              }
-            }
-          }
-        })()"
+        x-data="reportViewer($el)"
         x-init="init()"
         data-directus-url={DIRECTUS_URL}
         data-read-token={READ_TOKEN}
       >
         <!-- No ID -->
-        <template x-if="!reportId">
-          <div class="text-center py-20 text-gray-500">
-            <p>
-              No <code>id</code> provided. Visit as <code
-                >/score/report?id=10</code
-              >.
-            </p>
-          </div>
-        </template>
+        <div
+          class="text-center py-20 text-gray-500"
+          x-show="!hasId() && !loading"
+          x-cloak
+        >
+          <p>
+            No <code>id</code> provided. Visit as <code
+              >/score/report?id=10</code
+            >.
+          </p>
+        </div>
 
         <!-- With ID -->
-        <template x-if="reportId">
-          <div>
-            <!-- Loading overlay -->
-            <div
-              x-show="loading"
-              class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
-            >
-              <div class="flex flex-col items-center gap-4">
-                <svg class="h-10 w-10 animate-spin" viewBox="0 0 24 24">
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    fill="none"
-                    opacity="0.25"></circle>
-                  <path
-                    d="M4 12a8 8 0 018-8"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    fill="none"></path>
-                </svg>
-                <p class="text-sm text-gray-700">Loading…</p>
-              </div>
-            </div>
-
-            <h1 class="text-2xl font-semibold text-gray-900 mb-2">
-              Role Fit Score Report
-            </h1>
-            <p class="text-sm text-gray-500 mb-6">
-              Report ID: <span x-text="reportId"></span>
-            </p>
-
-            <!-- Error -->
-            <template x-if="error">
-              <div
-                class="mb-6 p-3 rounded-lg bg-red-50 text-red-700 text-sm"
-                x-text="error"
+        <div x-show="hasId()" x-cloak>
+          <!-- Loading overlay -->
+          <div
+            x-show="loading"
+            class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+            x-cloak
+          >
+            <div class="flex flex-col items-center gap-4">
+              <svg
+                class="h-10 w-10 animate-spin"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-              </div>
-            </template>
-
-            <!-- Content -->
-            <div class="grid gap-6" x-show="!loading && !error && report">
-              <!-- Score & Confidence -->
-              <div
-                class="p-4 rounded-xl border grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                <div>
-                  <h2 class="font-semibold mb-2">Overall Score</h2>
-                  <p class="text-4xl font-bold" x-text="score()"></p>
-                </div>
-                <div>
-                  <h2 class="font-semibold mb-2">Confidence Level</h2>
-                  <p
-                    class="text-3xl font-semibold"
-                    x-text="confidence() !== null ? confidence() + '%' : '—'"
-                  >
-                  </p>
-                </div>
-              </div>
-
-              <!-- Pros -->
-              <div class="p-4 rounded-xl border">
-                <h2 class="font-semibold mb-2">Pros</h2>
-                <ul class="list-disc ml-5 space-y-1">
-                  <template x-for="(p, i) in prosList()" :key="'pro-' + i">
-                    <li x-text="p"></li>
-                  </template>
-                  <template x-if="!prosList().length">
-                    <li class="text-gray-500">No pros listed.</li>
-                  </template>
-                </ul>
-              </div>
-
-              <!-- Cons -->
-              <div class="p-4 rounded-xl border">
-                <h2 class="font-semibold mb-2">Cons</h2>
-                <ul class="list-disc ml-5 space-y-1">
-                  <template x-for="(c, i) in consList()" :key="'con-' + i">
-                    <li x-text="c"></li>
-                  </template>
-                  <template x-if="!consList().length">
-                    <li class="text-gray-500">No cons listed.</li>
-                  </template>
-                </ul>
-              </div>
-
-              <!-- Concern tags -->
-              <div class="p-4 rounded-xl border">
-                <h2 class="font-semibold mb-3">Concern Tags</h2>
-                <div class="flex flex-wrap gap-2">
-                  <template x-for="(tag, i) in concernTags()" :key="'tag-' + i">
-                    <span
-                      class="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
-                      x-text="tag"></span>
-                  </template>
-                  <template x-if="!concernTags().length">
-                    <span class="text-gray-500 text-sm">None.</span>
-                  </template>
-                </div>
-              </div>
-
-              <!-- Meta -->
-              <div
-                class="p-4 rounded-xl border text-sm text-gray-600 grid grid-cols-1 md:grid-cols-2 gap-2"
-              >
-                <div>
-                  <span class="font-medium">Submission:</span>
-                  <span x-text="report?.submission ?? '—'"></span>
-                </div>
-                <div x-show="report?.user_created">
-                  <span class="font-medium">User:</span>
-                  <span x-text="report?.user_created"></span>
-                </div>
-                <div x-show="report?.date_created">
-                  <span class="font-medium">Created:</span>
-                  <span x-text="report?.date_created"></span>
-                </div>
-                <div x-show="report?.date_updated">
-                  <span class="font-medium">Updated:</span>
-                  <span x-text="report?.date_updated"></span>
-                </div>
-              </div>
-
-              <!-- Raw -->
-              <div class="p-4 rounded-xl border">
-                <h2 class="font-semibold mb-2">Raw JSON</h2>
-                <pre
-                  class="text-xs bg-gray-50 p-3 rounded-lg overflow-auto"
-                  x-text="pretty(report)">
-                </pre>
-              </div>
-            </div>
-
-            <div class="mt-8">
-              <a
-                href="/score"
-                class="text-primary-600 underline hover:text-primary-800"
-                >&larr; New analysis</a
-              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  fill="none"
+                  opacity="0.25"></circle>
+                <path
+                  d="M4 12a8 8 0 018-8"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  fill="none"></path>
+              </svg>
+              <p class="text-sm text-gray-700">Loading…</p>
             </div>
           </div>
-        </template>
+
+          <h1 class="text-2xl font-semibold text-gray-900 mb-2">
+            Role Fit Score Report
+          </h1>
+          <p class="text-sm text-gray-500 mb-6">
+            Report ID: <span x-text="reportId"></span>
+          </p>
+
+          <!-- Error -->
+          <div
+            class="mb-6 p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+            x-show="error"
+            x-text="error"
+            x-cloak
+          >
+          </div>
+
+          <!-- Content -->
+          <div
+            class="grid gap-6"
+            x-show="!loading && !error && hasReport()"
+            x-cloak
+          >
+            <!-- Score & Confidence -->
+            <div
+              class="p-4 rounded-xl border grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <div>
+                <h2 class="font-semibold mb-2">Overall Score</h2>
+                <p class="text-4xl font-bold" x-text="overallScore()"></p>
+              </div>
+              <div>
+                <h2 class="font-semibold mb-2">Confidence Level</h2>
+                <p class="text-3xl font-semibold" x-text="confidence()"></p>
+              </div>
+            </div>
+
+            <!-- Pros -->
+            <div class="p-4 rounded-xl border">
+              <h2 class="font-semibold mb-2">Pros</h2>
+              <ul class="list-disc ml-5 space-y-1">
+                <template x-for="(p, i) in prosList()" :key="'pro-' + i">
+                  <li x-text="p"></li>
+                </template>
+                <template x-if="prosList().length === 0">
+                  <li class="text-gray-500">No pros listed.</li>
+                </template>
+              </ul>
+            </div>
+
+            <!-- Cons -->
+            <div class="p-4 rounded-xl border">
+              <h2 class="font-semibold mb-2">Cons</h2>
+              <ul class="list-disc ml-5 space-y-1">
+                <template x-for="(c, i) in consList()" :key="'con-' + i">
+                  <li x-text="c"></li>
+                </template>
+                <template x-if="consList().length === 0">
+                  <li class="text-gray-500">No cons listed.</li>
+                </template>
+              </ul>
+            </div>
+
+            <!-- Concern tags -->
+            <div class="p-4 rounded-xl border">
+              <h2 class="font-semibold mb-3">Concern Tags</h2>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="(tag, i) in concernTags()" :key="'tag-' + i">
+                  <span
+                    class="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                    x-text="tag"></span>
+                </template>
+                <template x-if="concernTags().length === 0">
+                  <span class="text-gray-500 text-sm">None.</span>
+                </template>
+              </div>
+            </div>
+
+            <!-- Meta -->
+            <div
+              class="p-4 rounded-xl border text-sm text-gray-600 grid grid-cols-1 md:grid-cols-2 gap-2"
+            >
+              <div>
+                <span class="font-medium">Submission:</span>
+                <span x-text="submissionId()"></span>
+              </div>
+              <div>
+                <span class="font-medium">User:</span>
+                <span x-text="userCreated()"></span>
+              </div>
+              <div>
+                <span class="font-medium">Created:</span>
+                <span x-text="dateCreated()"></span>
+              </div>
+              <div>
+                <span class="font-medium">Updated:</span>
+                <span x-text="dateUpdated()"></span>
+              </div>
+            </div>
+
+            <!-- Raw -->
+            <div class="p-4 rounded-xl border">
+              <h2 class="font-semibold mb-2">Raw JSON</h2>
+              <pre
+                class="text-xs bg-gray-50 p-3 rounded-lg overflow-auto"
+                x-text="pretty(report)">
+              </pre>
+            </div>
+          </div>
+
+          <div class="mt-8">
+            <a
+              href="/score"
+              class="text-primary-600 underline hover:text-primary-800"
+              >&larr; New analysis</a
+            >
+          </div>
+        </div>
       </div>
     </div>
   </main>
