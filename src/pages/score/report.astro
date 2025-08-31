@@ -69,9 +69,27 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
             .map((l) => l.replace(/^\s*-\s*/, "").trim())
             .filter(Boolean);
         },
+        concernTags() {
+          // Case 1: Directus returns array already
+          return this.report.concern_tags;
+        },
         createdMinutes() {
           const iso = this.report?.date_created;
           return iso ? fmtMinutes(iso) : "—";
+        },
+        candidateName() {
+          const c = this.report?.user_created;
+          if (!c) return "—";
+          const first = (c.first_name || "").trim();
+          const last = (c.last_name || "").trim();
+          const combined = [first, last].filter(Boolean).join(" ");
+          return combined || "—";
+        },
+        roleName() {
+          return this.report?.submission?.job_description?.role_name ?? "—";
+        },
+        companyName() {
+          return this.report?.submission?.job_description?.company_name ?? "—";
         },
 
         async init() {
@@ -88,7 +106,10 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
           this.loading = true;
           this.error = "";
           try {
-            const url = `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}?fields=*.*`;
+            const url =
+              `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}` +
+              `?fields=*,user_created.first_name,user_created.last_name,` +
+              `submission.job_description.role_name,submission.job_description.company_name`;
             const res = await fetch(url, {
               headers: { Authorization: `Bearer ${this.readToken}` },
             });
@@ -176,31 +197,60 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
           <template x-if="hasId() && !loading && !error && hasReport()">
             <div class="space-y-8 break-words">
               <!-- Header -->
-              <div class="space-y-1">
-                <h1 class="text-2xl font-semibold text-gray-900">
+              <div class="space-y-1 text-center max-w-prose mx-auto">
+                <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
                   Role Fit Score Report
                 </h1>
+                <p class="text-sm text-gray-700">
+                  Candidate: <span x-text="candidateName()"></span>
+                  <span class="px-1">·</span>
+                  Role: <span x-text="roleName()"></span>
+                  <span class="px-1">@</span>
+                  <span x-text="companyName()"></span>
+                </p>
                 <p class="text-sm text-gray-500">
                   Report ID: <span x-text="reportId"></span>
-                  · Created: <span x-text="createdMinutes()"></span>
+                  <span class="px-1">·</span>
+                  Created: <span x-text="createdMinutes()"></span>
                 </p>
               </div>
 
               <!-- Score + Confidence (kept inside the same card) -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
                 <div class="rounded-xl bg-gray-50 p-5">
-                  <h2 class="font-semibold mb-2">Overall Score</h2>
+                  <h2 class="text-lg md:text-xl font-semibold mb-2">
+                    Overall Score
+                  </h2>
                   <p class="text-4xl font-bold" x-text="overallScore()"></p>
                 </div>
                 <div class="rounded-xl bg-gray-50 p-5">
-                  <h2 class="font-semibold mb-2">Confidence Level</h2>
-                  <p class="text-3xl font-semibold" x-text="confidence()"></p>
+                  <h2 class="text-lg md:text-xl font-semibold mb-2">
+                    Confidence Level
+                  </h2>
+                  <p class="text-4xl font-bold" x-text="confidence()"></p>
                 </div>
               </div>
 
+              <div class="rounded-xl bg-gray-50 p-5">
+                <h2 class="text-lg md:text-xl font-semibold mb-3">
+                  Concern Tags
+                </h2>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="(tag, i) in concernTags()" :key="'tag-' + i">
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                      x-text="tag"></span>
+                  </template>
+                  <template x-if="concernTags().length === 0">
+                    <span class="text-gray-500 text-sm">None.</span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Concern tags -->
               <!-- Pros -->
               <section class="rounded-xl bg-gray-50 p-5">
-                <h2 class="font-semibold mb-2">Pros</h2>
+                <h2 class="text-lg md:text-xl font-semibold mb-2">Pros</h2>
                 <ul class="list-disc ml-5 space-y-1">
                   <template x-for="(p, i) in prosList()" :key="'pro-' + i">
                     <li class="text-gray-800 break-words" x-text="p"></li>
@@ -213,7 +263,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
 
               <!-- Cons -->
               <section class="rounded-xl bg-gray-50 p-5">
-                <h2 class="font-semibold mb-2">Cons</h2>
+                <h2 class="text-lg md:text-xl font-semibold mb-2">Cons</h2>
                 <ul class="list-disc ml-5 space-y-1">
                   <template x-for="(c, i) in consList()" :key="'con-' + i">
                     <li class="text-gray-800 break-words" x-text="c"></li>
@@ -237,7 +287,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
         </div>
       </div>
     </div>
-  </main>
 
-  <Footer />
+    <Footer />
+  </main>
 </Layout>
