@@ -94,7 +94,13 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
                       Authorization: `Bearer ${this.writeToken}`,
                       'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ jd_text: jdText, cv_file: fileId, status: 'uploaded' }),
+                    body: JSON.stringify({ 
+                      cv_file: fileId, 
+                      status: 'analyzing',
+                      job_description: {
+                        raw_input: jdText
+                      }
+                    }),
                   });
                   const subJson = await subRes.json();
                   if(!subRes.ok) throw new Error(subJson?.errors?.[0]?.message || 'Submission failed');
