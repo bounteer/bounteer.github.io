@@ -7,7 +7,7 @@ const DIRECTUS_URL = "https://directus.bounteer.com";
 const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
 ---
 
-<Layout title={`Role Fit Report - Bounteer`}>
+<Layout title="Role Fit Score Report - Bounteer">
   <Header />
 
   <main class="py-16 bg-white">
@@ -18,23 +18,33 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
           const cfg = $el.dataset;
           return {
             // config
-            reportId: '',            // set in init()
             directusUrl: cfg.directusUrl,
             readToken: cfg.readToken,
 
             // state
+            reportId: '',
             loading: true,
             error: '',
             report: null,
 
+            // helpers
             pretty(obj){ try{ return JSON.stringify(obj, null, 2); } catch { return '—'; } },
-            score(){ const r = this.report || {}; return r.score ?? r.data?.score ?? r.report?.score ?? '—'; },
-            highlights(){ const r = this.report || {}; return r.highlights ?? r.data?.highlights ?? r.report?.highlights ?? []; },
+            score(){ return this.report?.overall_score ?? '—'; },
+            confidence(){ return this.report?.confidence_level ?? null; },
+            concernTags(){ return Array.isArray(this.report?.concern_tags) ? this.report.concern_tags : []; },
+            prosList(){
+              const raw = this.report?.pros || '';
+              return raw.split('\n').map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+            },
+            consList(){
+              const raw = this.report?.cons || '';
+              return raw.split('\n').map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+            },
 
             async init(){
-              // ✅ read id from the URL at runtime
+              // read id from URL at runtime (works on static hosting)
               this.reportId = new URLSearchParams(window.location.search).get('id') || '';
-              if (!this.reportId) return;
+              if (!this.reportId){ this.loading = false; return; }
               await this.fetchReport();
             },
 
@@ -46,8 +56,11 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
                 const json = await res.json();
                 if (!res.ok) throw new Error(json?.errors?.[0]?.message || 'Fetch failed');
                 this.report = json?.data ?? null;
-              }catch(e){ this.error = e?.message || 'Unexpected error'; }
-              finally{ this.loading = false; }
+              }catch(e){
+                this.error = e?.message || 'Unexpected error';
+              }finally{
+                this.loading = false;
+              }
             }
           }
         })()"
@@ -55,18 +68,21 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
         data-directus-url={DIRECTUS_URL}
         data-read-token={READ_TOKEN}
       >
+        <!-- No ID -->
         <template x-if="!reportId">
           <div class="text-center py-20 text-gray-500">
             <p>
               No <code>id</code> provided. Visit as <code
-                >/score/report?id=123</code
+                >/score/report?id=10</code
               >.
             </p>
           </div>
         </template>
 
+        <!-- With ID -->
         <template x-if="reportId">
           <div>
+            <!-- Loading overlay -->
             <div
               x-show="loading"
               class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
@@ -98,6 +114,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
               Report ID: <span x-text="reportId"></span>
             </p>
 
+            <!-- Error -->
             <template x-if="error">
               <div
                 class="mb-6 p-3 rounded-lg bg-red-50 text-red-700 text-sm"
@@ -106,24 +123,90 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn";
               </div>
             </template>
 
+            <!-- Content -->
             <div class="grid gap-6" x-show="!loading && !error && report">
-              <div class="p-4 rounded-xl border">
-                <h2 class="font-semibold mb-2">Match Score</h2>
-                <p class="text-3xl font-bold" x-text="score()"></p>
+              <!-- Score & Confidence -->
+              <div
+                class="p-4 rounded-xl border grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                <div>
+                  <h2 class="font-semibold mb-2">Overall Score</h2>
+                  <p class="text-4xl font-bold" x-text="score()"></p>
+                </div>
+                <div>
+                  <h2 class="font-semibold mb-2">Confidence Level</h2>
+                  <p
+                    class="text-3xl font-semibold"
+                    x-text="confidence() !== null ? confidence() + '%' : '—'"
+                  >
+                  </p>
+                </div>
               </div>
 
+              <!-- Pros -->
               <div class="p-4 rounded-xl border">
-                <h2 class="font-semibold mb-2">Highlights</h2>
+                <h2 class="font-semibold mb-2">Pros</h2>
                 <ul class="list-disc ml-5 space-y-1">
-                  <template x-for="(item, idx) in highlights()" :key="idx">
-                    <li x-text="item"></li>
+                  <template x-for="(p, i) in prosList()" :key="'pro-' + i">
+                    <li x-text="p"></li>
                   </template>
-                  <template x-if="!highlights()?.length">
-                    <li class="text-gray-500">No highlights available.</li>
+                  <template x-if="!prosList().length">
+                    <li class="text-gray-500">No pros listed.</li>
                   </template>
                 </ul>
               </div>
 
+              <!-- Cons -->
+              <div class="p-4 rounded-xl border">
+                <h2 class="font-semibold mb-2">Cons</h2>
+                <ul class="list-disc ml-5 space-y-1">
+                  <template x-for="(c, i) in consList()" :key="'con-' + i">
+                    <li x-text="c"></li>
+                  </template>
+                  <template x-if="!consList().length">
+                    <li class="text-gray-500">No cons listed.</li>
+                  </template>
+                </ul>
+              </div>
+
+              <!-- Concern tags -->
+              <div class="p-4 rounded-xl border">
+                <h2 class="font-semibold mb-3">Concern Tags</h2>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="(tag, i) in concernTags()" :key="'tag-' + i">
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                      x-text="tag"></span>
+                  </template>
+                  <template x-if="!concernTags().length">
+                    <span class="text-gray-500 text-sm">None.</span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Meta -->
+              <div
+                class="p-4 rounded-xl border text-sm text-gray-600 grid grid-cols-1 md:grid-cols-2 gap-2"
+              >
+                <div>
+                  <span class="font-medium">Submission:</span>
+                  <span x-text="report?.submission ?? '—'"></span>
+                </div>
+                <div x-show="report?.user_created">
+                  <span class="font-medium">User:</span>
+                  <span x-text="report?.user_created"></span>
+                </div>
+                <div x-show="report?.date_created">
+                  <span class="font-medium">Created:</span>
+                  <span x-text="report?.date_created"></span>
+                </div>
+                <div x-show="report?.date_updated">
+                  <span class="font-medium">Updated:</span>
+                  <span x-text="report?.date_updated"></span>
+                </div>
+              </div>
+
+              <!-- Raw -->
               <div class="p-4 rounded-xl border">
                 <h2 class="font-semibold mb-2">Raw JSON</h2>
                 <pre
