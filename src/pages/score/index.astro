@@ -5,7 +5,7 @@ import Footer from "../../components/Footer.astro";
 import HeroSection from "../../components/HeroSection.astro";
 
 const DIRECTUS_URL = "https://directus.bounteer.com";
-const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: files + submissions
+const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // needs: files.create, role_fit_score_submission.create, role_fit_score_report.read
 ---
 
 <style is:global>
@@ -31,29 +31,40 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
           class="relative rounded-2xl border border-gray-200 shadow-xl p-10 bg-white flex flex-col"
           x-data="(() => {
             const cfg = $el.dataset;
+
+            // util: convert http(s) -> ws(s)
+            const toWs = (url) => {
+              try{
+                const u = new URL(url);
+                u.protocol = (u.protocol === 'https:') ? 'wss:' : 'ws:';
+                // Directus realtime endpoint
+                u.pathname = '/websocket';
+                u.search = '';
+                return u.toString();
+              }catch{ return '' }
+            };
+
             return {
               // config
               directusUrl: cfg.directusUrl,
               writeToken: cfg.writeToken,
+              wsEndpoint: toWs(cfg.directusUrl),
 
               // state
-              isDragging: false,
-              isBusy: false,
-              fileName: '',
-              fileObj: null,
-              error: '',
-              step: 0, // 0 idle, 1 uploading
-              buttonText: 'Analyze Role Fit now',
+              isDragging:false,
+              isBusy:false,
+              fileName:'',
+              fileObj:null,
+              error:'',
+              step:0, // 0 idle, 1 uploading, 2 analyzing/waiting
+              buttonText:'Analyze Role Fit now',
 
-              // helpers
+              // file + textarea helpers
               autoGrow(el){
-                // cap at 60% viewport height
                 const max = Math.floor(window.innerHeight * 0.6);
                 el.style.height = 'auto';
                 el.style.height = Math.min(el.scrollHeight, max) + 'px';
               },
-
-              // file handlers
               handleFile(file){ this.validateFile(file); },
               handleDrop(ev){ const f = ev.dataTransfer.files?.[0]; this.validateFile(f); },
               validateFile(file){
@@ -65,6 +76,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
                 this.error=''; this.fileName=file.name; this.fileObj=file; return true;
               },
 
+              // main action
               async analyze(){
                 try{
                   if(!this.fileObj){ this.error='Please select a PDF'; return; }
@@ -72,53 +84,190 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
                   if(!jdText){ this.error='Please paste the JD'; return; }
                   if(!this.directusUrl || !this.writeToken){ this.error='Missing Directus config'; return; }
 
-                  // STEP 1: Upload file
+                  // STEP 1: upload CV
                   this.step = 1; this.isBusy = true; this.buttonText = 'Uploading CV…';
                   const fd = new FormData();
                   fd.append('file', this.fileObj, this.fileName || 'cv.pdf');
-
                   const upRes = await fetch(`${this.directusUrl}/files`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${this.writeToken}` },
-                    body: fd,
+                    method:'POST',
+                    headers:{ Authorization:`Bearer ${this.writeToken}` },
+                    body:fd
                   });
                   const upJson = await upRes.json();
                   if(!upRes.ok) throw new Error(upJson?.errors?.[0]?.message || 'Upload failed');
                   const fileId = upJson?.data?.id;
 
-                  // STEP 2: Create submission
+                  // STEP 2: create submission (includes nested JD by raw_input)
                   this.buttonText = 'Saving submission…';
                   const subRes = await fetch(`${this.directusUrl}/items/role_fit_score_submission`, {
-                    method: 'POST',
-                    headers: {
-                      Authorization: `Bearer ${this.writeToken}`,
-                      'Content-Type': 'application/json',
+                    method:'POST',
+                    headers:{
+                      Authorization:`Bearer ${this.writeToken}`,
+                      'Content-Type':'application/json'
                     },
-                    body: JSON.stringify({ 
-                      cv_file: fileId, 
-                      status: 'analyzing',
-                      job_description: {
-                        raw_input: jdText
-                      }
-                    }),
+                    body: JSON.stringify({
+                      cv_file:fileId,
+                      status:'analyzing',
+                      job_description: { raw_input: jdText }
+                    })
                   });
                   const subJson = await subRes.json();
                   if(!subRes.ok) throw new Error(subJson?.errors?.[0]?.message || 'Submission failed');
                   const submissionId = subJson?.data?.id;
+                  if(!submissionId) throw new Error('No submission id returned');
 
-                  // Redirect (static-friendly)
-                  window.location.href = `/score/report?id=${encodeURIComponent(submissionId)}`;
+                  // STEP 3: switch to analyzing UI + wait for report via WS (fallback: poll)
+                  this.step = 2; // analyzing
+                  this.buttonText = 'Analyzing…';
+                  this.error = '';
+
+                  // fire-and-wait
+                  this.awaitReport(submissionId);
+
                 }catch(e){
                   this.error = e?.message || 'Unexpected error';
                   this.isBusy = false; this.step = 0; this.buttonText = 'Analyze Role Fit now';
                 }
+              },
+
+              // ---- Waiting for report (WS + fallback poll) ----
+              async awaitReport(submissionId){
+                // try WS first; if it fails, start polling
+                const wsOk = await this.waitForReportWS(submissionId).catch(() => false);
+                if(wsOk) return;
+
+                // fallback polling
+                console.log('fall back to polling')
+                await this.pollReport(submissionId);
+              },
+
+              waitForReportWS(submissionId){
+                return new Promise((resolve, reject) => {
+                  if (!this.wsEndpoint) { reject(new Error('Realtime endpoint unavailable')); return; }
+
+                  let resolved = false;
+                  let pingTimer, safetyTimer;
+                  const ws = new WebSocket(this.wsEndpoint);
+
+                  const done = (ok=false, reportId=null) => {
+                    if (pingTimer) clearInterval(pingTimer);
+                    if (safetyTimer) clearTimeout(safetyTimer);
+                    try { ws.close(); } catch {}
+                    if (resolved) return;
+                    resolved = true;
+                    if (ok) resolve(reportId ?? true);
+                    else reject(new Error('WS closed'));
+                  };
+
+                  // avoid hanging forever
+                  safetyTimer = setTimeout(() => { if (!resolved) done(false); }, 90_000);
+
+                  ws.onopen = () => {
+                    // auth
+                    ws.send(JSON.stringify({ type:'auth', access_token:this.writeToken }));
+                    // heartbeat
+                    pingTimer = setInterval(() => {
+                      try { ws.send(JSON.stringify({ type:'ping' })); } catch {}
+                    }, 25_000);
+                  };
+
+                  ws.onerror = () => { if (!resolved) reject(new Error('Realtime error')); };
+
+                  ws.onmessage = async (evt) => {
+                    // robust parse (handles Blob and string)
+                    const text = typeof evt.data === 'string' ? evt.data : await new Response(evt.data).text();
+                    let msg; try { msg = JSON.parse(text); } catch { console.warn('WS non-JSON:', text); return; }
+
+                    // debug
+                    console.log('ws msg:', { type: msg.type, event: msg.event, collection: msg.collection, data: msg.data });
+
+                    // auth ack -> subscribe
+                    if (msg.type === 'auth' && msg.status === 'ok') {
+                      ws.send(JSON.stringify({
+                        type: 'subscribe',
+                        collection: 'role_fit_score_report',
+                        query: {
+                          fields: ['id','submission'],
+                          limit: 1,
+                          sort: ['-date_created'],
+                          filter: { submission: { _eq: submissionId } }
+                        }
+                      }));
+                      return;
+                    }
+
+                    // ignore pings/inits
+                    if (msg.type === 'pong' || msg.event === 'init') return;
+
+                    const col = String(msg.collection || msg?.data?.collection || '').replace(/^items\./, '');
+                    const isReport = col === 'role_fit_score_report';
+
+                    // INITIAL SNAPSHOT (array)
+                    if (msg.type === 'subscription' && Array.isArray(msg.data) && msg.data.length) {
+                      const found = msg.data.find(r => String(r.submission) === String(submissionId));
+                      if (found) {
+                        done(true, found.id);
+                        window.location.href = `/score/report?id=${encodeURIComponent(found.id)}`;
+                      }
+                      return;
+                    }
+
+                    // CREATE/INSERT EVENTS
+                    if (msg.type === 'subscription' && isReport && (msg.event === 'create' || msg.event === 'insert')) {
+                      // payload shape can vary across Directus versions
+                      const rec = msg.data?.payload ?? msg.data?.item ?? msg.data;
+                      console.log('report event rec:', rec);
+
+                      const sub = rec?.submission ?? rec?.item?.submission ?? rec?.payload?.submission;
+                      const id  = rec?.id ?? rec?.item?.id ?? rec?.payload?.id;
+
+                      if (String(sub) === String(submissionId) && id != null) {
+                        done(true, id);
+                        window.location.href = `/score/report?id=${encodeURIComponent(id)}`;
+                      }
+                      return;
+                    }
+                  };
+
+                  ws.onclose = () => done(false);
+                });
+              },
+
+              async pollReport(submissionId){
+                // poll every 2s up to ~90s
+                const start = Date.now();
+                const ttl = 90_000;
+                while(Date.now() - start < ttl){
+                  try{
+                    const url = new URL(`${this.directusUrl}/items/role_fit_score_report`);
+                    url.searchParams.set('limit','1');
+                    url.searchParams.set('sort','-date_created');
+                    url.searchParams.set('fields','id,submission');
+                    url.searchParams.set('filter[submission][_eq]', String(submissionId));
+
+                    const res = await fetch(url.toString(), {
+                      headers:{ Authorization:`Bearer ${this.writeToken}` }
+                    });
+                    const js = await res.json();
+                    if(res.ok && js?.data?.length){
+                      window.location.href = `/score/report?id=${encodeURIComponent(submissionId)}`;
+                      return;
+                    }
+                  }catch(_e){}
+                  await new Promise(r => setTimeout(r, 2000));
+                }
+                // gave up
+                this.error = 'Still analyzing… You can refresh this page or check back later.';
+                this.isBusy = false;
+                this.buttonText = 'Analyzing…';
               }
             }
           })()"
           data-directus-url={DIRECTUS_URL}
           data-write-token={READ_TOKEN}
         >
-          <!-- FULL-CARD OVERLAY -->
+          <!-- OVERLAYS -->
+          <!-- 1) Uploading -->
           <div
             x-show="step===1"
             class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
@@ -153,6 +302,44 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
             </div>
           </div>
 
+          <!-- 2) Analyzing / Waiting for Report -->
+          <div
+            x-show="step===2"
+            class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+            aria-live="polite"
+            role="status"
+            x-cloak
+          >
+            <div class="flex flex-col items-center gap-4 text-center">
+              <svg
+                class="h-12 w-12 animate-spin"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  fill="none"
+                  opacity="0.25"></circle>
+                <path
+                  d="M4 12a8 8 0 018-8"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  fill="none"></path>
+              </svg>
+              <p class="text-base font-medium text-gray-900">
+                Analyzing your Role Fit (takes about 60 seconds in total)
+              </p>
+              <p class="text-sm text-gray-600">
+                We’ll take you to your report as soon as it’s ready.<br />
+                <span x-show="error" x-text="error" class="text-red-600"></span>
+              </p>
+            </div>
+          </div>
+
           <h3 class="text-2xl font-semibold text-gray-900 mb-8">
             Upload JD and CV
           </h3>
@@ -166,7 +353,6 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
               >
                 Job Description (Text or URL)
               </label>
-
               <textarea
                 id="job-description"
                 x-ref="jdInput"
@@ -190,10 +376,9 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
               :class="isBusy ? 'opacity-60 pointer-events-none' : ''"
               class="flex flex-col"
             >
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Upload CV (PDF only)
-              </label>
-
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Upload CV (PDF only)</label
+              >
               <div
                 class="border-2 border-dashed rounded-lg p-8 text-center transition
                        min-h-[260px] md:min-h-[300px] h-full flex flex-col items-center justify-center"
@@ -232,7 +417,6 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // must have create: file
                   </p>
                 </div>
 
-                <!-- reserved rows to prevent jump -->
                 <div class="mt-4 w-full max-w-xs min-w-0 mx-auto">
                   <div class="h-6 flex items-center justify-center">
                     <p
