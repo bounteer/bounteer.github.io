@@ -88,6 +88,12 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
         roleName() {
           return this.report?.submission?.job_description?.role_name ?? "—";
         },
+        backfill_status() {
+          return (
+            this.report?.submission?.job_description?.backfill_status ??
+            "failed parsing job description"
+          );
+        },
         companyName() {
           return this.report?.submission?.job_description?.company_name ?? "—";
         },
@@ -109,7 +115,8 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
             const url =
               `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}` +
               `?fields=*,user_created.first_name,user_created.last_name,` +
-              `submission.job_description.role_name,submission.job_description.company_name`;
+              `submission.job_description.role_name,submission.job_description.company_name,` +
+              `submission.job_description.backfill_status`;
             const res = await fetch(url, {
               headers: { Authorization: `Bearer ${this.readToken}` },
             });
@@ -201,6 +208,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                 <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
                   Role Fit Score Report
                 </h1>
+                <!-- Candidate + Role -->
                 <p class="text-sm text-gray-700">
                   Candidate: <span x-text="candidateName()"></span>
                   <span class="px-1">·</span>
@@ -208,6 +216,18 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                   <span class="px-1">@</span>
                   <span x-text="companyName()"></span>
                 </p>
+                <!-- JD Backfill status -->
+                <template
+                  x-if="backfill_status() && backfill_status().toLowerCase() !== 'success'"
+                >
+                  <p class="mt-1">
+                    <span
+                      class="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2 py-1 text-xs font-medium"
+                      x-text="backfill_status()"
+                    >
+                    </span>
+                  </p>
+                </template>
                 <p class="text-sm text-gray-500">
                   Report ID: <span x-text="reportId"></span>
                   <span class="px-1">·</span>
