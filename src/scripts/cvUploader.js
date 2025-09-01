@@ -23,9 +23,9 @@ export function cvUploader(cfg) {
     handleDrop(ev) { const f = ev.dataTransfer.files?.[0]; this.validateFile(f); },
     validateFile(file) {
       if (!file) { this.error = "No file selected"; return false; }
-      const maxSize = 10 * 1024 * 1024;
+      const maxSize = 2 * 1024 * 1024;
       const ext = file.name.split(".").pop()?.toLowerCase();
-      if (file.size > maxSize) { this.error = "File is too large. Max 10MB."; this.fileName = ""; this.fileObj = null; return false; }
+      if (file.size > maxSize) { this.error = "File is too large. Max 2MB."; this.fileName = ""; this.fileObj = null; return false; }
       if (ext !== "pdf" || file.type !== "application/pdf") { this.error = "Only PDF allowed."; this.fileName = ""; this.fileObj = null; return false; }
       this.error = ""; this.fileName = file.name; this.fileObj = file; return true;
     },

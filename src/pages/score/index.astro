@@ -5,7 +5,7 @@ import Footer from "../../components/Footer.astro";
 import HeroSection from "../../components/HeroSection.astro";
 
 const DIRECTUS_URL = "https://directus.bounteer.com";
-const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // needs: files.create, role_fit_score_submission.create, role_fit_score_report.read
+const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
 ---
 
 <style is:global>
@@ -71,7 +71,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // needs: files.create, r
                 if(!file){ this.error='No file selected'; return false; }
                 const maxSize = 10 * 1024 * 1024;
                 const ext = file.name.split('.').pop()?.toLowerCase();
-                if(file.size > maxSize){ this.error='File is too large. Max 10MB.'; this.fileName=''; this.fileObj=null; return false; }
+                if(file.size > maxSize){ this.error='File is too large. Max 2MB.'; this.fileName=''; this.fileObj=null; return false; }
                 if(ext !== 'pdf' || file.type !== 'application/pdf'){ this.error='Only PDF allowed.'; this.fileName=''; this.fileObj=null; return false; }
                 this.error=''; this.fileName=file.name; this.fileObj=file; return true;
               },
@@ -331,7 +331,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // needs: files.create, r
                   fill="none"></path>
               </svg>
               <p class="text-base font-medium text-gray-900">
-                Analyzing your Role Fit (takes about 60 seconds in total)
+                Analyzing your Role Fit (takes about 30 seconds in total)
               </p>
               <p class="text-sm text-gray-600">
                 We’ll take you to your report as soon as it’s ready.<br />
@@ -413,7 +413,7 @@ const READ_TOKEN = "5OTK2voWFO_vTptGVMAY2Oxz9XBCDAvn"; // needs: files.create, r
                       />
                       choose a file
                     </label>
-                    <br /> Supports PDF up to 10MB
+                    <br /> Supports PDF up to 2MB
                   </p>
                 </div>
 
