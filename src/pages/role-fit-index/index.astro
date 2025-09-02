@@ -200,7 +200,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                           if(res.ok && js?.data?.length){
                             const report = js.data[0];
                             done(true);
-                            window.location.href = `/index/report?id=${encodeURIComponent(report.id)}`;
+                            window.location.href = `/role-fit-index/report?id=${encodeURIComponent(report.id)}`;
                             return;
                           }
                           this.error = 'Report ready but fetch failed.';
@@ -231,7 +231,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                     const js = await res.json();
                     if(res.ok && js?.data?.length){
                       const report = js.data[0];
-                      window.location.href = `/index/report?id=${encodeURIComponent(report.id)}`;
+                      window.location.href = `/role-fit-index/report?id=${encodeURIComponent(report.id)}`;
                       return;
                     }
                   }catch(_e){}
