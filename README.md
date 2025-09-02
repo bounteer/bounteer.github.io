@@ -38,20 +38,13 @@ All commands are run from the root of the project, from a terminal:
 ### Colors
 
 The template includes a custom color palette defined in `tailwind.config.mjs`:
-
-- Primary: Purple-based color scheme
-- Secondary: Slate-based color scheme
-- Accent: Lime-based color scheme
-- Warning: Yellow-based color scheme
-
-You can customize these colors by editing the `tailwind.config.mjs` file.
-
+But I am transitioning to use ShadCN just to make my life easier. I am just a frontend vibe coder.
 
 ## 🚀 Getting Started
 
 1. Clone this repository
-2. Install dependencies with `npm install` or `pnpm install`
-3. Start the development server with `npm run dev` or `pnpm dev`
+2. Install dependencies with `pnpm install`
+3. Start the development server with `pnpm dev`
 4. Visit `http://localhost:4321` to see your site
 
 
