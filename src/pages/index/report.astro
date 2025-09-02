@@ -35,6 +35,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
         loading: true,
         error: "",
         report: null,
+        blacklist: ["Bounteer Production", ""], // user blacklist used to show "Guest" as candidate
 
         hasId() {
           return !!this.reportId;
@@ -105,14 +106,15 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
           const iso = this.report?.date_created;
           return iso ? fmtMinutes(iso) : "—";
         },
-
         candidateName() {
           const c = this.report?.user_created;
           if (!c) return "—";
           const first = (c.first_name || "").trim();
           const last = (c.last_name || "").trim();
-          const combined = [first, last].filter(Boolean).join(" ");
-          return combined || "—";
+          const combined = [first, last].filter(Boolean).join(" ") || "—";
+
+          // 👇 override with "Guest" if blacklisted
+          return this.blacklist.includes(combined) ? "Guest" : combined;
         },
         roleName() {
           return this.report?.submission?.job_description?.role_name ?? "—";
