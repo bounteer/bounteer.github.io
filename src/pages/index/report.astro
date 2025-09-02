@@ -7,10 +7,9 @@ const DIRECTUS_URL = "https://directus.bounteer.com";
 const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
 ---
 
-<Layout title="Role Fit Score Report - Bounteer">
+<Layout title="Role Fit Index Report - Bounteer">
   <Header />
 
-  <!-- Alpine (remove if already loaded globally) -->
   <script src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js" defer
   ></script>
   <style is:inline>
@@ -20,7 +19,6 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
   </style>
 
   <script is:inline>
-    // Single-source formatter for "YYYY-MM-DD HH:mm" (local time)
     function fmtMinutes(iso) {
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) return "—";
@@ -31,30 +29,61 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
     window.reportViewer = ($el) => {
       const cfg = $el.dataset;
       return {
-        // config
         directusUrl: cfg.directusUrl,
         readToken: cfg.readToken,
-
-        // state
         reportId: "",
         loading: true,
         error: "",
         report: null,
 
-        // helpers
         hasId() {
           return !!this.reportId;
         },
         hasReport() {
           return !!this.report;
         },
-        overallScore() {
-          return this.report?.overall_score ?? "—";
+
+        index() {
+          return this.report?.index ?? "—";
         },
-        confidence() {
-          const v = this.report?.confidence_level;
-          return typeof v === "number" ? `${v}%` : "—";
+        weightedIndex() {
+          return this.report?.weighted_index ?? "—";
         },
+
+        technicalScore() {
+          return this.report?.technical_score ?? "—";
+        },
+        domainScore() {
+          return this.report?.domain_score ?? "—";
+        },
+        careerScore() {
+          return this.report?.career_score ?? "—";
+        },
+        culturalScore() {
+          return this.report?.cultural_score ?? "—";
+        },
+
+        technicalConfidence() {
+          return this.report?.technical_confidence
+            ? this.report.technical_confidence + "%"
+            : "—";
+        },
+        domainConfidence() {
+          return this.report?.domain_confidence
+            ? this.report.domain_confidence + "%"
+            : "—";
+        },
+        careerConfidence() {
+          return this.report?.career_confidence
+            ? this.report.career_confidence + "%"
+            : "—";
+        },
+        culturalConfidence() {
+          return this.report?.cultural_confidence
+            ? this.report.cultural_confidence + "%"
+            : "—";
+        },
+
         prosList() {
           const raw = (this.report?.pros ?? "").toString();
           return raw
@@ -70,13 +99,13 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
             .filter(Boolean);
         },
         concernTags() {
-          // Case 1: Directus returns array already
-          return this.report.concern_tags;
+          return this.report?.concern_tags || [];
         },
         createdMinutes() {
           const iso = this.report?.date_created;
           return iso ? fmtMinutes(iso) : "—";
         },
+
         candidateName() {
           const c = this.report?.user_created;
           if (!c) return "—";
@@ -113,7 +142,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
           this.error = "";
           try {
             const url =
-              `${this.directusUrl}/items/role_fit_score_report/${encodeURIComponent(this.reportId)}` +
+              `${this.directusUrl}/items/role_fit_index_report/${encodeURIComponent(this.reportId)}` +
               `?fields=*,user_created.first_name,user_created.last_name,` +
               `submission.job_description.role_name,submission.job_description.company_name,` +
               `submission.job_description.backfill_status`;
@@ -138,7 +167,6 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
 
   <main class="py-16 bg-white">
     <div class="container-custom max-w-4xl mx-auto px-4">
-      <!-- SINGLE CARD WRAPPER -->
       <div
         class="relative rounded-2xl border border-gray-200 shadow-xl bg-white overflow-hidden"
         x-data="reportViewer($el)"
@@ -176,7 +204,6 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
           </div>
         </div>
 
-        <!-- CARD CONTENT -->
         <div class="p-8 md:p-10 min-w-0">
           <!-- No ID -->
           <div
@@ -186,7 +213,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
           >
             <p>
               No <code>id</code> provided. Visit as <code
-                >/score/report?id=10</code
+                >/index/report?id=10</code
               >.
             </p>
           </div>
@@ -200,15 +227,14 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
           >
           </div>
 
-          <!-- Content (single card sections) -->
+          <!-- Content -->
           <template x-if="hasId() && !loading && !error && hasReport()">
             <div class="space-y-8 break-words">
               <!-- Header -->
               <div class="space-y-1 text-center max-w-prose mx-auto">
                 <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
-                  Role Fit Score Report
+                  Role Fit Index Report
                 </h1>
-                <!-- Candidate + Role -->
                 <p class="text-sm text-gray-700">
                   Candidate: <span x-text="candidateName()"></span>
                   <span class="px-1">·</span>
@@ -216,16 +242,13 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                   <span class="px-1">@</span>
                   <span x-text="companyName()"></span>
                 </p>
-                <!-- JD Backfill status -->
                 <template
                   x-if="backfill_status() && backfill_status().toLowerCase() !== 'success'"
                 >
                   <p class="mt-1">
                     <span
                       class="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2 py-1 text-xs font-medium"
-                      x-text="backfill_status()"
-                    >
-                    </span>
+                      x-text="backfill_status()"></span>
                   </p>
                 </template>
                 <p class="text-sm text-gray-500">
@@ -235,22 +258,110 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                 </p>
               </div>
 
-              <!-- Score + Confidence (kept inside the same card) -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
-                <div class="rounded-xl bg-gray-50 p-5">
+              <!-- Index + Weighted Index -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Index -->
+                <div class="rounded-xl bg-gray-50 p-5 text-center">
                   <h2 class="text-lg md:text-xl font-semibold mb-2">
-                    Overall Score
+                    Role Fit Index
                   </h2>
-                  <p class="text-4xl font-bold" x-text="overallScore()"></p>
+                  <p
+                    class="text-3xl md:text-4xl font-bold"
+                    x-text="index() + '/100'"
+                  >
+                  </p>
+                  <p class="text-xs mt-1">
+                    A weighted measure of the candidate’s alignment with role
+                    requirements across technical, domain, career, and cultural
+                    dimensions, useful for comparing candidates on a consistent
+                    scale.
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Formula: (Technical Score × 0.4) + (Domain Score × 0.3) +
+                    (Career Score × 0.2) + (Cultural Score × 0.1)
+                  </p>
                 </div>
-                <div class="rounded-xl bg-gray-50 p-5">
+
+                <!-- Weighted Index -->
+                <div class="rounded-xl bg-gray-50 p-5 text-center">
                   <h2 class="text-lg md:text-xl font-semibold mb-2">
-                    Confidence Level
+                    Weighted Role Fit Index
                   </h2>
-                  <p class="text-4xl font-bold" x-text="confidence()"></p>
+                  <p
+                    class="text-3xl md:text-4xl font-bold"
+                    x-text="weightedIndex() + '/100'"
+                  >
+                  </p>
+                  <p class="text-xs mt-1">
+                    A confidence-adjusted refinement of the RFI that reflects
+                    the reliability of the assessment, helping hiring teams
+                    prioritize candidates whose scores are both strong and
+                    well-supported by available data.
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Formula: (Technical Score × Confidence × 0.4) + (Domain
+                    Score × Confidence × 0.3) + (Career Score × Confidence ×
+                    0.2) + (Cultural Score × Confidence × 0.1)
+                  </p>
                 </div>
               </div>
 
+              <!-- Scores (4 cards only) -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <!-- Technical -->
+                <div class="rounded-xl bg-gray-50 p-5">
+                  <h2 class="text-lg md:text-xl font-semibold mb-2">
+                    Technical Proficiency
+                  </h2>
+                  <p class="text-xl">
+                    Score: <span x-text="technicalScore() + '/100'"></span>
+                  </p>
+                  <p class="text-sm text-gray-500">
+                    Confidence: <span x-text="technicalConfidence()"></span>
+                  </p>
+                </div>
+
+                <!-- Domain -->
+                <div class="rounded-xl bg-gray-50 p-5">
+                  <h2 class="text-lg md:text-xl font-semibold mb-2">
+                    Domain Expertise
+                  </h2>
+                  <p class="text-xl">
+                    Score: <span x-text="domainScore() + '/100'"></span>
+                  </p>
+                  <p class="text-sm text-gray-500">
+                    Confidence: <span x-text="domainConfidence()"></span>
+                  </p>
+                </div>
+
+                <!-- Career -->
+                <div class="rounded-xl bg-gray-50 p-5">
+                  <h2 class="text-lg md:text-xl font-semibold mb-2">
+                    Career Progression
+                  </h2>
+                  <p class="text-xl">
+                    Score: <span x-text="careerScore() + '/100'"></span>
+                  </p>
+                  <p class="text-sm text-gray-500">
+                    Confidence: <span x-text="careerConfidence()"></span>
+                  </p>
+                </div>
+
+                <!-- Cultural -->
+                <div class="rounded-xl bg-gray-50 p-5">
+                  <h2 class="text-lg md:text-xl font-semibold mb-2">
+                    Cultural Alignment
+                  </h2>
+                  <p class="text-xl">
+                    Score: <span x-text="culturalScore() + '/100'"></span>
+                  </p>
+                  <p class="text-sm text-gray-500">
+                    Confidence: <span x-text="culturalConfidence()"></span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Concern Tags -->
               <div class="rounded-xl bg-gray-50 p-5">
                 <h2 class="text-lg md:text-xl font-semibold mb-3">
                   Concern Tags
@@ -267,7 +378,6 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                 </div>
               </div>
 
-              <!-- Concern tags -->
               <!-- Pros -->
               <section class="rounded-xl bg-gray-50 p-5">
                 <h2 class="text-lg md:text-xl font-semibold mb-2">Pros</h2>
@@ -297,7 +407,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
               <!-- Footer link -->
               <div>
                 <a
-                  href="/score"
+                  href="/index"
                   class="text-primary-600 underline hover:text-primary-800"
                   >&larr; New analysis</a
                 >

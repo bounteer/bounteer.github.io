@@ -14,13 +14,13 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
   }
 </style>
 
-<Layout title="Role Fit Score - Bounteer">
+<Layout title="Role Fit Index - Bounteer">
   <Header />
 
   <main>
     <HeroSection
-      title="Get Your Role Fit Score"
-      highlightText="Role Fit Score"
+      title="Get Your Role Fit Index"
+      highlightText="Role Fit Index"
       description="Instantly analyze how well your CV matches a job description."
       badge="⚡ AI-Powered Career Matching"
     />
@@ -99,7 +99,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
 
                   // STEP 2: create submission (includes nested JD by raw_input)
                   this.buttonText = 'Saving submission…';
-                  const subRes = await fetch(`${this.directusUrl}/items/role_fit_score_submission`, {
+                  const subRes = await fetch(`${this.directusUrl}/items/role_fit_index_submission`, {
                     method:'POST',
                     headers:{
                       Authorization:`Bearer ${this.writeToken}`,
@@ -185,7 +185,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                     if (msg.type === 'auth' && msg.status === 'ok') {
                       ws.send(JSON.stringify({
                         type: 'subscribe',
-                        collection: 'role_fit_score_report',
+                        collection: 'role_fit_index_report',
                         query: {
                           fields: ['id','submission'],
                           limit: 1,
@@ -200,14 +200,14 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                     if (msg.type === 'pong' || msg.event === 'init') return;
 
                     const col = String(msg.collection || msg?.data?.collection || '').replace(/^items\./, '');
-                    const isReport = col === 'role_fit_score_report';
+                    const isReport = col === 'role_fit_index_report';
 
                     // INITIAL SNAPSHOT (array)
                     if (msg.type === 'subscription' && Array.isArray(msg.data) && msg.data.length) {
                       const found = msg.data.find(r => String(r.submission) === String(submissionId));
                       if (found) {
                         done(true, found.id);
-                        window.location.href = `/score/report?id=${encodeURIComponent(found.id)}`;
+                        window.location.href = `/index/report?id=${encodeURIComponent(found.id)}`;
                       }
                       return;
                     }
@@ -223,7 +223,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
 
                       if (String(sub) === String(submissionId) && id != null) {
                         done(true, id);
-                        window.location.href = `/score/report?id=${encodeURIComponent(id)}`;
+                        window.location.href = `/index/report?id=${encodeURIComponent(id)}`;
                       }
                       return;
                     }
@@ -239,7 +239,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                 const ttl = 90_000;
                 while(Date.now() - start < ttl){
                   try{
-                    const url = new URL(`${this.directusUrl}/items/role_fit_score_report`);
+                    const url = new URL(`${this.directusUrl}/items/role_fit_index_report`);
                     url.searchParams.set('limit','1');
                     url.searchParams.set('sort','-date_created');
                     url.searchParams.set('fields','id,submission');
@@ -250,7 +250,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                     });
                     const js = await res.json();
                     if(res.ok && js?.data?.length){
-                      window.location.href = `/score/report?id=${encodeURIComponent(submissionId)}`;
+                      window.location.href = `/index/report?id=${encodeURIComponent(submissionId)}`;
                       return;
                     }
                   }catch(_e){}
