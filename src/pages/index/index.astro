@@ -29,37 +29,35 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
       <div class="container-custom max-w-6xl mx-auto">
         <div
           class="relative rounded-2xl border border-gray-200 shadow-xl p-10 bg-white flex flex-col"
-          x-data="(() => {
-            const cfg = $el.dataset;
-
-            // util: convert http(s) -> ws(s)
-            const toWs = (url) => {
-              try{
-                const u = new URL(url);
-                u.protocol = (u.protocol === 'https:') ? 'wss:' : 'ws:';
-                // Directus realtime endpoint
-                u.pathname = '/websocket';
-                u.search = '';
-                return u.toString();
-              }catch{ return '' }
-            };
-
+          x-data="(function($el){
             return {
-              // config
-              directusUrl: cfg.directusUrl,
-              writeToken: cfg.writeToken,
-              wsEndpoint: toWs(cfg.directusUrl),
+              // Config
+              directusUrl: $el.dataset.directusUrl,
+              writeToken:  $el.dataset.writeToken,
+              wsEndpoint: (function(){
+                try{
+                  const u = new URL($el.dataset.directusUrl);
+                  u.protocol = (u.protocol === 'https:') ? 'wss:' : 'ws:';
+                  u.pathname = '/websocket'; u.search = '';
+                  return u.toString();
+                }catch{ return '' }
+              })(),
 
-              // state
+              // State
               isDragging:false,
               isBusy:false,
               fileName:'',
               fileObj:null,
               error:'',
-              step:0, // 0 idle, 1 uploading, 2 analyzing/waiting
+              step:0, // 0 idle, 1 uploading, 2 analyzing
               buttonText:'Analyze Role Fit now',
 
-              // file + textarea helpers
+              // Submission progress
+              submissionStatus:'submitted',
+              submissionId:null,
+              progressSteps:['submitted','parsed_jd','generated_report'],
+
+              // Helpers
               autoGrow(el){
                 const max = Math.floor(window.innerHeight * 0.6);
                 el.style.height = 'auto';
@@ -69,14 +67,27 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
               handleDrop(ev){ const f = ev.dataTransfer.files?.[0]; this.validateFile(f); },
               validateFile(file){
                 if(!file){ this.error='No file selected'; return false; }
-                const maxSize = 10 * 1024 * 1024;
+                const maxSize = 2 * 1024 * 1024; // 2MB to match label
                 const ext = file.name.split('.').pop()?.toLowerCase();
                 if(file.size > maxSize){ this.error='File is too large. Max 2MB.'; this.fileName=''; this.fileObj=null; return false; }
-                if(ext !== 'pdf' || file.type !== 'application/pdf'){ this.error='Only PDF allowed.'; this.fileName=''; this.fileObj=null; return false; }
+                if(ext !== 'pdf'){ this.error='Only PDF allowed.'; this.fileName=''; this.fileObj=null; return false; }
                 this.error=''; this.fileName=file.name; this.fileObj=file; return true;
               },
+              labelForStep(s){
+                const map = { submitted:'Submitted', parsed_jd:'Parsed JD', generated_report:'Generated Report' };
+                return map[s] ?? s.replaceAll('_',' ');
+              },
+              currentStepIdx(){
+                const i = this.progressSteps.indexOf(this.submissionStatus);
+                return i >= 0 ? i : 0;
+              },
+              percentDone(){
+                const total = this.progressSteps.length - 1;
+                if(total <= 0) return 0;
+                return Math.max(0, Math.min(100, Math.round((this.currentStepIdx()/total)*100)));
+              },
 
-              // main action
+              // Main action
               async analyze(){
                 try{
                   if(!this.fileObj){ this.error='Please select a PDF'; return; }
@@ -84,7 +95,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                   if(!jdText){ this.error='Please paste the JD'; return; }
                   if(!this.directusUrl || !this.writeToken){ this.error='Missing Directus config'; return; }
 
-                  // STEP 1: upload CV
+                  // 1) Upload CV
                   this.step = 1; this.isBusy = true; this.buttonText = 'Uploading CV…';
                   const fd = new FormData();
                   fd.append('file', this.fileObj, this.fileName || 'cv.pdf');
@@ -97,7 +108,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                   if(!upRes.ok) throw new Error(upJson?.errors?.[0]?.message || 'Upload failed');
                   const fileId = upJson?.data?.id;
 
-                  // STEP 2: create submission (includes nested JD by raw_input)
+                  // 2) Create submission
                   this.buttonText = 'Saving submission…';
                   const subRes = await fetch(`${this.directusUrl}/items/role_fit_index_submission`, {
                     method:'POST',
@@ -107,8 +118,8 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                     },
                     body: JSON.stringify({
                       cv_file:fileId,
-                      status:'analyzing',
-                      job_description: { raw_input: jdText }
+                      status:'submitted',
+                      job_description:{ raw_input: jdText }
                     })
                   });
                   const subJson = await subRes.json();
@@ -116,12 +127,9 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                   const submissionId = subJson?.data?.id;
                   if(!submissionId) throw new Error('No submission id returned');
 
-                  // STEP 3: switch to analyzing UI + wait for report via WS (fallback: poll)
-                  this.step = 2; // analyzing
-                  this.buttonText = 'Analyzing…';
+                  // 3) Show progress & wait
+                  this.step = 2; this.isBusy = false; this.buttonText = 'Analyzing…';
                   this.error = '';
-
-                  // fire-and-wait
                   this.awaitReport(submissionId);
 
                 }catch(e){
@@ -130,14 +138,11 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                 }
               },
 
-              // ---- Waiting for report (WS + fallback poll) ----
+              // Wait for report (WS + fallback)
               async awaitReport(submissionId){
-                // try WS first; if it fails, start polling
+                this.submissionId = submissionId;
                 const wsOk = await this.waitForReportWS(submissionId).catch(() => false);
                 if(wsOk) return;
-
-                // fallback polling
-                console.log('fall back to polling')
                 await this.pollReport(submissionId);
               },
 
@@ -149,125 +154,97 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                   let pingTimer, safetyTimer;
                   const ws = new WebSocket(this.wsEndpoint);
 
-                  const done = (ok=false, reportId=null) => {
+                  const done = (ok=false) => {
                     if (pingTimer) clearInterval(pingTimer);
                     if (safetyTimer) clearTimeout(safetyTimer);
-                    try { ws.close(); } catch {}
+                    try{ ws.close(); }catch{}
                     if (resolved) return;
                     resolved = true;
-                    if (ok) resolve(reportId ?? true);
-                    else reject(new Error('WS closed'));
+                    ok ? resolve(true) : reject(new Error('WS closed'));
                   };
 
-                  // avoid hanging forever
                   safetyTimer = setTimeout(() => { if (!resolved) done(false); }, 90_000);
 
                   ws.onopen = () => {
-                    // auth
                     ws.send(JSON.stringify({ type:'auth', access_token:this.writeToken }));
-                    // heartbeat
-                    pingTimer = setInterval(() => {
-                      try { ws.send(JSON.stringify({ type:'ping' })); } catch {}
-                    }, 25_000);
+                    pingTimer = setInterval(() => { try{ ws.send(JSON.stringify({ type:'ping' })); }catch{} }, 25_000);
                   };
 
-                  ws.onerror = () => { if (!resolved) reject(new Error('Realtime error')); };
-
                   ws.onmessage = async (evt) => {
-                    // robust parse (handles Blob and string)
                     const text = typeof evt.data === 'string' ? evt.data : await new Response(evt.data).text();
-                    let msg; try { msg = JSON.parse(text); } catch { console.warn('WS non-JSON:', text); return; }
+                    let msg; try{ msg = JSON.parse(text); }catch{ return; }
 
-                    // debug
-                    console.log('ws msg:', { type: msg.type, event: msg.event, collection: msg.collection, data: msg.data });
-
-                    // auth ack -> subscribe
                     if (msg.type === 'auth' && msg.status === 'ok') {
                       ws.send(JSON.stringify({
-                        type: 'subscribe',
-                        collection: 'role_fit_index_report',
-                        query: {
-                          fields: ['id','submission'],
-                          limit: 1,
-                          sort: ['-date_created'],
-                          filter: { submission: { _eq: submissionId } }
-                        }
+                        type:'subscribe',
+                        collection:'role_fit_index_submission',
+                        query:{ fields:['id','status'], filter:{ id:{ _eq: submissionId } }, limit:1 }
                       }));
                       return;
                     }
 
-                    // ignore pings/inits
-                    if (msg.type === 'pong' || msg.event === 'init') return;
+                    if (msg.type === 'subscription' && (msg.collection?.endsWith('role_fit_index_submission') || msg.event === 'update')) {
+                      const rec = Array.isArray(msg.data) ? msg.data[0] : (msg.data?.payload ?? msg.data?.item ?? msg.data);
+                      if (!rec || String(rec.id) !== String(submissionId)) return;
 
-                    const col = String(msg.collection || msg?.data?.collection || '').replace(/^items\./, '');
-                    const isReport = col === 'role_fit_index_report';
+                      this.submissionStatus = rec.status;
 
-                    // INITIAL SNAPSHOT (array)
-                    if (msg.type === 'subscription' && Array.isArray(msg.data) && msg.data.length) {
-                      const found = msg.data.find(r => String(r.submission) === String(submissionId));
-                      if (found) {
-                        done(true, found.id);
-                        window.location.href = `/index/report?id=${encodeURIComponent(found.id)}`;
+                      if (rec.status === 'generated_report') {
+                        try{
+                          const url = new URL(`${this.directusUrl}/items/role_fit_index_report`);
+                          url.searchParams.set('limit','1');
+                          url.searchParams.set('sort','-date_created');
+                          url.searchParams.set('filter[submission][_eq]', String(submissionId));
+                          const res = await fetch(url.toString(), { headers:{ Authorization:`Bearer ${this.writeToken}` } });
+                          const js = await res.json();
+                          if(res.ok && js?.data?.length){
+                            const report = js.data[0];
+                            done(true);
+                            window.location.href = `/index/report?id=${encodeURIComponent(report.id)}`;
+                            return;
+                          }
+                          this.error = 'Report ready but fetch failed.';
+                        }catch(_e){ this.error = 'Report ready but fetch failed.'; }
                       }
-                      return;
-                    }
 
-                    // CREATE/INSERT EVENTS
-                    if (msg.type === 'subscription' && isReport && (msg.event === 'create' || msg.event === 'insert')) {
-                      // payload shape can vary across Directus versions
-                      const rec = msg.data?.payload ?? msg.data?.item ?? msg.data;
-                      console.log('report event rec:', rec);
-
-                      const sub = rec?.submission ?? rec?.item?.submission ?? rec?.payload?.submission;
-                      const id  = rec?.id ?? rec?.item?.id ?? rec?.payload?.id;
-
-                      if (String(sub) === String(submissionId) && id != null) {
-                        done(true, id);
-                        window.location.href = `/index/report?id=${encodeURIComponent(id)}`;
+                      if ((rec.status || '').startsWith('failed_')) {
+                        this.error = 'Submission failed: ' + rec.status;
+                        done(false);
                       }
-                      return;
                     }
                   };
 
-                  ws.onclose = () => done(false);
+                  ws.onerror = () => done(false);
+                  ws.onclose  = () => done(false);
                 });
               },
 
               async pollReport(submissionId){
-                // poll every 2s up to ~90s
-                const start = Date.now();
-                const ttl = 90_000;
+                const start = Date.now(), ttl = 90_000;
                 while(Date.now() - start < ttl){
                   try{
                     const url = new URL(`${this.directusUrl}/items/role_fit_index_report`);
                     url.searchParams.set('limit','1');
                     url.searchParams.set('sort','-date_created');
-                    url.searchParams.set('fields','id,submission');
                     url.searchParams.set('filter[submission][_eq]', String(submissionId));
-
-                    const res = await fetch(url.toString(), {
-                      headers:{ Authorization:`Bearer ${this.writeToken}` }
-                    });
+                    const res = await fetch(url.toString(), { headers:{ Authorization:`Bearer ${this.writeToken}` } });
                     const js = await res.json();
                     if(res.ok && js?.data?.length){
-                      window.location.href = `/index/report?id=${encodeURIComponent(submissionId)}`;
+                      const report = js.data[0];
+                      window.location.href = `/index/report?id=${encodeURIComponent(report.id)}`;
                       return;
                     }
                   }catch(_e){}
-                  await new Promise(r => setTimeout(r, 2000));
+                  await new Promise(r => setTimeout(r,2000));
                 }
-                // gave up
-                this.error = 'Still analyzing… You can refresh this page or check back later.';
-                this.isBusy = false;
-                this.buttonText = 'Analyzing…';
+                this.error = 'Still analyzing… Please refresh later.';
               }
             }
-          })()"
+          })($el)"
           data-directus-url={DIRECTUS_URL}
           data-write-token={READ_TOKEN}
         >
-          <!-- OVERLAYS -->
-          <!-- 1) Uploading -->
+          <!-- Step 1 Overlay: Uploading file -->
           <div
             x-show="step===1"
             class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
@@ -302,50 +279,12 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
             </div>
           </div>
 
-          <!-- 2) Analyzing / Waiting for Report -->
-          <div
-            x-show="step===2"
-            class="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
-            aria-live="polite"
-            role="status"
-            x-cloak
-          >
-            <div class="flex flex-col items-center gap-4 text-center">
-              <svg
-                class="h-12 w-12 animate-spin"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                  fill="none"
-                  opacity="0.25"></circle>
-                <path
-                  d="M4 12a8 8 0 018-8"
-                  stroke="currentColor"
-                  stroke-width="4"
-                  fill="none"></path>
-              </svg>
-              <p class="text-base font-medium text-gray-900">
-                Analyzing your Role Fit (takes about 30 seconds in total)
-              </p>
-              <p class="text-sm text-gray-600">
-                We’ll take you to your report as soon as it’s ready.<br />
-                <span x-show="error" x-text="error" class="text-red-600"></span>
-              </p>
-            </div>
-          </div>
-
           <h3 class="text-2xl font-semibold text-gray-900 mb-8">
             Upload JD and CV
           </h3>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-stretch">
-            <!-- JD (auto-grow textarea only) -->
+            <!-- JD (auto-grow textarea) -->
             <div class="flex flex-col">
               <label
                 for="job-description"
@@ -356,7 +295,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
               <textarea
                 id="job-description"
                 x-ref="jdInput"
-                :disabled="isBusy"
+                :disabled="step!==0"
                 placeholder="Paste the JD or a JD URL…"
                 @input="autoGrow($event.target)"
                 x-init="autoGrow($el)"
@@ -373,7 +312,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
               @drop.prevent="isDragging = false; handleDrop($event)"
-              :class="isBusy ? 'opacity-60 pointer-events-none' : ''"
+              :class="step!==0 ? 'opacity-60 pointer-events-none' : ''"
               class="flex flex-col"
             >
               <label class="block text-sm font-medium text-gray-700 mb-2"
@@ -422,7 +361,7 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
                     <p
                       x-show="fileName"
                       x-cloak
-                      class="text-sm text-blue-600 font-medium truncate max-w-full"
+                      class="text-sm text-primary-700 font-medium truncate max-w-full"
                       x-text="`📄 ${fileName}`"
                     >
                     </p>
@@ -441,12 +380,80 @@ const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
             </div>
           </div>
 
+          <!-- Analysis progress (single source of truth) -->
+          <div
+            x-show="step===2"
+            x-cloak
+            class="mt-8"
+            aria-live="polite"
+            role="status"
+          >
+            <div class="w-full bg-gray-200/80 rounded-full h-2 overflow-hidden">
+              <div
+                class="h-2 bg-primary-600 rounded-full transition-all duration-700 ease-out"
+                :style="`width: ${percentDone()}%`"
+              >
+              </div>
+            </div>
+
+            <div class="mt-3 flex items-center justify-between text-xs">
+              <template x-for="(s,i) in progressSteps" :key="s">
+                <div class="flex items-center gap-1 min-w-0">
+                  <!-- Completed -->
+                  <svg
+                    x-show="i < currentStepIdx()"
+                    class="w-3.5 h-3.5 text-primary-700"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414L8.5 14.914a1 1 0 01-1.414 0L3.293 11.12a1 1 0 111.414-1.414l3.086 3.086 7.207-7.207a1 1 0 011.414 0z"
+                      clip-rule="evenodd"></path>
+                  </svg>
+                  <!-- Active -->
+                  <svg
+                    x-show="i === currentStepIdx()"
+                    class="w-3.5 h-3.5 animate-spin text-primary-700"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      opacity="0.25"></circle>
+                    <path
+                      d="M4 12a8 8 0 018-8"
+                      stroke="currentColor"
+                      stroke-width="3"></path>
+                  </svg>
+                  <span
+                    class="truncate"
+                    :class="i <= currentStepIdx() ? 'text-primary-700 font-medium' : 'text-gray-500'"
+                    x-text="labelForStep(s)"></span>
+                </div>
+              </template>
+            </div>
+
+            <p class="mt-4 text-sm text-gray-600 text-center">
+              Analyzing your CV & JD — this usually takes ~30 seconds. You’ll be
+              redirected when the report is ready.
+            </p>
+          </div>
+
           <!-- Primary button -->
-          <div class="mt-10 relative h-12">
+          <div
+            x-cloak
+            x-show="step===0"
+            x-transition.opacity.scale
+            class="mt-10 relative h-12"
+          >
             <button
-              x-cloak
-              x-show="!isBusy && step === 0"
-              x-transition.opacity.scale
               type="button"
               class="btn-primary w-full h-12 flex items-center justify-center gap-2"
               @click.prevent="analyze"
