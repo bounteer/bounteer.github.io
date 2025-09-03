@@ -19,7 +19,7 @@ import * as z from "zod";
 
 const schema = z.object({
   name: z.string().min(1, "Please enter your name"),
-  email: z.email("Please enter a valid email"),
+  email: z.string().email("Please enter a valid email"),
   message: z.string().min(1, "Please enter your message"),
 });
 type FormValues = z.infer<typeof schema>;
