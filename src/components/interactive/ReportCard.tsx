@@ -202,10 +202,9 @@ export default function ReportCard() {
           </div>
         </div>
 
-        {/* Breakdown scores */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Breakdown Scores</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-lg bg-gray-50 p-5 space-y-4">
             {[
               {
                 label: "Technical Proficiency",
@@ -228,15 +227,14 @@ export default function ReportCard() {
                 confidence: report.cultural_confidence,
               },
             ].map(({ label, score, confidence }) => (
-              <div key={label} className="rounded-lg bg-gray-50 p-5">
-                <h3 className="font-semibold text-base mb-2">{label}</h3>
-                <p className="text-sm">
-                  Score: <span className="font-medium">{score}/100</span>
-                </p>
-                <Progress value={score} className="my-2" />
-                <p className="text-xs text-gray-500">
-                  Confidence: {confidence}%
-                </p>
+              <div key={label}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium">{label}</span>
+                  <span className="text-sm text-gray-600">
+                    {score}/100 · {confidence}% confidence
+                  </span>
+                </div>
+                <Progress value={score} />
               </div>
             ))}
           </div>

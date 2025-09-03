@@ -38,7 +38,12 @@ All commands are run from the root of the project, from a terminal:
 ### Colors
 
 The template includes a custom color palette defined in `tailwind.config.mjs`:
+
 But I am transitioning to use ShadCN just to make my life easier. I am just a frontend vibe coder.
+```bash
+# add new shadcn component
+pnpm dlx shadcn@latest add badge
+```
 
 ## 🚀 Getting Started
 

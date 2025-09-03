@@ -1,20 +1,13 @@
 ---
-/**
- * Roadmap.astro
- * Two-stage product roadmap for Bounteer.
- * - Stage 1 (Sep 2025): Role Fit Scoring launch + feature list
- * - Stage 2 (Coming Soon): Bounty Marketplace preview
- * Uses schema.org ItemList for rich snippets
- */
+import ProductCard from "../components/interactive/ProductCard.tsx";
 
 const stages = [
   {
-    title: "Stage 1 · Role Fit Index",
-    date: "September 2025",
-    status: "Launching",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    icon: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9Zm0 4v5l4 2", // clock/spark
-    summary: "Instant, AI-powered JD to CV match analysis.",
+    stage: "Stage 1",
+    title: "Bounteer Role Fit Index",
+    subtitle: "Instant, AI-powered JD to CV match analysis.",
+    launchDate: "September 2025",
+    currentStage: "Beta Release",
     features: [
       "Upload CV & paste a job description (multiple formats)",
       "Overall match score with confidence band",
@@ -23,17 +16,15 @@ const stages = [
       "ATS-readiness checks (readability & keyword coverage)",
       "Shareable, privacy-first report link",
     ],
-    cta: { href: "/role-fit-index", label: "Try Role Fit Index" },
-    schemaType: "SoftwareApplication",
+    buttonLabel: "Try Role Fit Index Now",
+    buttonHref: "/role-fit-index",
   },
   {
-    title: "Stage 2 · Bounty Marketplace",
-    date: "Coming soon",
-    status: "In development",
-    badgeClass: "bg-amber-100 text-amber-700",
-    icon: "M12 2l2.39 4.85 5.36.78-3.88 3.78.92 5.35L12 14.9 6.21 16.76l.92-5.35L3.25 7.63l5.36-.78L12 2Z", // star
-    summary:
-      "Quality-first referral bounties with transparent, verifiable payouts.",
+    stage: "Stage 2",
+    title: "Bounteer Marketplace",
+    subtitle: "Quality-first referral bounties with transparent payouts.",
+    launchDate: "December 2025",
+    currentStage: "In Development",
     features: [
       "Post roles with tiered bounties & clear acceptance criteria",
       "Verified referrers submit candidates with one link",
@@ -42,137 +33,28 @@ const stages = [
       "Dashboard for pipeline, payouts, and ROI",
       "Optional escrow & milestone-based releases",
     ],
-    cta: {
-      href: "/contact",
-      label: "Coming Soon",
-    },
-    schemaType: "CreativeWork",
+    buttonLabel: "Coming Soon",
+    buttonHref: "/contact",
   },
 ];
-
-const checkPath = "M5 13l4 4L19 7"; // simple checkmark for feature bullets
 ---
 
-<section
-  id="roadmap"
-  class="section py-12 md:py-16 bg-secondary-50"
-  itemscope
-  itemtype="https://schema.org/ItemList"
->
-  <meta itemprop="numberOfItems" content={String(stages.length)} />
-
-  <div class="container-custom">
-    <div class="text-center max-w-3xl mx-auto mb-8 md:mb-10 px-4">
-      <span
-        class="inline-block px-4 py-1 rounded-full bg-accent-100 text-accent-600 font-medium text-sm mb-4"
-      >
-        Product Roadmap
-      </span>
-      <h2 class="mb-3 text-gray-900">
-        What&rsquo;s Shipping & What&rsquo;s Next
-      </h2>
-      <p class="text-gray-600">
-        A pragmatic rollout focused on quality, signal, and measurable outcomes.
-      </p>
-    </div>
-
-    <ol class="grid md:grid-cols-2 gap-6 md:gap-8 px-6 md:px-0">
-      {
-        stages.map((s, i) => (
-          <li
-            class="relative"
-            itemscope
-            itemprop="itemListElement"
-            itemtype="https://schema.org/ListItem"
-          >
-            <meta itemprop="position" content={String(i + 1)} />
-            <article
-              class="relative h-full rounded-2xl border border-secondary-200 bg-white shadow-md p-6 md:p-8"
-              itemprop="item"
-              itemscope
-              itemtype={`https://schema.org/${s.schemaType}`}
-            >
-              {/* header */}
-              <div class="flex items-start gap-4">
-                <div class="shrink-0 inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm ring-2 ring-secondary-200">
-                  <svg
-                    viewBox="0 0 24 24"
-                    class="w-6 h-6 text-accent-600"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d={s.icon}
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <div
-                    class={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium ${s.badgeClass}`}
-                  >
-                    <span>{s.status}</span>
-                    <span aria-hidden="true">•</span>
-                    <time itemprop="dateCreated" datetime={s.date}>
-                      {s.date}
-                    </time>
-                  </div>
-                  <h3
-                    class="mt-3 text-lg md:text-xl font-semibold text-gray-900"
-                    itemprop="name"
-                  >
-                    {s.title}
-                  </h3>
-                  <p class="mt-1 text-gray-600" itemprop="description">
-                    {s.summary}
-                  </p>
-                </div>
-              </div>
-
-              {/* features */}
-              <ul class="mt-5 space-y-2" role="list">
-                {s.features.map((f) => (
-                  <li class="flex items-start gap-3">
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="w-5 h-5 mt-0.5"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d={checkPath}
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="text-gray-700" itemprop="featureList">
-                      {f}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <div class="mt-6">
-                <a href={s.cta.href} class="btn-secondary disabled">
-                  {s.cta.label}
-                </a>
-              </div>
-
-              {/* microdata extras */}
-              <meta
-                itemprop="applicationCategory"
-                content={i === 0 ? "BusinessApplication" : "Recruitment"}
-              />
-            </article>
-          </li>
-        ))
-      }
-    </ol>
+<section class="py-12">
+  <div class="container-custom grid md:grid-cols-2 gap-6">
+    {
+      stages.map((stage) => (
+        <ProductCard
+          client:only="react"
+          stage={stage.stage}
+          title={stage.title}
+          subtitle={stage.subtitle}
+          launchDate={stage.launchDate}
+          currentStage={stage.currentStage}
+          features={stage.features}
+          buttonLabel={stage.buttonLabel}
+          buttonHref={stage.buttonHref}
+        />
+      ))
+    }
   </div>
 </section>

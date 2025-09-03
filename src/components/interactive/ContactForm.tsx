@@ -16,6 +16,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Loader2 } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1, "Please enter your name"),
@@ -26,13 +27,15 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "", email: "", message: "" },
   });
 
   async function onSubmit(values: FormValues) {
-    console.log("submitting")
+    setLoading(true);
     try {
       const res = await fetch("https://directus.bounteer.com/items/message", {
         method: "POST",
@@ -48,15 +51,16 @@ export default function ContactForm() {
       setSubmitted(true);
       form.reset();
     } catch (err: any) {
-      // TODO: replace with toast
       alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <Card className="p-6">
+    <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>Send Bounteer a Message</CardTitle>
+        <CardTitle className="text-lg">Send Bounteer a Message</CardTitle>
       </CardHeader>
       <CardContent>
         {!submitted ? (
@@ -69,7 +73,7 @@ export default function ContactForm() {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your name" {...field} />
+                      <Input placeholder="Your name" aria-label="Name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -82,7 +86,12 @@ export default function ContactForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your email" type="email" {...field} />
+                      <Input
+                        placeholder="Your email"
+                        type="email"
+                        aria-label="Email"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -95,20 +104,26 @@ export default function ContactForm() {
                   <FormItem>
                     <FormLabel>Message</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Your message" rows={5} {...field} />
+                      <Textarea
+                        placeholder="Your message"
+                        rows={5}
+                        aria-label="Message"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Send Message
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </Form>
         ) : (
-          <div className="text-center p-6 bg-primary/5 rounded-lg">
-            ✅ Message Sent! We’ll get back to you shortly.
+            <div className="text-center p-6 bg-primary/5 rounded-lg font-medium text-black">
+              🎉 Message sent! We’ll get back to you shortly.
           </div>
         )}
       </CardContent>
