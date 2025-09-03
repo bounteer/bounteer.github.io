@@ -22,6 +22,8 @@ type Report = {
   cultural_confidence: number;
   pros: string;
   cons: string;
+  hiring_advice: string;
+  candidate_advice: string;
   concern_tags: string[];
   date_created: string;
   user_created?: { first_name?: string; last_name?: string };
@@ -103,6 +105,18 @@ export default function ReportCard() {
 
   const consList =
     report?.cons
+      ?.split("\n")
+      .map((l) => l.replace(/^\s*-\s*/, "").trim())
+      .filter(Boolean) || [];
+
+  const hiring_advices =
+    report?.hiring_advice
+      ?.split("\n")
+      .map((l) => l.replace(/^\s*-\s*/, "").trim())
+      .filter(Boolean) || [];
+
+  const candidate_advices =
+    report?.candidate_advice
       ?.split("\n")
       .map((l) => l.replace(/^\s*-\s*/, "").trim())
       .filter(Boolean) || [];
@@ -282,10 +296,49 @@ export default function ReportCard() {
                 </li>
               ))
             ) : (
-              <li className="text-gray-500">No cons listed.</li>
+              <li className="text-gray-500">No advice listed.</li>
             )}
           </ul>
         </div>
+
+        {/* Hiring Advices */}
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Hiring Advices</h2>
+          <ul className="space-y-1">
+            {hiring_advices.length ? (
+              hiring_advices.map((c, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-gray-800 break-words"
+                >
+                  - {c}
+                </li>
+              ))
+            ) : (
+              <li className="text-gray-500">No advice listed.</li>
+            )}
+          </ul>
+        </div>
+
+        {/* Candidate Advices */}
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Candidate Advices</h2>
+          <ul className="space-y-1">
+            {candidate_advices.length ? (
+              candidate_advices.map((c, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-gray-800 break-words"
+                >
+                  - {c}
+                </li>
+              ))
+            ) : (
+              <li className="text-gray-500">No advice listed.</li>
+            )}
+          </ul>
+        </div>
+
 
         {/* Footer link */}
         <div className="text-center">
