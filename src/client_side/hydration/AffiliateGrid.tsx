@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import fetchAffiliatePrograms, { DIRECTUS_URL, type AffiliateProgramResponseData } from '../fetch/AffiliatePrograms';
+import { EXTERNAL } from '@/constant';
+import fetchAffiliatePrograms, { type AffiliateProgramResponseData } from '../fetch/AffiliatePrograms';
 
 export default function AffiliateGrid() {
     const [data, setData] = useState<AffiliateProgramResponseData[]>([]);
@@ -23,7 +24,7 @@ export default function AffiliateGrid() {
                         <img
                             src={
                                 partner.image
-                                    ? `${DIRECTUS_URL}/assets/${partner.image}?quality=${quality}`
+                                    ? `${EXTERNAL.directus_url}/assets/${partner.image}?quality=${quality}`
                                     : '/gradient.jpg'
                             }
                             alt={partner.name}

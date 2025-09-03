@@ -1,7 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import Icon from "../assets/icon.png";
-import { KEYWORDS, EXTERNAL_LINKS } from "../constant";
+import { EXTERNAL, KEYWORDS } from "@/constant";
 
 const allPages = [
   { text: "Home", url: "/" },
@@ -95,12 +95,12 @@ const allPages = [
     <div class="ml-auto flex items-center">
       <!-- "Get Started" (desktop) -->
       <!-- TODO replate this with login -->
-      <!-- <a
-        href={EXTERNAL_LINKS.onboarding_form}
+      <a
+        href={EXTERNAL.onboarding_form}
         class="hidden md:inline-flex btn-secondary mr-3"
       >
         Get Started
-      </a> -->
+      </a>
 
       <!-- Mobile Menu Button & Dropdown -->
       <div x-data="{ open: false, showAllPages: false }" class="relative">

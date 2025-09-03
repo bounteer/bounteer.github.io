@@ -1,4 +1,4 @@
-export const DIRECTUS_URL = 'https://directus.bounteer.com';
+import { EXTERNAL } from '@/constant';
 
 export default async function fetchAffiliateProgramModel(): Promise<AffiliateProgramResponseData[]> {
     const sort = "sort=id";
@@ -15,7 +15,7 @@ export default async function fetchAffiliateProgramModel(): Promise<AffiliatePro
         "tags.tags_id.name"
     ].join(',');
 
-    const url = `${DIRECTUS_URL}/items/affiliate_programs?${sort}&${filter}&fields=${encodeURIComponent(fields)}`;
+    const url = `${EXTERNAL.directus_url}/items/affiliate_programs?${sort}&${filter}&fields=${encodeURIComponent(fields)}`;
 
     const res = await fetch(url);
 

@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Loader2 } from "lucide-react";
+import { EXTERNAL } from "@/constant";
 
 const schema = z.object({
   name: z.string().min(1, "Please enter your name"),
@@ -37,7 +38,7 @@ export default function ContactForm() {
   async function onSubmit(values: FormValues) {
     setLoading(true);
     try {
-      const res = await fetch("https://directus.bounteer.com/items/message", {
+      const res = await fetch(`${EXTERNAL.directus_url}/items/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

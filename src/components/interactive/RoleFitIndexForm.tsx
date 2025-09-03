@@ -17,10 +17,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, ExternalLink } from "lucide-react";
+import { EXTERNAL } from '@/constant';
 
-const DIRECTUS_URL = "https://directus.bounteer.com";
-const DIRECTUS_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
 
 const schema = z.object({
   jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
@@ -68,9 +67,9 @@ export default function RoleFitForm() {
   const uploadFile = async (file: File) => {
     const fd = new FormData();
     fd.append("file", file, file.name || "cv.pdf");
-    const res = await fetch(`${DIRECTUS_URL}/files`, {
+    const res = await fetch(`${EXTERNAL.directus_url}/files`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+      headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
       body: fd,
     });
     const js = await res.json();
@@ -80,10 +79,10 @@ export default function RoleFitForm() {
 
   /** Create submission */
   const createSubmission = async (jd: string, fileId: string) => {
-    const res = await fetch(`${DIRECTUS_URL}/items/role_fit_index_submission`, {
+    const res = await fetch(`${EXTERNAL.directus_url}/items/role_fit_index_submission`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${DIRECTUS_TOKEN}`,
+        Authorization: `Bearer ${EXTERNAL.directus_key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -103,12 +102,12 @@ export default function RoleFitForm() {
     const ttl = 90_000;
     while (Date.now() - start < ttl) {
       try {
-        const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
+        const url = new URL(`${EXTERNAL.directus_url}/items/role_fit_index_report`);
         url.searchParams.set("limit", "1");
         url.searchParams.set("sort", "-date_created");
         url.searchParams.set("filter[submission][_eq]", id);
         const res = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+          headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
         });
         const js = await res.json();
         if (res.ok && js?.data?.length) {
@@ -136,7 +135,7 @@ export default function RoleFitForm() {
   const subscribeWS = (id: string) => {
     return new Promise<boolean>((resolve, reject) => {
       try {
-        const u = new URL(DIRECTUS_URL);
+        const u = new URL(EXTERNAL.directus_url);
         u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
         u.pathname = "/websocket";
         u.search = "";
@@ -152,7 +151,7 @@ export default function RoleFitForm() {
         }, 90_000);
 
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: "auth", access_token: DIRECTUS_TOKEN }));
+          ws.send(JSON.stringify({ type: "auth", access_token: EXTERNAL.directus_key }));
         };
 
         ws.onmessage = async (evt) => {
@@ -181,12 +180,12 @@ export default function RoleFitForm() {
 
             if (rec.status === "generated_report") {
               try {
-                const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
+                const url = new URL(`${EXTERNAL.directus_url}/items/role_fit_index_report`);
                 url.searchParams.set("limit", "1");
                 url.searchParams.set("sort", "-date_created");
                 url.searchParams.set("filter[submission][_eq]", String(id));
                 const res = await fetch(url.toString(), {
-                  headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+                  headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
                 });
                 const js = await res.json();
                 if (res.ok && js?.data?.length) {

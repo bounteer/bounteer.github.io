@@ -1,4 +1,4 @@
-const DIRECTUS_URL = 'https://directus.bounteer.com';
+import { EXTERNAL } from '@/constant';
 
 export default async function fetchBlogPostModel(): Promise<BlogPostResponseData[]> {
     const quality = 50;
@@ -18,7 +18,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
         "user_created.role.name"
     ].join(',');
 
-    const res = await fetch(`${DIRECTUS_URL}/items/blog_post?${sort}&${filter}&fields=${fields}`);
+    const res = await fetch(`${EXTERNAL.directus_url}/items/blog_post?${sort}&${filter}&fields=${fields}`);
     if (!res.ok) {
         throw new Error(`Failed to fetch blog posts: ${res.statusText},\nreturned: ${await res.text()}`);
     }
@@ -31,7 +31,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
                 : "Admin";
 
         const avatar = post.user_created?.avatar
-            ? `${DIRECTUS_URL}/assets/${post.user_created.avatar}?quality=${quality}`
+            ? `${EXTERNAL.directus_url}/assets/${post.user_created.avatar}?quality=${quality}`
             : "https://randomuser.me/api/portraits/lego/1.jpg";
 
         return {
@@ -48,7 +48,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
             authorAvatar: avatar,
             category: post.category,
             image: post.og_image
-                ? `${DIRECTUS_URL}/assets/${post.og_image}?quality=${quality}`
+                ? `${EXTERNAL.directus_url}/assets/${post.og_image}?quality=${quality}`
                 : "/gradient.jpg",
         };
     });

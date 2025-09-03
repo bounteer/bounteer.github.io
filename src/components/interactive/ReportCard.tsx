@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Check, X } from "lucide-react";
-
-const DIRECTUS_URL = "https://directus.bounteer.com";
-const READ_TOKEN = "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE";
+import { EXTERNAL } from '@/constant';
 
 type Report = {
   id: string;
@@ -72,7 +70,7 @@ export default function ReportCard() {
       setLoading(true);
       try {
         const url =
-          `${DIRECTUS_URL}/items/role_fit_index_report/${encodeURIComponent(
+          `${EXTERNAL.directus_url}/items/role_fit_index_report/${encodeURIComponent(
             id
           )}` +
           `?fields=*,user_created.first_name,user_created.last_name,` +
@@ -80,7 +78,7 @@ export default function ReportCard() {
           `submission.job_description.backfill_status`;
 
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${READ_TOKEN}` },
+          headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
         });
         const json = await res.json();
         if (!res.ok) {

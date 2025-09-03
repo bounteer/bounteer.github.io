@@ -3,11 +3,12 @@ import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 import ShareButton from "../../components/interactive/ShareButton";
+import { EXTERNAL } from "@/constant";
 
 // Get all slugs for SSG
 export async function getStaticPaths() {
   const res = await fetch(
-    "https://directus.bounteer.com/items/blog_post?fields=slug&filter[is_enabled][_eq]=true",
+    `${EXTERNAL.directus_url}/items/blog_post?fields=slug&filter[is_enabled][_eq]=true`,
   );
   if (!res.ok) throw new Error("Failed to fetch slugs");
   const data = await res.json();
@@ -20,8 +21,8 @@ export async function getStaticPaths() {
 const { slug } = Astro.params;
 
 const post_url = `https://bounteer.com/blog/${slug}`;
-const apiUrl = `https://directus.bounteer.com/items/blog_post?filter[slug][_eq]=${slug}&fields=*,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`;
-const baseImageUrl = "https://directus.bounteer.com/assets/";
+const apiUrl = `${EXTERNAL.directus_url}/items/blog_post?filter[slug][_eq]=${slug}&fields=*,user_created.first_name,user_created.last_name,user_created.avatar,user_created.role.name`;
+const baseImageUrl = `${EXTERNAL.directus_url}/assets/`;
 
 const res = await fetch(apiUrl);
 if (!res.ok) throw new Error("Failed to fetch blog post");
