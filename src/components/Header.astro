@@ -2,6 +2,7 @@
 import { Image } from "astro:assets";
 import Icon from "../assets/icon.png";
 import { EXTERNAL, KEYWORDS } from "@/constant";
+import UserMenu from "@/components/interactive/UserMenu";
 
 const allPages = [
   { text: "Home", url: "/" },
@@ -47,47 +48,6 @@ const allPages = [
         class="text-secondary-600 hover:text-accent-600 font-medium transition-colors"
         >Contact</a
       >
-
-      <!-- All Pages Dropdown (desktop) -->
-      <!--
-      <div x-data="{ open: false }" class="relative">
-        <button
-          @click="open = !open"
-          @click.away="open = false"
-          class="flex items-center text-secondary-600 hover:text-primary-600 font-medium transition-colors"
-        >
-          All Pages
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
-        </button>
-
-        <div
-          x-show="open"
-          x-transition:enter="transition ease-out duration-200"
-          x-transition:enter-start="opacity-0 scale-95"
-          x-transition:enter-end="opacity-100 scale-100"
-          x-transition:leave="transition ease-in duration-150"
-          x-transition:leave-start="opacity-100 scale-100"
-          x-transition:leave-end="opacity-0 scale-95"
-          class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden z-50 max-h-96 overflow-y-auto"
-          x-cloak
-        >
-          <div class="py-2 grid grid-cols-1 gap-1">
-            {
-              allPages.map((page) => (
-                <a
-                  href={page.url}
-                  class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
-                >
-                  {page.text}
-                </a>
-              ))
-            }
-          </div>
-        </div>
-      </div>
-      -->
     </nav>
 
     <!-- Right-side actions -->
@@ -95,12 +55,11 @@ const allPages = [
     <div class="ml-auto flex items-center">
       <!-- "Get Started" (desktop) -->
       <!-- TODO replate this with login -->
-      <a
-        href=`${EXTERNAL.directus_url}/auth/login/authentik?redirect=https://bounteer.com`
-        class="hidden md:inline-flex btn-secondary mr-3"
-      >
-        Login
-      </a>
+      <UserMenu
+        client:load
+        directusUrl={EXTERNAL.directus_url}
+        provider="authentik"
+      />
 
       <!-- Mobile Menu Button & Dropdown -->
       <div x-data="{ open: false, showAllPages: false }" class="relative">

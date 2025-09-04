@@ -1,0 +1,98 @@
+// src/components/UserMenu.tsx
+"use client";
+
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+type Props = { directusUrl: string; provider?: string };
+
+export default function UserMenu({ directusUrl, provider = "authentik" }: Props) {
+  const [loading, setLoading] = React.useState(true);
+  const [name, setName] = React.useState<string | null>(null);
+  const [email, setEmail] = React.useState<string | null>(null);
+
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "/";
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${directusUrl}/users/me`, {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error("not authed");
+        const json = await res.json();
+        const u = json?.data ?? json;
+        const first = u?.first_name?.trim();
+        const last = u?.last_name?.trim();
+        const display = [first, last].filter(Boolean).join(" ") || u?.email || "Account";
+        if (!cancelled) {
+          setName(display);
+          setEmail(u?.email ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setName(null);
+          setEmail(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [directusUrl]);
+
+  const initials = React.useMemo(() => {
+    const src = name || email || "";
+    const parts = src.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (src.includes("@")) return src[0]?.toUpperCase() || "?";
+    return src.slice(0, 2).toUpperCase() || "?";
+  }, [name, email]);
+
+  if (loading) {
+    // skeleton width to avoid layout shift
+    return <div className="hidden md:flex w-28 h-9 rounded-full bg-secondary-100 animate-pulse" />;
+  }
+
+  // Logged out → show Login button
+  if (!name) {
+    const u = new URL(currentUrl);
+    u.origin
+    const loginHref = `${directusUrl}/auth/login/${provider}?redirect=${encodeURIComponent(u.origin)}`;
+    return (
+      <Button asChild variant="secondary" className="hidden md:inline-flex">
+        <a href={loginHref}>Login</a>
+      </Button>
+    );
+  }
+
+  // Logged in → show chip with menu
+  const logoutHref = `${directusUrl}/auth/logout?redirect=${encodeURIComponent(currentUrl)}`;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="hidden md:inline-flex items-center gap-2 rounded-full">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          </Avatar>
+          <span className="max-w-[12rem] truncate">{name}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem asChild>
+          <a href={logoutHref}>Logout</a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
