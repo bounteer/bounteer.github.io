@@ -25,7 +25,7 @@ export default function AffiliateGrid() {
                             src={
                                 partner.image
                                     ? `${EXTERNAL.directus_url}/assets/${partner.image}?quality=${quality}`
-                                    : '/gradient.jpg'
+                                    : '/gradient_blue.jpg'
                             }
                             alt={partner.name}
                             className="w-full h-40 object-cover"

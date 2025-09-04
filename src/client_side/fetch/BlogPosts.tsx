@@ -49,7 +49,7 @@ export default async function fetchBlogPostModel(): Promise<BlogPostResponseData
             category: post.category,
             image: post.og_image
                 ? `${EXTERNAL.directus_url}/assets/${post.og_image}?quality=${quality}`
-                : "/gradient.jpg",
+                : "/gradient_blue.jpg",
         };
     });
 }

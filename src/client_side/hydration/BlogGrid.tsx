@@ -23,7 +23,7 @@ export default function BlogGrid() {
                 >
                     <a href={`/blog/${post.slug}`} className="block">
                         <img
-                            src={post.image ?? '/gradient.jpg'}
+                            src={post.image ?? '/gradient_blue.jpg'}
                             alt={post.title}
                             className="w-full h-48 object-cover"
                             loading="lazy"
