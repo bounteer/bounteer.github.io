@@ -1,6 +1,6 @@
 export const EXTERNAL = {
     onboarding_form_url: "https://form.typeform.com/to/FOz4fXGm",
-    directus_url: "https://'https://directus.bounteer.com",
+    directus_url: "https://directus.bounteer.com",
     directus_key: "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE" // guest account
 }
 export const KEYWORDS = {
