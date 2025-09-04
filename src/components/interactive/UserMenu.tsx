@@ -76,6 +76,7 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
   }
 
   const onLogout = async () => {
+    // logout directus
     try {
       const res = await fetch(`${directusUrl}/auth/logout`, {
         method: "POST",
@@ -89,9 +90,10 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
         console.error("Logout failed:", res.status, txt);
         return;
       }
-      // reload page
-      window.location.reload();
 
+      // logout authentik
+      // TODO fix redirect 
+      window.location.href = "https://authentik.bounteer.com/if/flow/default-invalidation-flow/?next=https://bounteer.com";
     } catch (e) {
       console.error("Logout error:", e);
     }
