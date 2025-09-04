@@ -47,7 +47,9 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [directusUrl]);
 
   const initials = React.useMemo(() => {
@@ -59,14 +61,12 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
   }, [name, email]);
 
   if (loading) {
-    // skeleton width to avoid layout shift
     return <div className="hidden md:flex w-28 h-9 rounded-full bg-secondary-100 animate-pulse" />;
   }
 
   // Logged out → show Login button
   if (!name) {
     const u = new URL(currentUrl);
-    u.origin
     const loginHref = `${directusUrl}/auth/login/${provider}?redirect=${encodeURIComponent(u.origin)}`;
     return (
       <Button asChild variant="secondary" className="hidden md:inline-flex">
@@ -75,13 +75,26 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
     );
   }
 
-  // Logged in → show chip with menu
-  const logoutHref = `${directusUrl}/auth/logout?redirect=${encodeURIComponent(currentUrl)}`;
+  // Logged in → POST /auth/logout, then redirect back
+  const onLogout = async () => {
+    try {
+      await fetch(`${directusUrl}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: "{}", // avoids 400 on some builds
+      });
+    } catch (e) {
+      console.error("Logout error:", e);
+    } finally {
+      // window.location.replace(currentUrl);
+    }
+  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="hidden md:inline-flex items-center gap-2 rounded-full">
+        <Button variant="outline" className="items-center gap-2 rounded-full">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
@@ -89,8 +102,13 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem asChild>
-          <a href={logoutHref}>Logout</a>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            onLogout();
+          }}
+        >
+          Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
