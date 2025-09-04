@@ -51,21 +51,25 @@ const allPages = [
     </nav>
 
     <!-- Right-side actions -->
-
-    <div class="ml-auto flex items-center">
-      <!-- "Get Started" (desktop) -->
-      <!-- TODO replate this with login -->
-      <UserMenu
-        client:load
-        directusUrl={EXTERNAL.directus_url}
-        provider="authentik"
-      />
+    <!-- Right-side actions -->
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Login / Account (always visible, incl. mobile) -->
+      <div class="shrink-0 z-[60]">
+        <UserMenu
+          client:load
+          directusUrl={EXTERNAL.directus_url}
+          provider="authentik"
+        />
+      </div>
 
       <!-- Mobile Menu Button & Dropdown -->
-      <div x-data="{ open: false, showAllPages: false }" class="relative">
+      <div
+        x-data="{ open: false, showAllPages: false }"
+        class="relative md:hidden"
+      >
         <button
           @click="open = !open"
-          class="md:hidden p-2 rounded-md text-secondary-600 hover:text-secondary-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
+          class="p-2 rounded-md text-secondary-600 hover:text-secondary-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
           aria-label="Toggle menu"
         >
           <svg
@@ -106,7 +110,7 @@ const allPages = [
           x-transition:leave="transition ease-in duration-150"
           x-transition:leave-start="opacity-100 scale-100"
           x-transition:leave-end="opacity-0 scale-95"
-          class="absolute top-12 right-0 w-48 py-2 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-hidden z-50"
+          class="absolute top-12 right-0 w-56 py-2 bg-white rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50"
           x-cloak
         >
           <a
@@ -119,31 +123,6 @@ const allPages = [
             class="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100"
             >Contact</a
           >
-
-          <!-- Mobile All Pages (optional) -->
-          <!--
-          <button
-            @click="showAllPages = !showAllPages"
-            class="w-full text-left px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-100 font-semibold border-t border-gray-200 mt-1 pt-1 flex items-center justify-between"
-          >
-            All Pages
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" :class="{ 'transform rotate-180': showAllPages }">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          <div x-show="showAllPages" class="py-1 bg-gray-50">
-            {
-              allPages.map((page) => (
-                <a
-                  href={page.url}
-                  class="block px-6 py-1 text-sm text-secondary-700 hover:bg-secondary-100"
-                >
-                  {page.text}
-                </a>
-              ))
-            }
-          </div>
-          -->
         </div>
       </div>
     </div>

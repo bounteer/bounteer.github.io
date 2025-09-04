@@ -75,29 +75,26 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
     );
   }
 
-  // Logged in → POST /auth/logout, then redirect back
   const onLogout = async () => {
     try {
       const res = await fetch(`${directusUrl}/auth/logout`, {
         method: "POST",
-        credentials: "include",              // <-- REQUIRED for cookies
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "session" })
       });
 
-      // Directus often returns 204 No Content on success
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
         console.error("Logout failed:", res.status, txt);
         return;
       }
+      // reload page
+      window.location.reload();
 
-      // clear any app-side state and bounce
-      // window.location.replace(currentUrl);
     } catch (e) {
       console.error("Logout error:", e);
     }
-
   };
 
   return (
