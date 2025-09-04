@@ -78,17 +78,26 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
   // Logged in → POST /auth/logout, then redirect back
   const onLogout = async () => {
     try {
-      await fetch(`${directusUrl}/auth/logout`, {
+      const res = await fetch(`${directusUrl}/auth/logout`, {
         method: "POST",
-        credentials: "include",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: "{}", // avoids 400 on some builds
+        credentials: "include",              // <-- REQUIRED for cookies
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "session" })
       });
+
+      // Directus often returns 204 No Content on success
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        console.error("Logout failed:", res.status, txt);
+        return;
+      }
+
+      // clear any app-side state and bounce
+      // window.location.replace(currentUrl);
     } catch (e) {
       console.error("Logout error:", e);
-    } finally {
-      // window.location.replace(currentUrl);
     }
+
   };
 
   return (
