@@ -90,6 +90,8 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
         console.error("Logout failed:", res.status, txt);
         return;
       }
+      // reload to make sure FE does not keep anymore user data
+      window.location.reload();
 
       // logout authentik
       // TODO fix redirect 
