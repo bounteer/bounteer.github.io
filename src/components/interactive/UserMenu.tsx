@@ -61,7 +61,7 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
   }, [name, email]);
 
   if (loading) {
-    return <div className="hidden md:flex w-28 h-9 rounded-full bg-secondary-100 animate-pulse" />;
+    return <div className="flex w-28 h-9 rounded-full bg-secondary-100 animate-pulse" />;
   }
 
   // Logged out → show Login button
@@ -69,7 +69,7 @@ export default function UserMenu({ directusUrl, provider = "authentik" }: Props)
     const u = new URL(currentUrl);
     const loginHref = `${directusUrl}/auth/login/${provider}?redirect=${encodeURIComponent(u.origin)}`;
     return (
-      <Button asChild variant="secondary" className="hidden md:inline-flex">
+      <Button asChild variant="secondary" className="inline-flex">
         <a href={loginHref}>Login</a>
       </Button>
     );
