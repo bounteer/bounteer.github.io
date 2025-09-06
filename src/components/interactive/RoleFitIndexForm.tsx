@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,9 +17,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
-import { Loader2, Check, X, ExternalLink } from "lucide-react";
+import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
-
 
 const schema = z.object({
   jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
@@ -27,6 +26,14 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+type Me = { id: string } | null;
+type BalanceRow = {
+  id: number;
+  user: string;
+  quota_remaining: number;
+  quota_used: number;
+};
 
 export default function RoleFitForm() {
   const [step, setStep] = useState<0 | 1 | 2>(0); // 0 idle, 1 uploading, 2 analyzing
@@ -37,6 +44,12 @@ export default function RoleFitForm() {
     "submitted" | "parsed_jd" | "generated_report" | "redirecting"
   >("submitted");
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+
+  // auth + quota states
+  const [me, setMe] = useState<Me>(null);
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
+  const [quotaUsed, setQuotaUsed] = useState<number | null>(null);
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -54,20 +67,88 @@ export default function RoleFitForm() {
 
   // Map backend statuses → step index
   const statusToStep: Record<string, number> = {
-    submitted: 1,        // spinner on "Parse Job Description"
-    parsed_jd: 2,        // spinner on "Generate Report"
-    generated_report: 3, // spinner on "Redirecting"
-    redirecting: 3,      // same circle active until redirect
+    submitted: 1,
+    parsed_jd: 2,
+    generated_report: 3,
+    redirecting: 3,
   };
 
   const currentStepIdx = statusToStep[submissionStatus] ?? 0;
   const percentDone = ((currentStepIdx + 1) / progressSteps.length) * 100;
 
+  const DIRECTUS_URL = EXTERNAL.directus_url;
+
+  // --- Auth & Quota fetch (session cookies) ---
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // who am I?
+        const meRes = await fetch(`${DIRECTUS_URL}/users/me`, {
+          credentials: "include",
+        });
+        if (!meRes.ok) {
+          setIsAuthed(false);
+          setMe(null);
+          setQuotaUsed(null);
+          setQuotaRemaining(null);
+          return;
+        }
+        const meJson = await meRes.json();
+        const meData: Me = meJson?.data ?? null;
+        if (cancelled) return;
+
+        setMe(meData);
+        setIsAuthed(!!meData?.id);
+
+        // quota for this user
+        if (meData?.id) {
+          const balUrl =
+            `${DIRECTUS_URL}/items/role_fit_index_balance` +
+            `?filter[user][_eq]=${encodeURIComponent(meData.id)}` +
+            `&fields=id,user,quota_remaining,quota_used` +
+            `&sort[]=-date_created` +
+            `&limit=1`;
+
+          const balRes = await fetch(balUrl, { credentials: "include" });
+          if (!balRes.ok) {
+            setQuotaUsed(null);
+            setQuotaRemaining(null);
+            return;
+          }
+          const balJson = await balRes.json();
+          const row: BalanceRow | undefined = balJson?.data?.[0];
+          if (cancelled) return;
+
+          if (row) {
+            setQuotaUsed(Number(row.quota_used ?? 0));
+            setQuotaRemaining(Number(row.quota_remaining ?? 0));
+          } else {
+            setQuotaUsed(0);
+            setQuotaRemaining(0);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setIsAuthed(false);
+          setMe(null);
+          setQuotaUsed(null);
+          setQuotaRemaining(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [DIRECTUS_URL]);
+
   /** Upload CV file to Directus */
   const uploadFile = async (file: File) => {
     const fd = new FormData();
     fd.append("file", file, file.name || "cv.pdf");
-    const res = await fetch(`${EXTERNAL.directus_url}/files`, {
+    const res = await fetch(`${DIRECTUS_URL}/files`, {
       method: "POST",
       headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
       body: fd,
@@ -79,7 +160,7 @@ export default function RoleFitForm() {
 
   /** Create submission */
   const createSubmission = async (jd: string, fileId: string) => {
-    const res = await fetch(`${EXTERNAL.directus_url}/items/role_fit_index_submission`, {
+    const res = await fetch(`${DIRECTUS_URL}/items/role_fit_index_submission`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${EXTERNAL.directus_key}`,
@@ -102,7 +183,7 @@ export default function RoleFitForm() {
     const ttl = 90_000;
     while (Date.now() - start < ttl) {
       try {
-        const url = new URL(`${EXTERNAL.directus_url}/items/role_fit_index_report`);
+        const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
         url.searchParams.set("limit", "1");
         url.searchParams.set("sort", "-date_created");
         url.searchParams.set("filter[submission][_eq]", id);
@@ -135,7 +216,7 @@ export default function RoleFitForm() {
   const subscribeWS = (id: string) => {
     return new Promise<boolean>((resolve, reject) => {
       try {
-        const u = new URL(EXTERNAL.directus_url);
+        const u = new URL(DIRECTUS_URL);
         u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
         u.pathname = "/websocket";
         u.search = "";
@@ -145,8 +226,8 @@ export default function RoleFitForm() {
 
         setSubmissionStatus("submitted");
 
-        setTimeout(() => {
-          ws.close();
+        const timeout = setTimeout(() => {
+          try { ws.close(); } catch { }
           reject(new Error("WS timeout"));
         }, 90_000);
 
@@ -180,7 +261,7 @@ export default function RoleFitForm() {
 
             if (rec.status === "generated_report") {
               try {
-                const url = new URL(`${EXTERNAL.directus_url}/items/role_fit_index_report`);
+                const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
                 url.searchParams.set("limit", "1");
                 url.searchParams.set("sort", "-date_created");
                 url.searchParams.set("filter[submission][_eq]", String(id));
@@ -199,6 +280,7 @@ export default function RoleFitForm() {
                   window.location.href = `/role-fit-index/report?id=${encodeURIComponent(
                     js.data[0].id
                   )}`;
+                  clearTimeout(timeout);
                   resolve(true);
                   return;
                 }
@@ -210,13 +292,20 @@ export default function RoleFitForm() {
 
             if ((rec.status || "").startsWith("failed_")) {
               setError("Submission failed: " + rec.status);
+              clearTimeout(timeout);
               reject(new Error("Submission failed"));
             }
           }
         };
 
-        ws.onerror = () => reject(new Error("WS error"));
-        ws.onclose = () => reject(new Error("WS closed"));
+        ws.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error("WS error"));
+        };
+        ws.onclose = () => {
+          clearTimeout(timeout);
+          reject(new Error("WS closed"));
+        };
       } catch (e) {
         reject(e);
       }
@@ -256,6 +345,14 @@ export default function RoleFitForm() {
       if (wsRef.current) wsRef.current.close();
     };
   }, []);
+
+  const totalQuota = useMemo(
+    () =>
+      quotaUsed != null && quotaRemaining != null
+        ? quotaUsed + quotaRemaining
+        : null,
+    [quotaUsed, quotaRemaining]
+  );
 
   return (
     <Card className="w-full max-w-6xl mx-auto">
@@ -309,7 +406,7 @@ export default function RoleFitForm() {
                   {progressSteps.map((s, i) => {
                     const isCompleted = i < currentStepIdx;
                     const isActive = i === currentStepIdx && !error;
-                    const isFailed = error && i === currentStepIdx;
+                    const isFailed = !!error && i === currentStepIdx;
 
                     return (
                       <div key={s} className="flex flex-col items-center flex-1">
@@ -359,6 +456,21 @@ export default function RoleFitForm() {
 
             {/* Error */}
             {error && <p className="text-sm text-red-600">{error}</p>}
+
+            {/* Quota display (RIGHT ABOVE THE BUTTON) */}
+            <div className="text-center">
+              {isAuthed === false && (
+                <p className="text-xs text-gray-500 mb-2">
+                  Log in to see your remaining quota.
+                </p>
+              )}
+              {isAuthed === true && totalQuota != null && quotaUsed != null ? (
+                <p className="text-sm text-gray-700 mb-2">
+                  Quota Remaining: <span className="font-semibold">{quotaUsed}</span> /{" "}
+                  <span className="font-semibold">{totalQuota}</span>
+                </p>
+              ) : null}
+            </div>
 
             <Button
               type="submit"
