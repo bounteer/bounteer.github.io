@@ -8,20 +8,23 @@ import { Sidebar } from "@/components/interactive/Sidebar";
 <Layout title="Home - Bounteer">
   <Header />
 
-  <main>
-    <section class="py-16 bg-white">
-      <div class="container-custom lg:max-w-none lg:px-0">
-        <div class="lg:flex">
-          <Sidebar />
+  <main class="bg-gray-50">
+    <section class="container-custom lg:max-w-none lg:px-0 py-10 lg:py-14">
+      <div class="lg:flex">
+        <Sidebar />
 
-          <!-- Main content area -->
-          <main class="w-full lg:pl-6 lg:pr-8 lg:py-8 p-4">
-            <!-- your page content here -->
-          </main>
+        <div class="w-full lg:pl-6 lg:pr-8">
+          <div class="mb-6 py-6">
+            <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
+            <p class="text-sm text-muted-foreground">
+              Choose a credit package to add funds to your account.
+            </p>
+          </div>
+          something here
         </div>
       </div>
     </section>
-
-    <Footer />
   </main>
+
+  <Footer />
 </Layout>

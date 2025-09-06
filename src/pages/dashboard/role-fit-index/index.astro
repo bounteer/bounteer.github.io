@@ -4,6 +4,9 @@ import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import RoleFitForm from "@/components/interactive/RoleFitIndexForm";
 import { Sidebar } from "@/components/interactive/Sidebar";
+import UserReportTable from "@/components/interactive/UserReportTable";
+
+const USER_ID = "51bad019-1d3b-4f7a-9a89-87355fbcde84";
 ---
 
 <Layout title="Role Fit Index - Bounteer">
@@ -15,19 +18,13 @@ import { Sidebar } from "@/components/interactive/Sidebar";
         <Sidebar />
 
         <div class="w-full lg:pl-6 lg:pr-8">
-          <div class="mb-6">
+          <div class="mb-6 py-6">
             <h1 class="text-2xl font-semibold tracking-tight">
-              Top Up Role Fit Index Credit
+              Role Fit Index Reports
             </h1>
-            <p class="text-sm text-muted-foreground">
-              Choose a credit package to add funds to your account.
-            </p>
           </div>
 
-          <div class="container-custom max-w-6xl mx-auto">
-            <!-- React form hydration -->
-            <RoleFitForm client:load />
-          </div>
+          <UserReportTable userId={USER_ID} pageSize={10} client:load />
         </div>
       </div>
     </section>
