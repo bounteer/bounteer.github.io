@@ -106,15 +106,37 @@ export default function TopUpCard({
     maximumFractionDigits: 2,
   });
 
-  const handleSelect = (p: Product) => {
-    // Emit an event for your checkout flow, or navigate
-    window.dispatchEvent(new CustomEvent("topup:select", { detail: p }));
-    // Example redirect:
-    // window.location.href = `/checkout?product=${encodeURIComponent(String(p.id))}`;
+
+
+  const onButtonClick = async (p: Product) => {
+    try {
+      // Call webhook
+      const webhookUrl =
+        "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
+      const params = new URLSearchParams({
+        product_id: String(p.id),
+        id: String(p.id),
+      });
+
+      const res = await fetch(`${webhookUrl}?${params.toString()}`, {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Webhook failed: ${res.status} ${res.statusText}`);
+      }
+
+      console.log(res);
+      alert("Top-up successful!");
+    } catch (err) {
+      console.error("Top-up failed", err);
+      alert("Failed to process top-up. Please try again.");
+    }
   };
 
+
   return (
-    <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-3", className)}>
+    <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-4", className)}>
       {loading &&
         Array.from({ length: limit }).map((_, i) => (
           <Card key={`s-${i}`} className="border">
@@ -142,14 +164,13 @@ export default function TopUpCard({
         items?.map((p) => (
           <Card key={p.id} className="border bg-white">
             <CardHeader className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-base">{p.name}</CardTitle>
-                {p.category ? (
-                  <Badge variant="outline" className="shrink-0">
-                    {p.category}
-                  </Badge>
-                ) : null}
-              </div>
+              {p.category ? (
+                <Badge variant="outline" className="shrink-0 w-fit">
+                  {p.category}
+                </Badge>
+              ) : null}
+
+              <CardTitle className="text-base">{p.name}</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-3">
@@ -166,14 +187,14 @@ export default function TopUpCard({
                 </p>
               )}
             </CardContent>
-
             <CardFooter className="flex items-center justify-between">
-              <Button className="w-full" onClick={() => handleSelect(p)}>
+              <Button className="w-full" onClick={() => onButtonClick(p)}>
                 Top Up
               </Button>
             </CardFooter>
           </Card>
-        ))}
-    </div>
+        ))
+      }
+    </div >
   );
 }
