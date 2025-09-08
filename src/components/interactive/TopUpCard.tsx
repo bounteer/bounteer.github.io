@@ -110,8 +110,8 @@ export default function TopUpCard({
     try {
       setRedirectingId(p.id); // show banner & disable button
 
-      const webhookUrl =
-        "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
+      const webhookUrl = "https://n8n.bounteer.com/webhook/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
+      // const webhookUrl = "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
       const params = new URLSearchParams({
         product_id: String(p.stripe_product_id),
         id: String(p.id),
