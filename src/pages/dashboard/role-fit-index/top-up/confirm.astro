@@ -1,34 +1,26 @@
 ---
-// src/pages/success.astro
-// no `prerender` flag — it stays static
+import Layout from "@/layouts/Layout.astro";
+import Footer from "@/components/Footer.astro";
+import { Sidebar } from "@/components/interactive/Sidebar";
+import { Button } from "@/components/ui/button";
+import Header from "@/components/Header.astro";
 ---
 
-<html>
-  <body>
-    <h1>Thanks for your payment!</h1>
-    <div id="result"></div>
+<Layout title="Top Up Confirmation — Bounteer">
+  <Header />
 
-    <script type="module">
-      // run in the browser after load
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get("session_id");
+  <main class="bg-gray-50 min-h-screen flex">
+    <Sidebar />
 
-      if (sessionId) {
-        document.getElementById("result").textContent =
-          "Session ID: " + sessionId;
+    <section class="flex-1 flex flex-col items-center justify-center px-6">
+      <h1 class="text-2xl font-semibold tracking-tight mb-6 text-center">
+        Payment confirmed, Thank you!
+      </h1>
+      <Button className="w-fit">
+        <a href="./">Return</a>
+      </Button>
+    </section>
+  </main>
 
-        // Optionally, call your own API to fetch details
-        fetch(
-          `/api/stripe/session.json?session_id=${encodeURIComponent(sessionId)}`,
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            // update DOM with payment info
-            console.log("Session:", data);
-          });
-      } else {
-        document.getElementById("result").textContent = "No session ID found.";
-      }
-    </script>
-  </body>
-</html>
+  <Footer />
+</Layout>
