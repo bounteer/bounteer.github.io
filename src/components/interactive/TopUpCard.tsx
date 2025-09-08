@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react"; // add spinner
+import { EXTERNAL } from "@/constant";
 
 type Product = {
   id: string | number;
@@ -110,11 +111,27 @@ export default function TopUpCard({
     try {
       setRedirectingId(p.id); // show banner & disable button
 
+      // 1. Fetch the authenticated user from Directus
+      const meRes = await fetch(`${EXTERNAL.directus_url}/users/me`, {
+        method: "GET",
+        credentials: 'include', // required for getting user data
+      });
+
+      if (!meRes.ok) {
+        throw new Error(`Failed to fetch user: ${meRes.status} ${meRes.statusText}`);
+      }
+
+      const meData = await meRes.json();
+      const email = meData.data.email;
+      console.log(email)
+
       const webhookUrl = "https://n8n.bounteer.com/webhook/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
       // const webhookUrl = "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
       const params = new URLSearchParams({
         product_id: String(p.stripe_product_id),
         id: String(p.id),
+        email: email,
+
       });
 
       const res = await fetch(`${webhookUrl}?${params.toString()}`, {
