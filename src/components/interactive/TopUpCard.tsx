@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react"; // add spinner
 
 type Product = {
   id: string | number;
@@ -19,13 +20,14 @@ type Product = {
   price: number;
   description?: string | null;
   category?: string | null;
+  stripe_product_id?: string | null;
 };
 
 type Props = {
-  directusUrl: string;            // e.g. https://directus.bounteer.com
-  readToken?: string;             // optional static read token
-  category?: string;              // optional filter, e.g. "topup"
-  limit?: number;                 // default 3
+  directusUrl: string;
+  readToken?: string;
+  category?: string;
+  limit?: number;
   className?: string;
 };
 
@@ -40,6 +42,9 @@ export default function TopUpCard({
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
 
+  // NEW: track which product is redirecting
+  const [redirectingId, setRedirectingId] = React.useState<string | number | null>(null);
+
   React.useEffect(() => {
     const controller = new AbortController();
 
@@ -47,14 +52,12 @@ export default function TopUpCard({
       try {
         setLoading(true);
         const params = new URLSearchParams({
-          fields: "id,name,price,description,category",
+          fields: "id,name,price,description,category,stripe_product_id",
           limit: String(limit),
           sort: "price",
         });
 
-        // Optional category filter (fallback to first 3 if none)
         if (category) {
-          // Directus filter syntax
           params.set("filter[category][_eq]", category);
         }
 
@@ -65,17 +68,14 @@ export default function TopUpCard({
           },
         });
 
-        if (!res.ok) {
-          throw new Error(`Directus ${res.status} ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Directus ${res.status} ${res.statusText}`);
 
         const json = (await res.json()) as { data: Product[] };
         let data = json.data || [];
 
-        // If category returned nothing, get 3 products as fallback
         if (data.length === 0 && category) {
           const r = await fetch(
-            `${directusUrl}/items/product?fields=id,name,price,description,category&limit=${limit}&sort=price`,
+            `${directusUrl}/items/product?fields=id,name,price,description,category,stripe_product_id&limit=${limit}&sort=price`,
             {
               signal: controller.signal,
               headers: {
@@ -106,15 +106,14 @@ export default function TopUpCard({
     maximumFractionDigits: 2,
   });
 
-
-
   const onButtonClick = async (p: Product) => {
     try {
-      // Call webhook
+      setRedirectingId(p.id); // show banner & disable button
+
       const webhookUrl =
         "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
       const params = new URLSearchParams({
-        product_id: String(p.id),
+        product_id: String(p.stripe_product_id),
         id: String(p.id),
       });
 
@@ -126,17 +125,31 @@ export default function TopUpCard({
         throw new Error(`Webhook failed: ${res.status} ${res.statusText}`);
       }
 
-      console.log(res);
-      alert("Top-up successful!");
+      const data = await res.json();
+      if (data.payment_url) {
+        // optional: small delay so the UI shows the state briefly
+        // await new Promise((r) => setTimeout(r, 200));
+        window.location.href = data.payment_url;
+      } else {
+        throw new Error("No payment_url returned");
+      }
     } catch (err) {
       console.error("Top-up failed", err);
       alert("Failed to process top-up. Please try again.");
+      setRedirectingId(null); // reset on error
     }
   };
 
-
   return (
     <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-4", className)}>
+      {/* Redirecting banner */}
+      {redirectingId !== null && (
+        <div className="sm:col-span-2 lg:col-span-4 text-sm rounded-md border bg-muted/40 px-3 py-2 flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Redirecting to secure checkout…
+        </div>
+      )}
+
       {loading &&
         Array.from({ length: limit }).map((_, i) => (
           <Card key={`s-${i}`} className="border">
@@ -161,40 +174,53 @@ export default function TopUpCard({
 
       {!loading &&
         !error &&
-        items?.map((p) => (
-          <Card key={p.id} className="border bg-white">
-            <CardHeader className="space-y-2">
-              {p.category ? (
-                <Badge variant="outline" className="shrink-0 w-fit">
-                  {p.category}
-                </Badge>
-              ) : null}
+        items?.map((p) => {
+          const isRedirecting = redirectingId === p.id;
+          return (
+            <Card key={p.id} className="border bg-white">
+              <CardHeader className="space-y-2">
+                {p.category ? (
+                  <Badge variant="outline" className="shrink-0 w-fit">
+                    {p.category}
+                  </Badge>
+                ) : null}
+                <CardTitle className="text-base">{p.name}</CardTitle>
+              </CardHeader>
 
-              <CardTitle className="text-base">{p.name}</CardTitle>
-            </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-3xl font-semibold tracking-tight">
+                  {fmt.format(p.price ?? 0)}
+                </div>
+                {p.description ? (
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {p.description}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Add credit to your account instantly.
+                  </p>
+                )}
+              </CardContent>
 
-            <CardContent className="space-y-3">
-              <div className="text-3xl font-semibold tracking-tight">
-                {fmt.format(p.price ?? 0)}
-              </div>
-              {p.description ? (
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {p.description}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Add credit to your account instantly.
-                </p>
-              )}
-            </CardContent>
-            <CardFooter className="flex items-center justify-between">
-              <Button className="w-full" onClick={() => onButtonClick(p)}>
-                Top Up
-              </Button>
-            </CardFooter>
-          </Card>
-        ))
-      }
-    </div >
+              <CardFooter className="flex items-center justify-between">
+                <Button
+                  className="w-full"
+                  onClick={() => onButtonClick(p)}
+                  disabled={isRedirecting}
+                >
+                  {isRedirecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Redirecting…
+                    </>
+                  ) : (
+                    "Top Up"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
+    </div>
   );
 }
