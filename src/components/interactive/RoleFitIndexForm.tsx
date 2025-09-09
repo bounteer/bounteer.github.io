@@ -144,18 +144,65 @@ export default function RoleFitForm() {
     };
   }, [DIRECTUS_URL]);
 
-  /** Upload CV file to Directus */
+  /** Compute SHA-256 (hex) of a File/Blob */
+  async function sha256OfFile(file: Blob): Promise<string> {
+    const buf = await file.arrayBuffer();
+    const hashBuf = await crypto.subtle.digest("SHA-256", buf);
+    const bytes = new Uint8Array(hashBuf);
+    let hex = "";
+    for (let i = 0; i < bytes.length; i++) {
+      const h = bytes[i].toString(16).padStart(2, "0");
+      hex += h;
+    }
+    return hex;
+  }
+
+  /** Try to find an existing file by SHA in your file_checksum collection */
+  async function findFileIdBySha(sha: string): Promise<string | null> {
+    const url = new URL(`${DIRECTUS_URL}/items/file_checksum`);
+    console.log(url);
+    url.searchParams.set("filter[sha256][_eq]", sha);
+    // return only the related file id to keep payload small
+    url.searchParams.set("fields", "file");
+    url.searchParams.set("limit", "1");
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+    });
+    const js = await res.json();
+    if (!res.ok) throw new Error(js?.errors?.[0]?.message || "Checksum lookup failed");
+
+    const item = js?.data?.[0];
+    return item?.file ?? null;
+  }
+
+  /** Upload CV file to Directus (only if not already stored by sha) */
   const uploadFile = async (file: File) => {
+    // 1) hash
+    const sha = await sha256OfFile(file);
+    console.log(sha)
+    // 2) check if we already have it
+    const existingId = await findFileIdBySha(sha);
+    console.log("existingId: " + existingId)
+
+    if (existingId) return existingId;
+    console.log("no same sha file found")
+
+    // 3) upload
     const fd = new FormData();
     fd.append("file", file, file.name || "cv.pdf");
-    const res = await fetch(`${DIRECTUS_URL}/files`, {
+    const uploadRes = await fetch(`${DIRECTUS_URL}/files`, {
       method: "POST",
       headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
       body: fd,
     });
-    const js = await res.json();
-    if (!res.ok) throw new Error(js?.errors?.[0]?.message || "File upload failed");
-    return js.data.id as string;
+    const uploadJs = await uploadRes.json();
+    if (!uploadRes.ok) {
+      throw new Error(uploadJs?.errors?.[0]?.message || "File upload failed");
+    }
+    const fileId = uploadJs.data.id as string;
+
+    return fileId;
   };
 
   /** Create submission */
