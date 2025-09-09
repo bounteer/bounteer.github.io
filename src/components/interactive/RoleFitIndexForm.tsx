@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
+import { getUserProfile, type UserProfile } from '@/lib/utils';
 
 const schema = z.object({
   jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
@@ -27,7 +28,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-type Me = { id: string } | null;
+type Me = UserProfile | null;
 type BalanceRow = {
   id: number;
   user: string;
@@ -78,6 +79,13 @@ export default function RoleFitForm() {
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
+  // Helper function to get authorization header
+  const getAuthHeaders = (): Record<string, string> => {
+    return isAuthed
+      ? {} // No auth header needed for authenticated users (using session cookies)
+      : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
+  };
+
   // --- Auth & Quota fetch (session cookies) ---
   useEffect(() => {
     let cancelled = false;
@@ -85,18 +93,14 @@ export default function RoleFitForm() {
     (async () => {
       try {
         // who am I?
-        const meRes = await fetch(`${DIRECTUS_URL}/users/me`, {
-          credentials: "include",
-        });
-        if (!meRes.ok) {
+        const meData = await getUserProfile(DIRECTUS_URL);
+        if (!meData) {
           setIsAuthed(false);
           setMe(null);
           setQuotaUsed(null);
           setQuotaRemaining(null);
           return;
         }
-        const meJson = await meRes.json();
-        const meData: Me = meJson?.data ?? null;
         if (cancelled) return;
 
         setMe(meData);
@@ -167,7 +171,8 @@ export default function RoleFitForm() {
     url.searchParams.set("limit", "1");
 
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+      credentials: isAuthed ? "include" : "omit",
+      headers: getAuthHeaders(),
     });
     const js = await res.json();
     if (!res.ok) throw new Error(js?.errors?.[0]?.message || "Checksum lookup failed");
@@ -193,7 +198,8 @@ export default function RoleFitForm() {
     fd.append("file", file, file.name || "cv.pdf");
     const uploadRes = await fetch(`${DIRECTUS_URL}/files`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+      credentials: isAuthed ? "include" : "omit",
+      headers: getAuthHeaders(),
       body: fd,
     });
     const uploadJs = await uploadRes.json();
@@ -207,17 +213,21 @@ export default function RoleFitForm() {
 
   /** Create submission */
   const createSubmission = async (jd: string, fileId: string) => {
+    const body = {
+      cv_file: fileId,
+      status: "submitted",
+      job_description: { raw_input: jd },
+      ...(isAuthed && me?.id ? { user: me.id } : {}),
+    };
+    
     const res = await fetch(`${DIRECTUS_URL}/items/role_fit_index_submission`, {
       method: "POST",
+      credentials: isAuthed ? "include" : "omit",
       headers: {
-        Authorization: `Bearer ${EXTERNAL.directus_key}`,
+        ...getAuthHeaders(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        cv_file: fileId,
-        status: "submitted",
-        job_description: { raw_input: jd },
-      }),
+      body: JSON.stringify(body),
     });
     const js = await res.json();
     if (!res.ok) throw new Error(js?.errors?.[0]?.message || "Submission failed");
@@ -235,7 +245,8 @@ export default function RoleFitForm() {
         url.searchParams.set("sort", "-date_created");
         url.searchParams.set("filter[submission][_eq]", id);
         const res = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+          credentials: isAuthed ? "include" : "omit",
+          headers: getAuthHeaders(),
         });
         const js = await res.json();
         if (res.ok && js?.data?.length) {
@@ -279,7 +290,10 @@ export default function RoleFitForm() {
         }, 90_000);
 
         ws.onopen = () => {
-          ws.send(JSON.stringify({ type: "auth", access_token: EXTERNAL.directus_key }));
+          const authToken = isAuthed ? undefined : EXTERNAL.directus_key;
+          if (authToken) {
+            ws.send(JSON.stringify({ type: "auth", access_token: authToken }));
+          }
         };
 
         ws.onmessage = async (evt) => {
@@ -313,7 +327,8 @@ export default function RoleFitForm() {
                 url.searchParams.set("sort", "-date_created");
                 url.searchParams.set("filter[submission][_eq]", String(id));
                 const res = await fetch(url.toString(), {
-                  headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+                  credentials: isAuthed ? "include" : "omit",
+                  headers: getAuthHeaders(),
                 });
                 const js = await res.json();
                 if (res.ok && js?.data?.length) {
@@ -519,14 +534,27 @@ export default function RoleFitForm() {
               ) : null}
             </div>
 
-            <Button
-              type="submit"
-              variant="default"
-              className="w-full"
-              disabled={submitting || step !== 0}
-            >
-              {buttonText}
-            </Button>
+            {/* Conditionally show button or top-up link based on quota */}
+            {isAuthed === true && quotaRemaining === 0 ? (
+              <Button
+                asChild
+                variant="default"
+                className="w-full"
+              >
+                <a href="/dashboard/role-fit-index/top-up">
+                  Top Up Credits to Continue
+                </a>
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="default"
+                className="w-full"
+                disabled={submitting || step !== 0}
+              >
+                {buttonText}
+              </Button>
+            )}
           </form>
         </Form>
       </CardContent>

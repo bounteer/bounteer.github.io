@@ -3,28 +3,31 @@ import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import { Sidebar } from "@/components/interactive/Sidebar";
+import AuthGuard from "@/components/interactive/AuthGuard";
 ---
 
 <Layout title="Home - Bounteer">
-  <Header />
+  <AuthGuard client:load>
+    <Header />
 
-  <main class="bg-gray-50">
-    <section class="container-custom lg:max-w-none lg:px-0 py-10 lg:py-14">
-      <div class="lg:flex">
-        <Sidebar />
+    <main class="bg-gray-50">
+      <section class="container-custom lg:max-w-none lg:px-0 py-10 lg:py-14">
+        <div class="lg:flex">
+          <Sidebar />
 
-        <div class="w-full lg:pl-6 lg:pr-8">
-          <div class="mb-6 py-6">
-            <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
-            <p class="text-sm text-muted-foreground">
-              Choose a credit package to add funds to your account.
-            </p>
+          <div class="w-full lg:pl-6 lg:pr-8">
+            <div class="mb-6 py-6">
+              <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
+              <p class="text-sm text-muted-foreground">
+                Choose a credit package to add funds to your account.
+              </p>
+            </div>
+            something here
           </div>
-          something here
         </div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
 
-  <Footer />
+    <Footer />
+  </AuthGuard>
 </Layout>
