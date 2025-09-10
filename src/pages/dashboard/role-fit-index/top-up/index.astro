@@ -1,6 +1,5 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import { Sidebar } from "@/components/interactive/Sidebar";
 import TopUpCard from "@/components/interactive/TopUpCard";
@@ -11,40 +10,32 @@ import { EXTERNAL } from "@/constant";
 
 <Layout title="Top Up Role Fit Index Credit — Bounteer">
   <AuthGuard client:load>
-    <Header />
+    <main class="bg-gray-50 min-h-screen flex">
+      <Sidebar client:load />
 
-    <main class="bg-gray-50">
-      <section class="container-custom lg:max-w-none lg:px-0 py-10 lg:py-14">
-        <div class="lg:flex">
-          <Sidebar />
-
-          <div class="w-full lg:pl-6 lg:pr-8">
-            <div class="mb-6 py-6">
-              <h1 class="text-2xl font-semibold tracking-tight">
-                Top Up Role Fit Index Credit
-              </h1>
-              <p class="text-sm text-muted-foreground">
-                Choose a credit package to add funds to your account.
-              </p>
-            </div>
-
-            <!-- React island (shadcn cards) -->
-            <TopUpCard
-              client:load
-              directusUrl={EXTERNAL.directus_url}
-              readToken={EXTERNAL.directus_key}
-              category="topup"
-              limit={4}
-            />
-
-            <!-- Payment Events finder (below the cards) -->
-            <PaymentEventTable
-              client:load
-              directusUrl={EXTERNAL.directus_url}
-              readToken={EXTERNAL.directus_key}
-            />
-          </div>
+      <section class="flex-1 px-6 py-10">
+        <div class="mb-6">
+          <h1 class="text-2xl font-semibold tracking-tight">
+            Top Up Role Fit Index Credit
+          </h1>
+          <p class="text-sm text-muted-foreground">
+            Choose a credit package to add funds to your account.
+          </p>
         </div>
+
+        <TopUpCard
+          client:load
+          directusUrl={EXTERNAL.directus_url}
+          readToken={EXTERNAL.directus_key}
+          category="topup"
+          limit={4}
+        />
+
+        <PaymentEventTable
+          client:load
+          directusUrl={EXTERNAL.directus_url}
+          readToken={EXTERNAL.directus_key}
+        />
       </section>
     </main>
 
