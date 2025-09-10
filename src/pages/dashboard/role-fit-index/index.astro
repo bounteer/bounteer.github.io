@@ -11,9 +11,11 @@ const USER_ID = "51bad019-1d3b-4f7a-9a89-87355fbcde84";
 
 <Layout title="Role Fit Index - Bounteer">
   <AuthGuard client:load>
-    <main class="bg-gray-50 min-h-screen flex">
+    <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
+      <!-- Sidebar handles both mobile topbar + desktop sidebar -->
       <Sidebar client:load />
 
+      <!-- Main content -->
       <section class="flex-1 px-6 py-10">
         <div class="mb-6">
           <h1 class="text-2xl font-semibold tracking-tight">

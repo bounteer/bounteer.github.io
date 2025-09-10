@@ -2,20 +2,10 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import {
-  Home,
-  FileText,
-  ListChecks,
-  Menu,
-  LogOut,
-} from "lucide-react";
+import { Home, FileText, ListChecks, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { KEYWORDS } from "@/constant";
 
 type NavItem = {
@@ -34,7 +24,6 @@ const navItems: NavItem[] = [
 
 function NavLink({ item, active }: { item: NavItem; active?: boolean }) {
   const Icon = item.icon;
-
   return (
     <a
       href={item.href}
@@ -66,9 +55,9 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex">
-      {/* Mobile: hamburger trigger */}
-      <div className="lg:hidden p-2">
+    <>
+      {/* Mobile: Top bar with hamburger */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-md lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
@@ -94,6 +83,7 @@ export function Sidebar() {
             </ScrollArea>
           </SheetContent>
         </Sheet>
+        <h1 className="text-lg font-semibold">Bounteer Dashboard</h1>
       </div>
 
       {/* Desktop: persistent sidebar */}
@@ -116,6 +106,6 @@ export function Sidebar() {
           </nav>
         </ScrollArea>
       </aside>
-    </div>
+    </>
   );
 }
