@@ -25,4 +25,16 @@ import Products from "../components/Products.astro";
     <!-- <CallToAction /> -->
     <Footer />
   </main>
+  
+  <script>
+    // Handle post-authentication redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const nextPath = urlParams.get('next');
+    
+    if (nextPath) {
+      // Clean up the URL and redirect
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.href = nextPath;
+    }
+  </script>
 </Layout>

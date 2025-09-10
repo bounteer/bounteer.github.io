@@ -18,8 +18,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
-        // Redirect to login
-        window.location.href = `${EXTERNAL.directus_url}/auth/login/authentik?redirect=${encodeURIComponent(window.location.href)}`;
+        // Get the next path from URL params or current path
+        const urlParams = new URLSearchParams(window.location.search);
+        const nextPath = urlParams.get('next') || window.location.pathname + window.location.search;
+
+        const callbackUrl = `${window.location.origin}/?next=${encodeURIComponent(nextPath)}`;
+        window.location.href = `${EXTERNAL.directus_url}/auth/login/authentik?redirect=${encodeURIComponent(callbackUrl)}`;
       }
     }
 
