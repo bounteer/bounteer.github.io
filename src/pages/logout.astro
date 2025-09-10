@@ -1,0 +1,38 @@
+---
+// No imports here — everything happens in the client script
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logging out... - Bounteer</title>
+  </head>
+  <body>
+    <div
+      style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:system-ui;"
+    >
+      <div style="text-align:center;">
+        <div style="margin-bottom:16px;">Logging out...</div>
+        <div
+          style="width:32px;height:32px;border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto;"
+        >
+        </div>
+      </div>
+    </div>
+
+    <!-- Client-side logout script -->
+    <script type="module" src="/src/scripts/logout.ts"></script>
+
+    <style>
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </body>
+</html>

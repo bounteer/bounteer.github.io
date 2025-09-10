@@ -6,9 +6,8 @@ import {
   Home,
   FileText,
   ListChecks,
-  Mic,
-  Search,
-  Puzzle,
+  Menu, // ✅ add hamburger icon
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,28 +18,34 @@ type NavItem = {
   label: string;
   href: string;
   icon: React.ElementType;
+  isLogout?: boolean;
 };
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
   { label: "Role Fit Index", href: "/dashboard/role-fit-index", icon: FileText },
   { label: "Top Up Credits", href: "/dashboard/role-fit-index/top-up", icon: ListChecks },
-  // { label: "Interview Practice", href: "/interview-practice", icon: Mic },
-  // { label: "Job Search", href: "/jobs", icon: Search },
-  // { label: "Extension", href: "/extension", icon: Puzzle },
+  { label: "Logout", href: "/logout", icon: LogOut, isLogout: true },
 ];
 
 function NavLink({ item, active }: { item: NavItem; active?: boolean }) {
   const Icon = item.icon;
+  
+  const baseClasses = "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors";
+  const normalClasses = active
+    ? "bg-accent text-accent-foreground"
+    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground";
+  const logoutClasses = "text-red-600 hover:bg-red-50 hover:text-red-700";
+  
+  const className = cn(
+    baseClasses,
+    item.isLogout ? logoutClasses : normalClasses
+  );
+
   return (
     <a
       href={item.href}
-      className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-        active
-          ? "bg-accent text-accent-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      )}
+      className={className}
     >
       <span className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
         <Icon className="h-4 w-4" />
@@ -66,13 +71,14 @@ export function Sidebar() {
 
   return (
     <div className="flex">
-      {/* Mobile trigger */}
+      {/* Mobile hamburger trigger */}
       <div className="lg:hidden p-2">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Home className="mr-2 h-4 w-4" />
-              Menu
+            <Button variant="outline" size="icon">
+              {/* ✅ icon-only button */}
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Open Menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
