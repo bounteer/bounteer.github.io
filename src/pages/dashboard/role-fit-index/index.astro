@@ -1,10 +1,11 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import Footer from "@/components/Footer.astro";
-import RoleFitForm from "@/components/interactive/RoleFitIndexForm";
 import { Sidebar } from "@/components/interactive/Sidebar";
 import UserReportTable from "@/components/interactive/UserReportTable";
 import AuthGuard from "@/components/interactive/AuthGuard";
+import CreditSection from "@/components/interactive/CreditSection";
+import { EXTERNAL } from "@/constant";
 
 const USER_ID = "51bad019-1d3b-4f7a-9a89-87355fbcde84";
 ---
@@ -22,6 +23,12 @@ const USER_ID = "51bad019-1d3b-4f7a-9a89-87355fbcde84";
             Role Fit Index Reports
           </h1>
         </div>
+
+        <CreditSection
+          client:load
+          directusUrl={EXTERNAL.directus_url}
+          className="mb-8"
+        />
 
         <UserReportTable userId={USER_ID} pageSize={10} client:load />
       </section>

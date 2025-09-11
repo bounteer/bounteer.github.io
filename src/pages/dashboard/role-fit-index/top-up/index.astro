@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/interactive/Sidebar";
 import TopUpCard from "@/components/interactive/TopUpCard";
 import PaymentEventTable from "@/components/interactive/PaymentEventTable";
 import AuthGuard from "@/components/interactive/AuthGuard";
+import CreditSection from "@/components/interactive/CreditSection";
 import { EXTERNAL } from "@/constant";
 ---
 
@@ -24,6 +25,12 @@ import { EXTERNAL } from "@/constant";
             Choose a credit package to add funds to your account.
           </p>
         </div>
+
+        <CreditSection
+          client:load
+          directusUrl={EXTERNAL.directus_url}
+          className="mb-8"
+        />
 
         <TopUpCard
           client:load
