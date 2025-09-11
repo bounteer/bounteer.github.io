@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { EXTERNAL } from '@/constant';
-import { getUserProfile, type UserProfile } from '@/lib/utils';
+import { getLoginUrl, getUserProfile, type UserProfile } from '@/lib/utils';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -21,9 +21,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         // Get the next path from URL params or current path
         const urlParams = new URLSearchParams(window.location.search);
         const nextPath = urlParams.get('next') || window.location.pathname + window.location.search;
-
-        const callbackUrl = `${window.location.origin}/?next=${encodeURIComponent(nextPath)}`;
-        window.location.href = `${EXTERNAL.directus_url}/auth/login/authentik?redirect=${encodeURIComponent(callbackUrl)}`;
+        window.location.href = getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, encodeURIComponent(nextPath));
       }
     }
 

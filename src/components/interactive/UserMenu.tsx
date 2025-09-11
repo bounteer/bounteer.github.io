@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getUserProfile, getUserDisplayName, getUserInitials, getLoginUrl, logout, type UserProfile } from "@/lib/utils";
+import { EXTERNAL } from "@/constant";
 
 type Props = { directusUrl: string; provider?: string };
 
-export default function UserMenu({ directusUrl, provider = "authentik" }: Props) {
+export default function UserMenu({ directusUrl, provider = EXTERNAL.auth_idp_key }: Props) {
   const [loading, setLoading] = React.useState(true);
   const [user, setUser] = React.useState<UserProfile | null>(null);
 

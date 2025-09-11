@@ -22,7 +22,42 @@
     </div>
 
     <!-- Client-side logout script -->
-    <script type="module" src="/src/scripts/logout.ts"></script>
+    <script>
+      import { EXTERNAL } from "@/constant";
+
+      // Logout functionality inlined to avoid build issues
+      async function performLogout() {
+        const directusUrl = "https://directus.bounteer.com";
+
+        try {
+          const res = await fetch(`${directusUrl}/auth/logout`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "session" }),
+          });
+
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            console.error("Logout failed:", res.status, txt);
+            return;
+          }
+
+          // reload to clear user data
+          window.location.reload();
+
+          // logout idp
+          window.location.href = EXTERNAL.auth_idp_logput_url;
+        } catch (e) {
+          console.error("Logout error:", e);
+        }
+      }
+
+      // Execute logout when page loads
+      if (typeof window !== "undefined") {
+        performLogout();
+      }
+    </script>
 
     <style>
       @keyframes spin {

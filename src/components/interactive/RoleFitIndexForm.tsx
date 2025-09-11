@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
-import { getUserProfile, type UserProfile } from '@/lib/utils';
+import { loadCredits, consumeCredit, getLoginUrl, type Credits, type UserProfile, consumeUserCredit } from '@/lib/utils';
 
 const schema = z.object({
   jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
@@ -29,12 +29,6 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 type Me = UserProfile | null;
-type BalanceRow = {
-  id: number;
-  user: string;
-  quota_remaining: number;
-  quota_used: number;
-};
 
 export default function RoleFitForm() {
   const [step, setStep] = useState<0 | 1 | 2>(0); // 0 idle, 1 uploading, 2 analyzing
@@ -49,8 +43,7 @@ export default function RoleFitForm() {
   // auth + quota states
   const [me, setMe] = useState<Me>(null);
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
-  const [quotaUsed, setQuotaUsed] = useState<number | null>(null);
-  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
+  const [credits, setCredits] = useState<Credits>({ used: 0, remaining: 2 });
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -63,7 +56,7 @@ export default function RoleFitForm() {
     "Upload CV",
     "Parse Job Description",
     "Generate Report",
-    "Redirecting",
+    "Redirect to Report",
   ];
 
   // Map backend statuses → step index
@@ -79,6 +72,7 @@ export default function RoleFitForm() {
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
+
   // Helper function to get authorization header
   const getAuthHeaders = (): Record<string, string> => {
     return isAuthed
@@ -86,59 +80,27 @@ export default function RoleFitForm() {
       : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
   };
 
-  // --- Auth & Quota fetch (session cookies) ---
+  // --- Auth & Credit loading ---
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        // who am I?
-        const meData = await getUserProfile(DIRECTUS_URL);
-        if (!meData) {
-          setIsAuthed(false);
-          setMe(null);
-          setQuotaUsed(null);
-          setQuotaRemaining(null);
-          return;
-        }
+        console.log('Loading credits - current localStorage:', localStorage.getItem('role-fit-index-credits'));
+        const result = await loadCredits(DIRECTUS_URL);
+        console.log('Load credits result:', result);
+
         if (cancelled) return;
 
-        setMe(meData);
-        setIsAuthed(!!meData?.id);
-
-        // quota for this user
-        if (meData?.id) {
-          const balUrl =
-            `${DIRECTUS_URL}/items/role_fit_index_balance` +
-            `?filter[user][_eq]=${encodeURIComponent(meData.id)}` +
-            `&fields=id,user,quota_remaining,quota_used` +
-            `&sort[]=-date_created` +
-            `&limit=1`;
-
-          const balRes = await fetch(balUrl, { credentials: "include" });
-          if (!balRes.ok) {
-            setQuotaUsed(null);
-            setQuotaRemaining(null);
-            return;
-          }
-          const balJson = await balRes.json();
-          const row: BalanceRow | undefined = balJson?.data?.[0];
-          if (cancelled) return;
-
-          if (row) {
-            setQuotaUsed(Number(row.quota_used ?? 0));
-            setQuotaRemaining(Number(row.quota_remaining ?? 0));
-          } else {
-            setQuotaUsed(0);
-            setQuotaRemaining(0);
-          }
-        }
+        setMe(result.user);
+        setIsAuthed(result.isAuthenticated);
+        setCredits(result.credits);
+        console.log('Set credits state to:', result.credits);
       } catch {
         if (!cancelled) {
           setIsAuthed(false);
           setMe(null);
-          setQuotaUsed(null);
-          setQuotaRemaining(null);
+          setCredits({ used: 0, remaining: 2 }); // Default guest credits
         }
       }
     })();
@@ -213,13 +175,33 @@ export default function RoleFitForm() {
 
   /** Create submission */
   const createSubmission = async (jd: string, fileId: string) => {
+    // Consume credit
+    try {
+      console.log('About to consume credit - current localStorage:', localStorage.getItem('role-fit-index-credits'));
+      const result = await consumeCredit(DIRECTUS_URL);
+      console.log('Consume credit result:', result);
+      if (result.success) {
+        setCredits(result.credits);
+        console.log('Updated credits state:', result.credits);
+        console.log('New localStorage:', localStorage.getItem('role-fit-index-credits'));
+      }
+    } catch (error) {
+      console.error('Failed to consume credit:', error);
+    }
+
+    // consume credit if user was logged in
+    if (isAuthed && me != null) {
+      await consumeUserCredit(me.id, DIRECTUS_URL);
+    }
+
+
     const body = {
       cv_file: fileId,
       status: "submitted",
       job_description: { raw_input: jd },
       ...(isAuthed && me?.id ? { user: me.id } : {}),
     };
-    
+
     const res = await fetch(`${DIRECTUS_URL}/items/role_fit_index_submission`, {
       method: "POST",
       credentials: isAuthed ? "include" : "omit",
@@ -249,7 +231,11 @@ export default function RoleFitForm() {
           headers: getAuthHeaders(),
         });
         const js = await res.json();
+        console.log(res);
+        console.log(js);
         if (res.ok && js?.data?.length) {
+
+
           // Reset form state before leaving
           form.reset({ jobDescription: "", cv: null });
           setStep(0);
@@ -409,11 +395,8 @@ export default function RoleFitForm() {
   }, []);
 
   const totalQuota = useMemo(
-    () =>
-      quotaUsed != null && quotaRemaining != null
-        ? quotaUsed + quotaRemaining
-        : null,
-    [quotaUsed, quotaRemaining]
+    () => credits.used + credits.remaining,
+    [credits]
   );
 
   return (
@@ -519,23 +502,29 @@ export default function RoleFitForm() {
             {/* Error */}
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            {/* Quota display (RIGHT ABOVE THE BUTTON) */}
+            {/* Credit display (RIGHT ABOVE THE BUTTON) */}
             <div className="text-center">
-              {isAuthed === false && (
-                <p className="text-xs text-gray-500 mb-2">
-                  Log in to see your remaining quota.
-                </p>
-              )}
-              {isAuthed === true && totalQuota != null && quotaUsed != null ? (
+              {isAuthed === false ? (
                 <p className="text-sm text-gray-700 mb-2">
-                  Quota Remaining: <span className="font-semibold">{quotaUsed}</span> /{" "}
+                  Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 2
+                  <span className="text-xs text-gray-500 block mt-1">
+                    <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-blue-600 hover:text-blue-800 underline">Login</a> and get 5 free credits
+                  </span>
+                </p>
+              ) : isAuthed === true ? (
+                <p className="text-sm text-gray-700 mb-2">
+                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> /{" "}
                   <span className="font-semibold">{totalQuota}</span>
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-xs text-gray-500 mb-2">
+                  Loading credits...
+                </p>
+              )}
             </div>
 
-            {/* Conditionally show button or top-up link based on quota */}
-            {isAuthed === true && quotaRemaining === 0 ? (
+            {/* Conditionally show button or top-up link based on credits */}
+            {credits.remaining === 0 ? (
               <Button
                 asChild
                 variant="default"

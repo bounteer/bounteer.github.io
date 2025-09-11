@@ -44,6 +44,8 @@ function NavLink({ item, active }: { item: NavItem; active?: boolean }) {
 }
 
 export function Sidebar() {
+  const img_url = "/favicon-96x96.png";
+
   const activePath =
     typeof window !== "undefined"
       ? window.location.pathname.replace(/\/+$/, "") || "/"
@@ -66,9 +68,18 @@ export function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0 bg-background">
-            <div className="p-4 border-b">
-              <div className="text-sm text-muted-foreground">Current Team</div>
-              <div className="font-semibold">{KEYWORDS.name}</div>
+            <div className="p-5 border-b">
+              <a
+                href="/"
+                className="flex items-center gap-3 text-lg font-bold hover:underline"
+              >
+                <img
+                  src={img_url} // favicon.png in /public
+                  alt="Bounteer logo"
+                  className="h-8 w-8"
+                />
+                {KEYWORDS.name}
+              </a>
             </div>
             <ScrollArea className="h-full px-2 py-4">
               <nav className="space-y-1">
@@ -87,13 +98,19 @@ export function Sidebar() {
       </div>
 
       {/* Desktop: persistent sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 shrink-0 border-r bg-background h-[100dvh] sticky top-0">
-        <div className="px-5 pt-6 pb-4 border-b">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">
-            Current Team
-          </div>
-          <div className="mt-1 text-base font-semibold">{KEYWORDS.name}</div>
-        </div>
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 shrink-0 border-r bg-background h-[100dvh] sticky top-0"><div className="p-5 border-b">
+        <a
+          href="/"
+          className="flex items-center gap-3 text-lg font-bold hover:underline"
+        >
+          <img
+            src={img_url} // favicon.png in /public
+            alt="Bounteer logo"
+            className="h-8 w-8"
+          />
+          {KEYWORDS.name}
+        </a>
+      </div>
         <ScrollArea className="flex-1 px-2 py-4">
           <nav className="space-y-1">
             {navItems.map((item) => (

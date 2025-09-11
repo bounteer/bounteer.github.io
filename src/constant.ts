@@ -1,7 +1,9 @@
 export const EXTERNAL = {
     onboarding_form_url: "https://form.typeform.com/to/FOz4fXGm",
     directus_url: "https://directus.bounteer.com",
-    directus_key: "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE" // guest account
+    directus_key: "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE", // guest account
+    auth_idp_key: "logto",
+    auth_idp_logput_url: "https://logto-app.bounteer.com/oidc/session/end?post_logout_redirect_uri=https://bounteer.com"
 }
 export const KEYWORDS = {
     name: "Bounteer",
