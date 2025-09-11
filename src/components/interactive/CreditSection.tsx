@@ -87,9 +87,9 @@ export default function CreditSection({ directusUrl, className }: Props) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>
-            {credits?.remaining || 0}/{totalCredits} credits remaining
+            {credits?.remaining || 0}/{totalCredits} credits available
           </CardTitle>
-          <Button 
+          <Button
             variant="secondary"
             size="sm"
             onClick={() => window.location.href = '/dashboard/role-fit-index/top-up/'}

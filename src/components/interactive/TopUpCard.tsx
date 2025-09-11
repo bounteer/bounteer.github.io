@@ -123,19 +123,23 @@ export default function TopUpCard({
 
       const meData = await meRes.json();
       const email = meData.data.email;
-      console.log(email)
+      console.log(email);
+      const userId = meData.data.id;
 
+      // stripe checkout button
       const webhookUrl = "https://n8n.bounteer.com/webhook/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
       // const webhookUrl = "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
       const params = new URLSearchParams({
-        product_id: String(p.stripe_product_id),
-        id: String(p.id),
+        user: String(userId),
+        product: String(p.id),
+        stripe_product_id: String(p.stripe_product_id),
         email: email,
 
       });
 
+      // todo failed to fetch below
       const res = await fetch(`${webhookUrl}?${params.toString()}`, {
-        method: "GET",
+        method: "POST",
       });
 
       if (!res.ok) {
