@@ -126,9 +126,8 @@ export default function RoleFitForm() {
   /** Try to find an existing file by SHA in your file_checksum collection */
   async function findFileIdBySha(sha: string): Promise<string | null> {
     const url = new URL(`${DIRECTUS_URL}/items/file_checksum`);
-    console.log(url);
     url.searchParams.set("filter[sha256][_eq]", sha);
-    // return only the related file id to keep payload small
+    url.searchParams.set("filter[file][_neq]", "null");
     url.searchParams.set("fields", "file");
     url.searchParams.set("limit", "1");
 
