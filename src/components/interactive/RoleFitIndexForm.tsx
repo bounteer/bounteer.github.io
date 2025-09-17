@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
-import { loadCredits, consumeCredit, getLoginUrl, type Credits, type UserProfile, consumeUserCredit } from '@/lib/utils';
+import { loadCredits, consumeCredit, getLoginUrl, type Credits, type UserProfile } from '@/lib/utils';
 
 const schema = z.object({
   jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
@@ -86,7 +86,7 @@ export default function RoleFitForm() {
 
     (async () => {
       try {
-        console.log('Loading credits - current localStorage:', localStorage.getItem('role-fit-index-credits'));
+        console.log('Loading credits');
         const result = await loadCredits(DIRECTUS_URL);
         console.log('Load credits result:', result);
 
@@ -176,23 +176,16 @@ export default function RoleFitForm() {
   const createSubmission = async (jd: string, fileId: string) => {
     // Consume credit
     try {
-      console.log('About to consume credit - current localStorage:', localStorage.getItem('role-fit-index-credits'));
+      console.log('About to consume credit');
       const result = await consumeCredit(DIRECTUS_URL);
       console.log('Consume credit result:', result);
       if (result.success) {
         setCredits(result.credits);
         console.log('Updated credits state:', result.credits);
-        console.log('New localStorage:', localStorage.getItem('role-fit-index-credits'));
       }
     } catch (error) {
       console.error('Failed to consume credit:', error);
     }
-
-    // consume credit if user was logged in
-    if (isAuthed && me != null) {
-      await consumeUserCredit(me.id, DIRECTUS_URL);
-    }
-
 
     const body = {
       cv_file: fileId,
@@ -215,44 +208,138 @@ export default function RoleFitForm() {
     return js.data.id as string;
   };
 
-  /** Poll Directus for report */
-  const pollReport = async (id: string) => {
-    const start = Date.now();
-    const ttl = 90_000;
-    while (Date.now() - start < ttl) {
-      try {
-        const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
-        url.searchParams.set("limit", "1");
-        url.searchParams.set("sort", "-date_created");
-        url.searchParams.set("filter[submission][_eq]", id);
-        const res = await fetch(url.toString(), {
-          credentials: isAuthed ? "include" : "omit",
-          headers: getAuthHeaders(),
-        });
-        const js = await res.json();
-        console.log(res);
-        console.log(js);
-        if (res.ok && js?.data?.length) {
 
+  /** Handle WebSocket authentication */
+  const handleWSAuth = (ws: WebSocket) => {
+    const authToken = EXTERNAL.directus_key;
+    const authPayload = JSON.stringify({ type: "auth", access_token: authToken });
+    console.log("auth payload:", authPayload);
+    ws.send(authPayload);
+  };
 
-          // Reset form state before leaving
-          form.reset({ jobDescription: "", cv: null });
-          setStep(0);
-          setButtonText("Analyze Role Fit Now");
-          setSubmissionStatus("submitted");
-          setSubmissionId(null);
+  /** Subscribe to submission updates */
+  const subscribeToSubmissions = (ws: WebSocket) => {
+    const subscriptionPayload = JSON.stringify({
+      type: "subscribe",
+      collection: "role_fit_index_submission",
+      query: {
+        fields: ["id", "status"],
+      },
+    });
+    ws.send(subscriptionPayload);
+  };
 
-          // Redirect
-          setSubmissionStatus("redirecting");
-          window.location.href = `/role-fit-index/report?id=${encodeURIComponent(
-            js.data[0].id
-          )}`;
-          return;
-        }
-      } catch { }
-      await new Promise((r) => setTimeout(r, 2000));
+  /** Handle report generation completion */
+  const handleReportGenerated = async (
+    id: string,
+    timeout: NodeJS.Timeout,
+    resolve: (value: boolean) => void
+  ) => {
+    try {
+      const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
+      url.searchParams.set("limit", "1");
+      url.searchParams.set("sort", "-date_created");
+      url.searchParams.set("filter[submission][_eq]", String(id));
+
+      const res = await fetch(url.toString(), {
+        credentials: isAuthed ? "include" : "omit",
+        headers: getAuthHeaders(),
+      });
+
+      const js = await res.json();
+      if (res.ok && js?.data?.length) {
+        // Reset form state
+        form.reset({ jobDescription: "", cv: null });
+        setStep(0);
+        setButtonText("Analyze Role Fit Now");
+        setSubmissionId(null);
+        setSubmissionStatus("redirecting");
+
+        // Redirect to report
+        window.location.href = `/role-fit-index/report?id=${encodeURIComponent(js.data[0].id)}`;
+        clearTimeout(timeout);
+        resolve(true);
+        return;
+      }
+      setError("Report ready but fetch failed.");
+    } catch {
+      setError("Report ready but fetch failed.");
     }
-    setError("Still analyzing… Please refresh later.");
+  };
+
+  /** Handle subscription events */
+  const handleSubscriptionEvent = async (
+    msg: any,
+    id: string,
+    timeout: NodeJS.Timeout,
+    resolve: (value: boolean) => void,
+    reject: (reason: any) => void
+  ) => {
+    const rec = Array.isArray(msg.data)
+      ? msg.data[0]
+      : msg.data?.payload ?? msg.data?.item ?? msg.data;
+
+    switch (msg.event) {
+      case "init":
+        console.log("Subscription initialized");
+        break;
+      case "create":
+        console.log("New record created:", rec);
+        break;
+      case "update":
+        console.log("Record updated:", rec);
+        if (!rec || String(rec.id) !== String(id)) return;
+
+        // Handle status updates
+        if (rec.status) {
+          console.log(rec.status);
+          setSubmissionStatus(rec.status);
+        }
+
+        if (rec.status === "generated_report") {
+          await handleReportGenerated(id, timeout, resolve);
+        }
+
+        if ((rec.status || "").startsWith("failed_")) {
+          setError("Submission failed: " + rec.status);
+          clearTimeout(timeout);
+          reject(new Error("Submission failed"));
+        }
+        break;
+      case "delete":
+        console.log("Record deleted:", rec);
+        break;
+      default:
+        console.log("Unknown subscription event:", msg.event);
+        break;
+    }
+  };
+
+  /** Handle WebSocket messages */
+  const handleWSMessage = async (
+    evt: MessageEvent,
+    ws: WebSocket,
+    id: string,
+    timeout: NodeJS.Timeout,
+    resolve: (value: boolean) => void,
+    reject: (reason: any) => void
+  ) => {
+    const msg = JSON.parse(evt.data);
+    console.log("onMessage");
+    console.log(msg);
+
+    switch (msg.type) {
+      case "auth":
+        // subscription has to come after authentication is accepted
+        subscribeToSubmissions(ws);
+        break;
+      case "subscription":
+        await handleSubscriptionEvent(msg, id, timeout, resolve, reject);
+        break;
+      default:
+        console.log("Unknown message type:", msg.type);
+        break;
+    }
   };
 
   /** Subscribe via WebSocket */
@@ -263,10 +350,10 @@ export default function RoleFitForm() {
         u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
         u.pathname = "/websocket";
         u.search = "";
+        console.log("subscription URL:", u.toString());
 
         const ws = new WebSocket(u.toString());
         wsRef.current = ws;
-
         setSubmissionStatus("submitted");
 
         const timeout = setTimeout(() => {
@@ -275,80 +362,17 @@ export default function RoleFitForm() {
         }, 90_000);
 
         ws.onopen = () => {
-          const authToken = isAuthed ? undefined : EXTERNAL.directus_key;
-          if (authToken) {
-            ws.send(JSON.stringify({ type: "auth", access_token: authToken }));
-          }
+          console.log("WebSocket opened");
+          handleWSAuth(ws);
         };
 
-        ws.onmessage = async (evt) => {
-          const msg = JSON.parse(evt.data);
-          if (msg.type === "auth" && msg.status === "ok") {
-            ws.send(
-              JSON.stringify({
-                type: "subscribe",
-                collection: "role_fit_index_submission",
-                query: {
-                  fields: ["id", "status"],
-                  filter: { id: { _eq: id } },
-                  limit: 1,
-                },
-              })
-            );
-          }
-
-          if (msg.type === "subscription") {
-            const rec = Array.isArray(msg.data)
-              ? msg.data[0]
-              : msg.data?.payload ?? msg.data?.item ?? msg.data;
-            if (!rec || String(rec.id) !== String(id)) return;
-
-            if (rec.status) setSubmissionStatus(rec.status);
-
-            if (rec.status === "generated_report") {
-              try {
-                const url = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
-                url.searchParams.set("limit", "1");
-                url.searchParams.set("sort", "-date_created");
-                url.searchParams.set("filter[submission][_eq]", String(id));
-                const res = await fetch(url.toString(), {
-                  credentials: isAuthed ? "include" : "omit",
-                  headers: getAuthHeaders(),
-                });
-                const js = await res.json();
-                if (res.ok && js?.data?.length) {
-                  // Reset before redirect
-                  form.reset({ jobDescription: "", cv: null });
-                  setStep(0);
-                  setButtonText("Analyze Role Fit Now");
-                  setSubmissionId(null);
-
-                  setSubmissionStatus("redirecting");
-                  window.location.href = `/role-fit-index/report?id=${encodeURIComponent(
-                    js.data[0].id
-                  )}`;
-                  clearTimeout(timeout);
-                  resolve(true);
-                  return;
-                }
-                setError("Report ready but fetch failed.");
-              } catch {
-                setError("Report ready but fetch failed.");
-              }
-            }
-
-            if ((rec.status || "").startsWith("failed_")) {
-              setError("Submission failed: " + rec.status);
-              clearTimeout(timeout);
-              reject(new Error("Submission failed"));
-            }
-          }
-        };
+        ws.onmessage = (evt) => handleWSMessage(evt, ws, id, timeout, resolve, reject);
 
         ws.onerror = () => {
           clearTimeout(timeout);
           reject(new Error("WS error"));
         };
+
         ws.onclose = () => {
           clearTimeout(timeout);
           reject(new Error("WS closed"));
@@ -374,10 +398,7 @@ export default function RoleFitForm() {
       setButtonText("Analyzing…");
       setError("");
 
-      const ok = await subscribeWS(subId).catch(() => false);
-      if (!ok) {
-        await pollReport(subId);
-      }
+      await subscribeWS(subId);
     } catch (err: any) {
       setError(err?.message || "Unexpected error");
       setStep(0);

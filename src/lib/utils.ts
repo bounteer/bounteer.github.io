@@ -14,17 +14,18 @@ export type UserProfile = {
   [key: string]: any;
 }
 
+
 export async function getUserProfile(directusUrl: string): Promise<UserProfile | null> {
   try {
     const res = await fetch(`${directusUrl}/users/me`, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
-    
+
     if (!res.ok) {
       return null;
     }
-    
+
     const json = await res.json();
     return json?.data ?? json;
   } catch {
@@ -92,7 +93,7 @@ export type BalanceRow = {
 };
 
 // Load guest credits from localStorage
-export function getGuestCredits(): Credits {
+export function _getGuestCredits(): Credits {
   if (typeof window === 'undefined') {
     // Server-side rendering, return default
     return { used: 0, remaining: 2 };
@@ -121,26 +122,26 @@ export function getGuestCredits(): Credits {
 }
 
 // Save guest credits to localStorage
-export function saveGuestCredits(credits: Credits): void {
+export function _saveGuestCredits(credits: Credits): void {
   localStorage.setItem('role-fit-index-credits', JSON.stringify(credits));
 }
 
 // Consume one credit for guests
-export function consumeGuestCredit(): Credits {
-  const currentCredits = getGuestCredits();
+export function _consumeGuestCredit(): Credits {
+  const currentCredits = _getGuestCredits();
   if (currentCredits.remaining > 0) {
     const updatedCredits = {
       used: currentCredits.used + 1,
       remaining: currentCredits.remaining - 1
     };
-    saveGuestCredits(updatedCredits);
+    _saveGuestCredits(updatedCredits);
     return updatedCredits;
   }
   return currentCredits;
 }
 
 // Fetch user credits from Directus for authenticated users
-export async function getUserCredits(userId: string, directusUrl: string): Promise<Credits | null> {
+export async function _getUserCredits(userId: string, directusUrl: string): Promise<Credits | null> {
   try {
     const balUrl =
       `${directusUrl}/items/role_fit_index_balance` +
@@ -171,7 +172,7 @@ export async function getUserCredits(userId: string, directusUrl: string): Promi
 }
 
 // Update user credits in Directus after consuming one credit
-export async function consumeUserCredit(userId: string, directusUrl: string): Promise<Credits | null> {
+export async function _consumeUserCredit(userId: string, directusUrl: string): Promise<Credits | null> {
   try {
     // First get the current balance record
     const balUrl =
@@ -234,34 +235,36 @@ export async function consumeCredit(directusUrl: string): Promise<{
 
     if (!user) {
       // User is not logged in, consume guest credit from localStorage
-      const updatedCredits = consumeGuestCredit();
+      const updatedCredits = _consumeGuestCredit();
       return {
         user: null,
         isAuthenticated: false,
         credits: updatedCredits,
         success: true
       };
+    } else {
+
+      // User is logged in, consume credit from Directus
+      const updatedCredits = await _consumeUserCredit(user.id, directusUrl);
+      if (updatedCredits) {
+        return {
+          user,
+          isAuthenticated: true,
+          credits: updatedCredits,
+          success: true
+        };
+      } else {
+      // Failed to consume user credit, fallback to current credits
+        const currentCredits = await _getUserCredits(user.id, directusUrl);
+        return {
+          user,
+          isAuthenticated: true,
+          credits: currentCredits || { used: 0, remaining: 0 },
+          success: false
+        };
+      }
     }
 
-    // User is logged in, consume credit from Directus
-    const updatedCredits = await consumeUserCredit(user.id, directusUrl);
-    if (updatedCredits) {
-      return {
-        user,
-        isAuthenticated: true,
-        credits: updatedCredits,
-        success: true
-      };
-    } else {
-      // Failed to consume user credit, fallback to current credits
-      const currentCredits = await getUserCredits(user.id, directusUrl);
-      return {
-        user,
-        isAuthenticated: true,
-        credits: currentCredits || { used: 0, remaining: 0 },
-        success: false
-      };
-    }
   } catch {
     // On error, try to load current credits without consuming
     const result = await loadCredits(directusUrl);
@@ -284,7 +287,7 @@ export async function loadCredits(directusUrl: string): Promise<{
 
     if (!user) {
       // User is not logged in, load guest credits from localStorage
-      const guestCredits = getGuestCredits();
+      const guestCredits = _getGuestCredits();
       return {
         user: null,
         isAuthenticated: false,
@@ -293,7 +296,7 @@ export async function loadCredits(directusUrl: string): Promise<{
     }
 
     // User is logged in, fetch credits from Directus
-    const userCredits = await getUserCredits(user.id, directusUrl);
+    const userCredits = await _getUserCredits(user.id, directusUrl);
     return {
       user,
       isAuthenticated: true,
@@ -301,7 +304,7 @@ export async function loadCredits(directusUrl: string): Promise<{
     };
   } catch {
     // Fallback to guest credits on error
-    const guestCredits = getGuestCredits();
+    const guestCredits = _getGuestCredits();
     return {
       user: null,
       isAuthenticated: false,

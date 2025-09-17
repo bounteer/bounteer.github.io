@@ -3,10 +3,9 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getUserProfile, getUserCredits } from "@/lib/utils";
+import { loadCredits } from "@/lib/utils";
 
 type Props = {
   directusUrl: string;
@@ -26,28 +25,14 @@ export default function CreditSection({ directusUrl, className }: Props) {
   React.useEffect(() => {
     const controller = new AbortController();
 
-    async function loadCredits() {
-      try {
-        setLoading(true);
-        const user = await getUserProfile(directusUrl);
-        if (user) {
-          const userCredits = await getUserCredits(user.id, directusUrl);
-          setCredits(userCredits);
-        } else {
-          setCredits({ used: 0, remaining: 0 });
-        }
-        setError(null);
-      } catch (e: any) {
-        if (e?.name !== "AbortError") {
-          setError(e.message || String(e));
-          setCredits({ used: 0, remaining: 0 });
-        }
-      } finally {
-        setLoading(false);
-      }
+    async function loadCreditUI() {
+      setLoading(true);
+      const userCredits = await loadCredits(directusUrl);
+      setCredits(userCredits.credits);
+      setLoading(false);
     }
 
-    loadCredits();
+    loadCreditUI();
     return () => controller.abort();
   }, [directusUrl]);
 
