@@ -25,7 +25,6 @@ type Report = {
   candidate_advice: string;
   concern_tags: string[];
   date_created: string;
-  user_created?: { first_name?: string; last_name?: string };
   submission?: {
     job_description?: {
       id: string;
@@ -34,6 +33,8 @@ type Report = {
       backfill_status?: string;
     };
     cv_file?: string;
+    user_created?: { first_name?: string; last_name?: string };
+
   };
 };
 
@@ -117,9 +118,15 @@ export default function ReportCard() {
           `${EXTERNAL.directus_url}/items/role_fit_index_report/${encodeURIComponent(
             id
           )}` +
-          `?fields=*,user_created.first_name,user_created.last_name,` +
-          `submission.job_description.id,submission.job_description.role_name,submission.job_description.company_name,` +
-          `submission.job_description.backfill_status,submission.cv_file`;
+          `?fields=*,` +
+          `submission.job_description.id,` +
+          `submission.job_description.role_name,` +
+          `submission.job_description.company_name,` +
+          `submission.job_description.backfill_status,` +
+          `submission.user_created.id,` +
+          `submission.user_created.first_name,` +
+          `submission.user_created.last_name,` +
+          `submission.cv_file`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
@@ -164,7 +171,7 @@ export default function ReportCard() {
       .filter(Boolean) || [];
 
   const candidateName = () => {
-    const c = report?.user_created;
+    const c = report?.submission?.user_created;
     const first = c?.first_name?.trim() || "";
     const last = c?.last_name?.trim() || "";
     const combined = [first, last].filter(Boolean).join(" ") || "—";
@@ -207,6 +214,8 @@ export default function ReportCard() {
       <div className="text-center py-12 text-gray-500">No report found.</div>
     );
   }
+
+  console.log(report);
 
   return (
     <Card className="w-full">
@@ -305,20 +314,20 @@ export default function ReportCard() {
           <h2 className="text-lg font-semibold mb-2">Concern Tags</h2>
           <LoginMask>
 
-          <div className="flex flex-wrap gap-2">
-            {report.concern_tags?.length ? (
-              report.concern_tags.map((tag, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
-                >
-                  {tag}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-500 text-sm">None.</span>
-            )}
-          </div>
+            <div className="flex flex-wrap gap-2">
+              {report.concern_tags?.length ? (
+                report.concern_tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                  >
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-500 text-sm">None.</span>
+              )}
+            </div>
           </LoginMask>
 
         </div>
