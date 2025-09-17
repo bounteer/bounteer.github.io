@@ -159,16 +159,16 @@ export default function JobDescriptionCard() {
         {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {jobDescription.location && (
-            <div className="rounded-lg bg-gray-50 p-4">
-              <h3 className="font-semibold text-gray-700 mb-1">Location</h3>
-              <p className="text-gray-900">{jobDescription.location}</p>
+            <div className="rounded-lg bg-gray-50 p-5 text-center">
+              <h3 className="text-lg font-semibold">Location</h3>
+              <p className="text-3xl font-bold">{jobDescription.location}</p>
             </div>
           )}
 
           {jobDescription.salary_range && (
-            <div className="rounded-lg bg-gray-50 p-4">
-              <h3 className="font-semibold text-gray-700 mb-1">Salary Range</h3>
-              <p className="text-gray-900">{jobDescription.salary_range}</p>
+            <div className="rounded-lg bg-gray-50 p-5 text-center">
+              <h3 className="text-lg font-semibold">Salary Range</h3>
+              <p className="text-3xl font-bold">{jobDescription.salary_range}</p>
             </div>
           )}
         </div>
@@ -219,7 +219,7 @@ export default function JobDescriptionCard() {
           <div className="rounded-lg bg-gray-50 p-4">
             {jobDescription.raw_input.startsWith('http') ? (
               <div>
-                <p className="text-sm text-gray-600 mb-2">Source URL:</p>
+                <p className="text-sm text-gray-600 mb-2">Raw input (JD Text/URL):</p>
                 <a
                   href={jobDescription.raw_input}
                   target="_blank"
@@ -238,16 +238,6 @@ export default function JobDescriptionCard() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Footer link */}
-        <div className="text-center">
-          <a
-            href="/role-fit-index"
-            className="text-primary-600 underline hover:text-primary-800"
-          >
-            &larr; New analysis
-          </a>
         </div>
       </CardContent>
     </Card>

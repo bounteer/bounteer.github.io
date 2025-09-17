@@ -16,7 +16,7 @@ import { ExternalLink } from "lucide-react";
 import { EXTERNAL } from "@/constant";
 
 type Props = {
-  /** Filter reports where report.user_created === userId */
+  /** Filter reports where report.submission.user.id === userId */
   userId: string;
   /** Optional: items per page (default 10) */
   pageSize?: number;
@@ -56,11 +56,12 @@ export default function UserReportTable({ userId, pageSize = 10 }: Props) {
         const fields =
           "fields=id,index,date_created,submission.id,submission.cv_file,submission.job_description.id,submission.job_description.role_name";
 
-        // filter by report.user_created = userId
-        const filter = `filter[user_created][_eq]=${encodeURIComponent(userId)}`;
+        // filter by report.submission.user.id = userId
+        const filter = `filter[submission][user_created][id][_eq]=${encodeURIComponent(userId)}`;
 
         // sort newest first; no server-side limit so we can client-paginate
         const url = `${DIRECTUS_URL}/items/role_fit_index_report?${fields}&${filter}&sort[]=-date_created`;
+        console.log(url);
 
         const res = await fetch(url, {
           signal: controller.signal,

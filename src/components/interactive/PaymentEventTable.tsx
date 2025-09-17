@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { getUserProfile, type UserProfile } from "@/lib/utils";
 
 type Row = {
   date_created: string;
@@ -23,14 +24,14 @@ type Row = {
 type Props = {
   directusUrl: string;
   readToken?: string;
-  email?: string; // fixed email passed from parent
 };
 
-export default function PaymentEventTable({ directusUrl, readToken, email }: Props) {
+export default function PaymentEventTable({ directusUrl, readToken }: Props) {
   const [sessionId, setSessionId] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [rows, setRows] = React.useState<Row[]>([]);
   const [error, setError] = React.useState<string | null>(null);
+  const [user, setUser] = React.useState<UserProfile | null>(null);
 
   const fetchEvents = async (session?: string) => {
     setLoading(true);
@@ -49,11 +50,11 @@ export default function PaymentEventTable({ directusUrl, readToken, email }: Pro
         base.searchParams.set("filter[stripe_session_id][_eq]", session.trim());
       }
 
-      // fixed email filter if provided
-      if (email) {
+      // filter by current user ID
+      if (user?.id) {
         base.searchParams.set(
-          "filter[payment_session][buyer_email][_eq]",
-          email.toLowerCase()
+          "filter[payment_session][purchase][user][_eq]",
+          user.id
         );
       }
 
@@ -76,10 +77,26 @@ export default function PaymentEventTable({ directusUrl, readToken, email }: Pro
     }
   };
 
-  // load immediately on mount
+  // fetch user profile on mount
   React.useEffect(() => {
-    fetchEvents();
-  }, []);
+    let cancelled = false;
+    (async () => {
+      const userProfile = await getUserProfile(directusUrl);
+      if (!cancelled) {
+        setUser(userProfile);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [directusUrl]);
+
+  // load events when user is available
+  React.useEffect(() => {
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -11,6 +11,15 @@ import JobDescriptionCard from "@/components/interactive/JobDescriptionCard";
     <div class="container-custom max-w-4xl mx-auto px-4 pb-8">
       <JobDescriptionCard client:only="react" />
     </div>
-    <Footer />
+
+    <div class="text-center mt-8">
+      <a
+        href="/role-fit-index"
+        class="text-primary-600 underline hover:text-primary-800"
+      >
+        &larr; New analysis
+      </a>
+    </div>
   </main>
+  <Footer />
 </Layout>
