@@ -4,6 +4,9 @@
 ### Added
 - report link to CV nad JD
 - JD page
+- marketplace coming soon page
+### Removed
+- career page
 ### Modified
 - sidebar nested design
 

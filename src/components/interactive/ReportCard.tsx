@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
+import LoginMask from './LoginMask';
 
 type Report = {
   id: string;
@@ -65,7 +66,7 @@ export default function ReportCard() {
       const fileInfoRes = await fetch(`${EXTERNAL.directus_url}/files/${fileId}`, {
         headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
       });
-      
+
       let filename = 'cv.pdf';
       if (fileInfoRes.ok) {
         const fileInfo = await fileInfoRes.json();
@@ -76,7 +77,7 @@ export default function ReportCard() {
       const fileRes = await fetch(`${EXTERNAL.directus_url}/assets/${fileId}`, {
         headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
       });
-      
+
       if (!fileRes.ok) {
         throw new Error('Failed to download CV');
       }
@@ -84,13 +85,13 @@ export default function ReportCard() {
       // Create blob and download
       const blob = await fileRes.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -302,6 +303,8 @@ export default function ReportCard() {
         {/* Concern Tags */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Concern Tags</h2>
+          <LoginMask>
+
           <div className="flex flex-wrap gap-2">
             {report.concern_tags?.length ? (
               report.concern_tags.map((tag, i) => (
@@ -316,86 +319,96 @@ export default function ReportCard() {
               <span className="text-gray-500 text-sm">None.</span>
             )}
           </div>
+          </LoginMask>
+
         </div>
 
         {/* Pros */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Pros</h2>
-          <ul className="space-y-1">
-            {prosList.length ? (
-              prosList.map((p, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-gray-800 break-words"
-                >
-                  <Check className="h-4 w-4 text-green-600 mt-0.5" />
-                  {p}
-                </li>
-              ))
-            ) : (
-              <li className="text-gray-500">No pros listed.</li>
-            )}
-          </ul>
+          <LoginMask>
+            <ul className="space-y-1">
+              {prosList.length ? (
+                prosList.map((p, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-gray-800 break-words"
+                  >
+                    <Check className="h-4 w-4 text-green-600 mt-0.5" />
+                    {p}
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-500">No pros listed.</li>
+              )}
+            </ul>
+          </LoginMask>
         </div>
 
         {/* Cons */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Cons</h2>
-          <ul className="space-y-1">
-            {consList.length ? (
-              consList.map((c, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-gray-800 break-words"
-                >
-                  <X className="h-4 w-4 text-red-600 mt-0.5" />
-                  {c}
-                </li>
-              ))
-            ) : (
-              <li className="text-gray-500">No advice listed.</li>
-            )}
-          </ul>
+          <LoginMask>
+            <ul className="space-y-1">
+              {consList.length ? (
+                consList.map((c, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-gray-800 break-words"
+                  >
+                    <X className="h-4 w-4 text-red-600 mt-0.5" />
+                    {c}
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-500">No advice listed.</li>
+              )}
+            </ul>
+          </LoginMask>
         </div>
 
         {/* Hiring Advices */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Hiring Advices</h2>
-          <ul className="space-y-1">
-            {hiring_advices.length ? (
-              hiring_advices.map((c, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-gray-800 break-words"
-                >
-                  - {c}
-                </li>
-              ))
-            ) : (
-              <li className="text-gray-500">No advice listed.</li>
-            )}
-          </ul>
+          <LoginMask>
+            <ul className="space-y-1">
+              {hiring_advices.length ? (
+                hiring_advices.map((c, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-gray-800 break-words"
+                  >
+                    - {c}
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-500">No advice listed.</li>
+              )}
+            </ul>
+          </LoginMask>
         </div>
 
         {/* Candidate Advices */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Candidate Advices</h2>
-          <ul className="space-y-1">
-            {candidate_advices.length ? (
-              candidate_advices.map((c, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-gray-800 break-words"
-                >
-                  - {c}
-                </li>
-              ))
-            ) : (
-              <li className="text-gray-500">No advice listed.</li>
-            )}
-          </ul>
+          <LoginMask>
+            <ul className="space-y-1">
+              {candidate_advices.length ? (
+                candidate_advices.map((c, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-gray-800 break-words"
+                  >
+                    - {c}
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-500">No advice listed.</li>
+              )}
+            </ul>
+          </LoginMask>
         </div>
       </CardContent>
-    </Card>
+    </Card >
   );
 }
