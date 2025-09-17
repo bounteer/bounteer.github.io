@@ -27,10 +27,12 @@ type Report = {
   user_created?: { first_name?: string; last_name?: string };
   submission?: {
     job_description?: {
+      id: string;
       role_name?: string;
       company_name?: string;
       backfill_status?: string;
     };
+    cv_file?: string;
   };
 };
 
@@ -57,6 +59,47 @@ export default function ReportCard() {
 
   const blacklist = ["Bounteer Production", ""];
 
+  const downloadCV = async (fileId: string) => {
+    try {
+      // First get file info to get the filename
+      const fileInfoRes = await fetch(`${EXTERNAL.directus_url}/files/${fileId}`, {
+        headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+      });
+      
+      let filename = 'cv.pdf';
+      if (fileInfoRes.ok) {
+        const fileInfo = await fileInfoRes.json();
+        filename = fileInfo?.data?.filename_download || fileInfo?.data?.title || 'cv.pdf';
+      }
+
+      // Fetch the file
+      const fileRes = await fetch(`${EXTERNAL.directus_url}/assets/${fileId}`, {
+        headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+      });
+      
+      if (!fileRes.ok) {
+        throw new Error('Failed to download CV');
+      }
+
+      // Create blob and download
+      const blob = await fileRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading CV:', error);
+      alert('Failed to download CV. Please try again.');
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -74,8 +117,8 @@ export default function ReportCard() {
             id
           )}` +
           `?fields=*,user_created.first_name,user_created.last_name,` +
-          `submission.job_description.role_name,submission.job_description.company_name,` +
-          `submission.job_description.backfill_status`;
+          `submission.job_description.id,submission.job_description.role_name,submission.job_description.company_name,` +
+          `submission.job_description.backfill_status,submission.cv_file`;
 
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
@@ -173,7 +216,25 @@ export default function ReportCard() {
         {/* Header */}
         <div className="text-center space-y-1">
           <p className="text-sm text-gray-700">
-            Candidate: {candidateName()} · Role: {roleName} @ {companyName}
+            Candidate: {report.submission?.cv_file ? (
+              <button
+                onClick={() => downloadCV(report.submission!.cv_file!)}
+                className="text-primary-600 underline hover:text-primary-800 cursor-pointer"
+              >
+                {candidateName()}
+              </button>
+            ) : (
+              candidateName()
+            )} · Role: {report.submission?.job_description?.id ? (
+              <a
+                href={`/role-fit-index/job-description?id=${report.submission.job_description.id}`}
+                className="text-primary-600 underline hover:text-primary-800"
+              >
+                {roleName} @ {companyName}
+              </a>
+            ) : (
+              `${roleName} @ ${companyName}`
+            )}
           </p>
           {backfillStatus &&
             backfillStatus.toLowerCase() !== "success" && (
@@ -333,17 +394,6 @@ export default function ReportCard() {
               <li className="text-gray-500">No advice listed.</li>
             )}
           </ul>
-        </div>
-
-
-        {/* Footer link */}
-        <div className="text-center">
-          <a
-            href="/role-fit-index"
-            className="text-primary-600 underline hover:text-primary-800"
-          >
-            &larr; New analysis
-          </a>
         </div>
       </CardContent>
     </Card>

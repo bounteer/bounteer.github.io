@@ -2,8 +2,10 @@
 import { KEYWORDS } from "../constant";
 import { Image } from "astro:assets";
 import Icon from "../assets/icon.png";
+import { getPackageVersion } from "../lib/utils";
 
 const currentYear = new Date().getFullYear();
+const version = await getPackageVersion();
 
 const footerLinks = [
   // {
@@ -160,7 +162,7 @@ const footerLinks = [
     <div class="border-t border-gray-800 pt-8 mt-8">
       <div class="flex flex-col md:flex-row justify-between items-center">
         <p class="text-gray-400 text-sm mb-4 md:mb-0">
-          &copy; {currentYear} Bounteer. All rights reserved.
+          &copy; {currentYear} Bounteer. All rights reserved. v{version}
         </p>
         <div class="flex space-x-6">
           <a

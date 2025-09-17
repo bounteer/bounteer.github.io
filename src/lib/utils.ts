@@ -312,3 +312,14 @@ export async function loadCredits(directusUrl: string): Promise<{
     };
   }
 }
+
+// Get package version from package.json
+export async function getPackageVersion(): Promise<string> {
+  try {
+    const packageJson = await import("../../package.json", { assert: { type: "json" } });
+    return packageJson.default.version;
+  } catch (error) {
+    console.error("Error reading package.json version:", error);
+    return "0.0.0";
+  }
+}

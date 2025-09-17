@@ -330,7 +330,7 @@ export default function RoleFitForm() {
 
     switch (msg.type) {
       case "auth":
-        // subscription has to come after authentication is accepted
+        // subscription has to come after authentication is acceptedin
         subscribeToSubmissions(ws);
         break;
       case "subscription":
