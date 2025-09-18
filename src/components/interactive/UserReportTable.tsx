@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -30,6 +30,7 @@ type ReportRow = {
     id: number;
     cv_file?: string; // Directus file UUID
     job_description?: {
+      id?: string;
       role_name?: string;
       name?: string;
       company?: string;
@@ -125,117 +126,181 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
     return filtered.slice(start, start + pageSize);
   }, [filtered, pageSafe, pageSize]);
 
-  function cvHref(uuid?: string) {
-    if (!uuid) return "";
-    // With session cookies, no token needed in URL
-    return `${DIRECTUS_URL}/assets/${uuid}`;
-  }
+  const downloadCV = async (fileId: string) => {
+    try {
+      // First get file info to get the filename
+      const fileInfoRes = await fetch(`${DIRECTUS_URL}/files/${fileId}`, {
+        credentials: "include",
+      });
+
+      let filename = 'cv.pdf';
+      if (fileInfoRes.ok) {
+        const fileInfo = await fileInfoRes.json();
+        filename = fileInfo?.data?.filename_download || fileInfo?.data?.title || 'cv.pdf';
+      }
+
+      // Fetch the file
+      const fileRes = await fetch(`${DIRECTUS_URL}/assets/${fileId}`, {
+        credentials: "include",
+      });
+
+      if (!fileRes.ok) {
+        throw new Error('Failed to download CV');
+      }
+
+      // Create blob and download
+      const blob = await fileRes.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading CV:', error);
+      alert('Failed to download CV. Please try again.');
+    }
+  };
 
   return (
-    <Card className="p-6 rounded-2xl shadow-md">
-      <div className="mb-4 flex flex-col md:flex-row md:items-center gap-3">
-        <h2 className="text-xl font-semibold">My Role Fit Index Reports</h2>
-        <div className="ml-auto w-full md:w-72">
-          <Input
-            placeholder="Filter by job, index, date…"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
-      </div>
-
-      {loading && <p className="text-sm text-gray-500">Loading…</p>}
-      {err && <p className="text-sm text-red-600">{err}</p>}
-
-      {!loading && !err && (
-        <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Job Description</TableHead>
-                <TableHead className="w-24 text-right">Role Fit Index</TableHead>
-                <TableHead className="w-56">Date</TableHead>
-                <TableHead className="w-32 text-right">CV</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageSlice.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center py-8 text-gray-500"
-                  >
-                    No reports found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pageSlice.map((r) => {
-                  const jobName =
-                    r.submission?.job_description?.role_name ||
-                    r.submission?.job_description?.name ||
-                    "Untitled";
-                  const date = new Date(r.date_created).toLocaleString();
-                  const href = cvHref(r.submission?.cv_file);
-
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{jobName}</TableCell>
-                      <TableCell className="text-right">{r.index}</TableCell>
-                      <TableCell>{date}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          asChild
-                          variant="secondary"
-                          size="sm"
-                          disabled={!href}
-                          title={href ? "Open CV" : "No CV"}
-                        >
-                          <a
-                            href={href || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-1" /> View CV
-                          </a>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-xs text-gray-500">
-              {filtered.length} result{filtered.length === 1 ? "" : "s"} · Page{" "}
-              {pageSafe} / {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={pageSafe <= 1}
-              >
-                Prev
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={pageSafe >= totalPages}
-              >
-                Next
-              </Button>
-            </div>
+    <Card className="rounded-2xl shadow-md">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <CardTitle>My Role Fit Index Reports</CardTitle>
+          <div className="ml-auto w-full md:w-72">
+            <Input
+              placeholder="Filter by job, index, date…"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+            />
           </div>
-        </>
-      )}
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        {loading && <p className="text-sm text-gray-500">Loading…</p>}
+        {err && <p className="text-sm text-red-600">{err}</p>}
+
+        {!loading && !err && (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-56">Date</TableHead>
+                  <TableHead className="w-18">RFI</TableHead>
+                  <TableHead className="w-18">WRFI</TableHead>
+                  <TableHead>Job Description (JD)</TableHead>
+                  <TableHead className="w-32">JD Link</TableHead>
+                  <TableHead className="w-32">CV Link</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pageSlice.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-gray-500"
+                    >
+                      No reports found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pageSlice.map((r) => {
+                    const jobName =
+                      r.submission?.job_description?.role_name ||
+                      r.submission?.job_description?.name ||
+                      "Untitled";
+                    const date = new Date(r.date_created).toLocaleString();
+                    const cvFileId = r.submission?.cv_file;
+                    const jdHref = r.submission?.job_description?.id
+                      ? `/role-fit-index/job-description?id=${r.submission.job_description.id}`
+                      : null;
+
+                    return (
+                      <TableRow
+                        key={r.id}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() => window.location.href = `/role-fit-index/report?id=${r.id}`}
+                      >
+                        <TableCell>{date}</TableCell>
+                        <TableCell >{r.index}</TableCell>
+                        <TableCell >{r.weighted_index || "—"}</TableCell>
+                        <TableCell>{jobName}</TableCell>
+                        <TableCell >
+                          <Button
+                            asChild
+                            variant="secondary"
+                            size="sm"
+                            disabled={!jdHref}
+                            title={jdHref ? "View Job Description" : "No JD available"}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <a
+                              href={jdHref || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="h-4 w-4 mr-1" /> View JD
+                            </a>
+                          </Button>
+                        </TableCell>
+                        <TableCell >
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={!cvFileId}
+                            title={cvFileId ? "Download CV" : "No CV"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (cvFileId) downloadCV(cvFileId);
+                            }}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" /> Download CV
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-xs text-gray-500">
+                {filtered.length} result{filtered.length === 1 ? "" : "s"} · Page{" "}
+                {pageSafe} / {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={pageSafe <= 1}
+                >
+                  Prev
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={pageSafe >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
     </Card>
   );
 }

@@ -10,12 +10,18 @@ import ReportCard from "@/components/interactive/ReportCard";
   <main class="py-16 bg-gray-50">
     <div class="container-custom max-w-4xl mx-auto px-4 pb-8">
       <ReportCard client:only="react" />
-      <div class="text-center mt-8">
+      <div class="text-center mt-8 space-x-6">
         <a
           href="/role-fit-index"
           class="text-primary-600 underline hover:text-primary-800"
         >
           &larr; New analysis
+        </a>
+        <a
+          href="/dashboard/role-fit-index"
+          class="text-primary-600 underline hover:text-primary-800"
+        >
+          View all reports &rarr;
         </a>
       </div>
     </div>

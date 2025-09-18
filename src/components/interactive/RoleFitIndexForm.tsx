@@ -420,153 +420,164 @@ export default function RoleFitForm() {
   );
 
   return (
-    <Card className="w-full max-w-6xl mx-auto">
-      <CardHeader>
-        <CardTitle>Upload JD and CV</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-              {/* Left: JD */}
-              <FormField
-                control={form.control}
-                name="jobDescription"
-                render={({ field }) => (
-                  <FormItem className="h-full flex flex-col">
-                    <FormLabel>Job Description (Text or URL)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Paste the JD or a JD URL…"
-                        className="h-full min-h-[300px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+    <div className="w-full max-w-6xl mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload JD and CV</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                {/* Left: JD */}
+                <FormField
+                  control={form.control}
+                  name="jobDescription"
+                  render={({ field }) => (
+                    <FormItem className="h-full flex flex-col">
+                      <FormLabel>Job Description (Text or URL)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Paste the JD or a JD URL…"
+                          className="h-full min-h-[300px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              {/* Right: CV Upload */}
-              <FormField
-                control={form.control}
-                name="cv"
-                render={({ field }) => (
-                  <FormItem className="h-full flex flex-col">
-                    <FormLabel>CV (PDF only)</FormLabel>
-                    <FormControl>
-                      <DragAndDropUpload onFileSelect={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Progress & Stepper */}
-            {step >= 1 && (
-              <div className="mt-8 space-y-6">
-                {/* Step circles */}
-                <div className="flex justify-between">
-                  {progressSteps.map((s, i) => {
-                    const isCompleted = i < currentStepIdx;
-                    const isActive = i === currentStepIdx && !error;
-                    const isFailed = !!error && i === currentStepIdx;
-
-                    return (
-                      <div key={s} className="flex flex-col items-center flex-1">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center mb-2
-                            ${isFailed
-                              ? "bg-red-600 text-white"
-                              : isCompleted
-                                ? "bg-green-600 text-white"
-                                : isActive
-                                  ? "border-2 border-primary-600 text-primary-600"
-                                  : "border-2 border-gray-300 text-gray-400"
-                            }`}
-                        >
-                          {isFailed && <X className="h-4 w-4" />}
-                          {isCompleted && <Check className="h-4 w-4" />}
-                          {isActive && <Loader2 className="h-4 w-4 animate-spin" />}
-                        </div>
-                        <span
-                          className={`text-xs text-center ${isFailed
-                            ? "text-red-600 font-medium"
-                            : isCompleted
-                              ? "text-green-700 font-medium"
-                              : isActive
-                                ? "text-primary-700 font-medium"
-                                : "text-gray-500"
-                            }`}
-                        >
-                          {s}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Progress bar always visible */}
-                <Progress value={percentDone} className="w-full" />
-
-                {/* Helper text */}
-                <p className="text-sm text-gray-600 text-center">
-                  {error
-                    ? "Something went wrong. Please try again."
-                    : "Analyzing your CV & JD — this usually takes ~30 seconds. You’ll be redirected when the report is ready."}
-                </p>
+                {/* Right: CV Upload */}
+                <FormField
+                  control={form.control}
+                  name="cv"
+                  render={({ field }) => (
+                    <FormItem className="h-full flex flex-col">
+                      <FormLabel>CV (PDF only)</FormLabel>
+                      <FormControl>
+                        <DragAndDropUpload onFileSelect={field.onChange} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            )}
 
-            {/* Error */}
-            {error && <p className="text-sm text-red-600">{error}</p>}
+              {/* Progress & Stepper */}
+              {step >= 1 && (
+                <div className="mt-8 space-y-6">
+                  {/* Step circles */}
+                  <div className="flex justify-between">
+                    {progressSteps.map((s, i) => {
+                      const isCompleted = i < currentStepIdx;
+                      const isActive = i === currentStepIdx && !error;
+                      const isFailed = !!error && i === currentStepIdx;
 
-            {/* Credit display (RIGHT ABOVE THE BUTTON) */}
-            <div className="text-center">
-              {isAuthed === false ? (
-                <p className="text-sm text-gray-700 mb-2">
-                  Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 2
-                  <span className="text-xs text-gray-500 block mt-1">
-                    <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-blue-600 hover:text-blue-800 underline">Login</a> and get 5 free credits
-                  </span>
-                </p>
-              ) : isAuthed === true ? (
-                <p className="text-sm text-gray-700 mb-2">
-                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> /{" "}
-                  <span className="font-semibold">{totalQuota}</span>
-                </p>
-              ) : (
-                <p className="text-xs text-gray-500 mb-2">
-                  Loading credits...
-                </p>
+                      return (
+                        <div key={s} className="flex flex-col items-center flex-1">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center mb-2
+                              ${isFailed
+                                ? "bg-red-600 text-white"
+                                : isCompleted
+                                  ? "bg-green-600 text-white"
+                                  : isActive
+                                    ? "border-2 border-primary-600 text-primary-600"
+                                    : "border-2 border-gray-300 text-gray-400"
+                              }`}
+                          >
+                            {isFailed && <X className="h-4 w-4" />}
+                            {isCompleted && <Check className="h-4 w-4" />}
+                            {isActive && <Loader2 className="h-4 w-4 animate-spin" />}
+                          </div>
+                          <span
+                            className={`text-xs text-center ${isFailed
+                              ? "text-red-600 font-medium"
+                              : isCompleted
+                                ? "text-green-700 font-medium"
+                                : isActive
+                                  ? "text-primary-700 font-medium"
+                                  : "text-gray-500"
+                              }`}
+                          >
+                            {s}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Progress bar always visible */}
+                  <Progress value={percentDone} className="w-full" />
+
+                  {/* Helper text */}
+                  <p className="text-sm text-gray-600 text-center">
+                    {error
+                      ? "Something went wrong. Please try again."
+                      : "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready."}
+                  </p>
+                </div>
               )}
-            </div>
 
-            {/* Conditionally show button or top-up link based on credits */}
-            {credits.remaining === 0 ? (
-              <Button
-                asChild
-                variant="default"
-                className="w-full"
-              >
-                <a href="/dashboard/role-fit-index/top-up">
-                  Top Up Credits to Continue
-                </a>
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                variant="default"
-                className="w-full"
-                disabled={submitting || step !== 0}
-              >
-                {buttonText}
-              </Button>
-            )}
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+              {/* Error */}
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
+              {/* Credit display (RIGHT ABOVE THE BUTTON) */}
+              <div className="text-center">
+                {isAuthed === false ? (
+                  <p className="text-sm text-gray-700 mb-2">
+                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 2
+                    <span className="text-xs text-gray-500 block mt-1">
+                      <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-primary-600 hover:text-primary-800 underline">Login</a> and get 5 free credits
+                    </span>
+                  </p>
+                ) : isAuthed === true ? (
+                  <p className="text-sm text-gray-700 mb-2">
+                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> /{" "}
+                    <span className="font-semibold">{totalQuota}</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 mb-2">
+                    Loading credits...
+                  </p>
+                )}
+              </div>
+
+              {/* Conditionally show button or top-up link based on credits */}
+              {credits.remaining === 0 ? (
+                <Button
+                  asChild
+                  variant="default"
+                  className="w-full"
+                >
+                  <a href="/dashboard/role-fit-index/top-up">
+                    Top Up Credits to Continue
+                  </a>
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="default"
+                  className="w-full"
+                  disabled={submitting || step !== 0}
+                >
+                  {buttonText}
+                </Button>
+              )}
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      {/* View All Reports link for logged-in users */}
+      {isAuthed === true && (
+        <div className="text-center mt-4">
+          <a href="/dashboard/role-fit-index" className="text-sm text-primary-600 hover:text-primary-800 underline">
+            View All Reports
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
