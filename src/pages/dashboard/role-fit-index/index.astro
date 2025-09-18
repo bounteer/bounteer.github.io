@@ -6,8 +6,6 @@ import UserReportTable from "@/components/interactive/UserReportTable";
 import AuthGuard from "@/components/interactive/AuthGuard";
 import CreditSection from "@/components/interactive/CreditSection";
 import { EXTERNAL } from "@/constant";
-
-const USER_ID = "51bad019-1d3b-4f7a-9a89-87355fbcde84";
 ---
 
 <Layout title="Role Fit Index - Bounteer">
@@ -48,7 +46,7 @@ const USER_ID = "51bad019-1d3b-4f7a-9a89-87355fbcde84";
           className="mb-8"
         />
 
-        <UserReportTable userId={USER_ID} pageSize={10} client:load />
+        <UserReportTable pageSize={10} client:load />
       </section>
     </main>
 

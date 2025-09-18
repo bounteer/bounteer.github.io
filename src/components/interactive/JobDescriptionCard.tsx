@@ -219,7 +219,7 @@ export default function JobDescriptionCard() {
           <div className="rounded-lg bg-gray-50 p-4">
             {jobDescription.raw_input.startsWith('http') ? (
               <div>
-                <p className="text-sm text-gray-600 mb-2">Raw input (JD Text/URL):</p>
+                <p className="text-sm text-gray-600 mb-2">Job Description URL:</p>
                 <a
                   href={jobDescription.raw_input}
                   target="_blank"

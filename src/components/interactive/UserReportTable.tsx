@@ -14,10 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { EXTERNAL } from "@/constant";
+import { getUserProfile, type UserProfile } from "@/lib/utils";
 
 type Props = {
-  /** Filter reports where report.submission.user.id === userId */
-  userId: string;
   /** Optional: items per page (default 10) */
   pageSize?: number;
 };
@@ -25,20 +24,26 @@ type Props = {
 type ReportRow = {
   id: number;
   index: number;
+  weighted_index?: number;
   date_created: string;
   submission?: {
     id: number;
     cv_file?: string; // Directus file UUID
-    job_description?: { role_name?: string; name?: string };
+    job_description?: {
+      role_name?: string;
+      name?: string;
+      company?: string;
+    };
   };
 };
 
-export default function UserReportTable({ userId, pageSize = 10 }: Props) {
+export default function UserReportTable({ pageSize = 10 }: Props) {
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState(""); // client-side text filter
   const [page, setPage] = useState(1); // client-side pagination
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   // Keep a stable local alias so we can safely reference it in deps
   const DIRECTUS_URL = EXTERNAL.directus_url;
@@ -52,12 +57,24 @@ export default function UserReportTable({ userId, pageSize = 10 }: Props) {
         setLoading(true);
         setErr(null);
 
+        // First, get the current user profile
+        const userProfile = await getUserProfile(DIRECTUS_URL);
+        if (!cancelled) setUser(userProfile);
+
+        if (!userProfile?.id) {
+          throw new Error("User not authenticated");
+        }
+
         // fields we need
         const fields =
-          "fields=id,index,date_created,submission.id,submission.cv_file,submission.job_description.id,submission.job_description.role_name";
+          `fields=*,` +
+          `submission.id,` +
+          `submission.cv_file,` +
+          `submission.job_description.id,` +
+          `submission.job_description.role_name`;
 
         // filter by report.submission.user.id = userId
-        const filter = `filter[submission][user_created][id][_eq]=${encodeURIComponent(userId)}`;
+        const filter = `filter[submission][user_created][id][_eq]=${encodeURIComponent(userProfile.id)}`;
 
         // sort newest first; no server-side limit so we can client-paginate
         const url = `${DIRECTUS_URL}/items/role_fit_index_report?${fields}&${filter}&sort[]=-date_created`;
@@ -83,7 +100,7 @@ export default function UserReportTable({ userId, pageSize = 10 }: Props) {
       cancelled = true;
       controller.abort();
     };
-  }, [userId, DIRECTUS_URL]);
+  }, [DIRECTUS_URL]);
 
   const filtered = useMemo(() => {
     if (!q.trim()) return rows;
@@ -139,8 +156,8 @@ export default function UserReportTable({ userId, pageSize = 10 }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Job Description</TableHead>
-                <TableHead className="w-24 text-right">Index</TableHead>
-                <TableHead className="w-56">Date Created</TableHead>
+                <TableHead className="w-24 text-right">Role Fit Index</TableHead>
+                <TableHead className="w-56">Date</TableHead>
                 <TableHead className="w-32 text-right">CV</TableHead>
               </TableRow>
             </TableHeader>
@@ -159,7 +176,7 @@ export default function UserReportTable({ userId, pageSize = 10 }: Props) {
                   const jobName =
                     r.submission?.job_description?.role_name ||
                     r.submission?.job_description?.name ||
-                    "Unnamed Job";
+                    "Untitled";
                   const date = new Date(r.date_created).toLocaleString();
                   const href = cvHref(r.submission?.cv_file);
 

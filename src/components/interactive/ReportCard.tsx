@@ -215,8 +215,6 @@ export default function ReportCard() {
     );
   }
 
-  console.log(report);
-
   return (
     <Card className="w-full">
       <CardHeader>
