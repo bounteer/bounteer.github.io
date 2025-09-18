@@ -5,8 +5,9 @@ import { useReactToPrint } from "react-to-print";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Check, X, Download } from "lucide-react";
+import { Check, X, Download, Shield, LogIn } from "lucide-react";
 import { EXTERNAL } from '@/constant';
+import { getUserProfile, getLoginUrl, type UserProfile } from '@/lib/utils';
 import LoginMask from './LoginMask';
 import PrintableReport from './PrintableReport';
 
@@ -61,6 +62,8 @@ export default function ReportCard() {
   const [error, setError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const blacklist = ["Bounteer Production", ""];
@@ -112,11 +115,24 @@ export default function ReportCard() {
   };
 
   useEffect(() => {
+    async function checkAuth() {
+      const profile = await getUserProfile(EXTERNAL.directus_url);
+      setCurrentUser(profile);
+      setAuthChecked(true);
+    }
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     setReportId(id);
     if (!id) {
       setLoading(false);
+      return;
+    }
+
+    if (!authChecked) {
       return;
     }
 
@@ -144,7 +160,20 @@ export default function ReportCard() {
         if (!res.ok) {
           throw new Error(json?.errors?.[0]?.message || `Fetch failed (${res.status})`);
         }
-        setReport(json.data ?? null);
+        
+        const reportData = json.data ?? null;
+        
+        // Check access control: only allow the creator of the submission to view the report
+        if (reportData && currentUser) {
+          const submissionUserId = reportData.submission?.user_created?.id;
+          if (submissionUserId && submissionUserId !== currentUser.id) {
+            throw new Error("Access denied. You can only view reports for your own submissions.");
+          }
+        } else if (reportData && !currentUser) {
+          throw new Error("Please log in to view this report.");
+        }
+        
+        setReport(reportData);
       } catch (e: any) {
         setError(e.message || "Unexpected error");
       } finally {
@@ -153,7 +182,7 @@ export default function ReportCard() {
     };
 
     fetchReport();
-  }, []);
+  }, [authChecked]);
 
   const prosList =
     report?.pros
@@ -211,6 +240,42 @@ export default function ReportCard() {
   }
 
   if (error) {
+    // Check if it's an access denied error
+    const isAccessDenied = error.includes("Access denied") || error.includes("Please log in");
+    const isLoginRequired = error.includes("Please log in");
+    
+    if (isAccessDenied) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-6">
+          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            {isLoginRequired ? (
+              <LogIn className="w-8 h-8 text-red-600" />
+            ) : (
+              <Shield className="w-8 h-8 text-red-600" />
+            )}
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            {isLoginRequired ? "Authentication Required" : "Access Denied"}
+          </h2>
+          <p className="text-gray-600 text-center mb-4 max-w-md">
+            {error}
+          </p>
+          {isLoginRequired && (
+            <Button 
+              onClick={() => {
+                const nextPath = window.location.pathname + window.location.search;
+                window.location.href = getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, nextPath);
+              }}
+              className="flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Login to View Report
+            </Button>
+          )}
+        </div>
+      );
+    }
+    
     return (
       <div className="mb-6 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
         {error}

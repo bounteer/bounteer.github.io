@@ -3,6 +3,7 @@
 ## [0.1.4] - 2025-09-18
 ### Added
 - printable report
+- shield to prevent others looking at your report
 
 ## [0.1.3] - 2025-09-18
 ### Modified
