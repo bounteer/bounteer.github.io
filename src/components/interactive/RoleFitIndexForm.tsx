@@ -565,6 +565,7 @@ export default function RoleFitForm() {
                   {buttonText}
                 </Button>
               )}
+
             </form>
           </Form>
         </CardContent>
@@ -578,6 +579,14 @@ export default function RoleFitForm() {
           </a>
         </div>
       )}
+
+      {/* Terms & Conditions agreement */}
+      <p className="text-xs text-gray-500 text-center pt-8">
+        By using this service, you agree to our{" "}
+        <a href="/legal" className="text-gray-500 hover:text-gray-700 underline">
+          Terms of Service and Privacy Policy
+        </a>
+      </p>
     </div>
   );
 }

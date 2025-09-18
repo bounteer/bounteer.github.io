@@ -1,10 +1,13 @@
 # Changelog
 
+## [0.1.3] - 2025-09-18
+### Modified
+- legal
+
 ## [0.1.2] - 2025-09-18
 ### Modified
 - no more ismail image
 - fix report table UI
-
 
 ## [0.1.1] - 2025-09-17
 ### Added
