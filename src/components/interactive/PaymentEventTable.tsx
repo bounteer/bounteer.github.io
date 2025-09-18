@@ -2,11 +2,8 @@
 
 import * as React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { getUserProfile, type UserProfile } from "@/lib/utils";
 
 type Row = {
@@ -27,13 +24,13 @@ type Props = {
 };
 
 export default function PaymentEventTable({ directusUrl, readToken }: Props) {
-  const [sessionId, setSessionId] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [rows, setRows] = React.useState<Row[]>([]);
   const [error, setError] = React.useState<string | null>(null);
   const [user, setUser] = React.useState<UserProfile | null>(null);
+  const [q, setQ] = React.useState(""); // client-side text filter
 
-  const fetchEvents = async (session?: string) => {
+  const fetchEvents = async () => {
     setLoading(true);
     setError(null);
     setRows([]);
@@ -45,10 +42,6 @@ export default function PaymentEventTable({ directusUrl, readToken }: Props) {
         "date_created,payment_status,payment_session.purchase.product.name"
       );
       base.searchParams.append("sort[]", "-date_created");
-
-      if (session?.trim()) {
-        base.searchParams.set("filter[stripe_session_id][_eq]", session.trim());
-      }
 
       // filter by current user ID
       if (user?.id) {
@@ -98,43 +91,46 @@ export default function PaymentEventTable({ directusUrl, readToken }: Props) {
     }
   }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchEvents(sessionId);
-  };
+
+  // Client-side filtering
+  const filtered = React.useMemo(() => {
+    if (!q.trim()) return rows;
+    const needle = q.toLowerCase();
+    return rows.filter((r) => {
+      const productName = r.payment_session?.purchase?.product?.name || "";
+      const dateString = new Date(r.date_created).toLocaleString();
+      const status = r.payment_status || "";
+
+      return (
+        productName.toLowerCase().includes(needle) ||
+        status.toLowerCase().includes(needle) ||
+        dateString.toLowerCase().includes(needle)
+      );
+    });
+  }, [rows, q]);
 
   return (
     <Card className="mt-8">
       <CardHeader>
-        <CardTitle>Payment Events</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Payment Records</CardTitle>
+          <Input
+            placeholder="Filter by product, status, date..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="w-72"
+          />
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex gap-4 flex-wrap">
-          <div className="space-y-2">
-            <Label htmlFor="session">Stripe Session ID</Label>
-            <Input
-              id="session"
-              placeholder="cs_test_123..."
-              value={sessionId}
-              onChange={(e) => setSessionId(e.target.value)}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Loading..." : "Search"}
-            </Button>
-          </div>
-        </form>
-
-        <Separator className="my-6" />
 
         {error && <div className="text-sm text-red-600 mb-4">{error}</div>}
 
-        {rows.length === 0 && !loading && !error && (
+        {filtered.length === 0 && !loading && !error && (
           <div className="text-sm text-muted-foreground">No results found.</div>
         )}
 
-        {rows.length > 0 && (
+        {filtered.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -145,7 +141,7 @@ export default function PaymentEventTable({ directusUrl, readToken }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
+                {filtered.map((r, i) => (
                   <tr key={i} className="border-b last:border-0">
                     <td className="py-2 pr-4">
                       {new Date(r.date_created).toLocaleString()}
