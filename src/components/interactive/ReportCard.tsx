@@ -281,10 +281,12 @@ export default function ReportCard() {
           <div className="rounded-lg bg-gray-50 p-5 text-center">
             <h2 className="text-lg font-semibold">Role Fit Index</h2>
             <p className="text-3xl font-bold">{report.index}/100</p>
+              <p className="text-xs text-gray-600 mt-2">40% Technical + 30% Domain + 20% Career + 10% Cultural</p>
           </div>
           <div className="rounded-lg bg-gray-50 p-5 text-center">
             <h2 className="text-lg font-semibold">Weighted Role Fit Index</h2>
             <p className="text-3xl font-bold">{report.weighted_index}/100</p>
+              <p className="text-xs text-gray-600 mt-0.5">40% Technical + 30% Domain + 20% Career + 10% Cultural<br />(each score × confidence)</p>
           </div>
         </div>
 

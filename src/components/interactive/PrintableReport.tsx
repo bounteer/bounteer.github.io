@@ -128,10 +128,12 @@ const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
           <div className="rounded-lg bg-gray-50 p-3 text-center">
             <h2 className="font-semibold mb-1" style={{ fontSize: '14px' }}>Role Fit Index</h2>
             <p className="font-bold text-black" style={{ fontSize: '20px' }}>{report.index}/100</p>
+            <p className="text-gray-600 mt-1" style={{ fontSize: '9px' }}>40% Technical + 30% Domain + 20% Career + 10% Cultural</p>
           </div>
           <div className="rounded-lg bg-gray-50 p-3 text-center">
             <h2 className="font-semibold mb-1" style={{ fontSize: '14px' }}>Weighted Role Fit Index</h2>
             <p className="font-bold text-black" style={{ fontSize: '20px' }}>{report.weighted_index}/100</p>
+            <p className="text-gray-600 mt-0.5" style={{ fontSize: '9px' }}>40% Technical + 30% Domain + 20% Career + 10% Cultural<br />(each score × confidence)</p>
           </div>
         </div>
 
@@ -257,7 +259,7 @@ const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
         <div className="mb-3 no-break">
           <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Candidate Advice</h2>
           <div className="bg-gray-50 rounded-lg px-5 py-3">
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {candidate_advices.length ? (
                 candidate_advices.map((c, i) => (
                   <li key={i} className="flex items-start gap-3">
