@@ -2,6 +2,7 @@ export const EXTERNAL = {
     onboarding_form_url: "https://form.typeform.com/to/FOz4fXGm",
     directus_url: "https://directus.bounteer.com",
     directus_key: "dZtMfEuzhzUS0YATh0pOZfBAdOYlhowE", // guest account
+    guest_user_id: "f25f8ce7-e4c9-40b8-ab65-40cde3409f27", // guest user id
     auth_idp_key: "logto",
     auth_idp_logput_url: "https://logto-app.bounteer.com/oidc/session/end?post_logout_redirect_uri=https://bounteer.com"
 }
