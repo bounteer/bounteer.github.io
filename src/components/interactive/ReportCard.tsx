@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useReactToPrint } from "react-to-print";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, X, Download } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import LoginMask from './LoginMask';
+import PrintableReport from './PrintableReport';
 
 type Report = {
   id: string;
@@ -58,8 +61,14 @@ export default function ReportCard() {
   const [error, setError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const blacklist = ["Bounteer Production", ""];
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Role-Fit-Report-${reportId || 'unknown'}`,
+  });
 
   const downloadCV = async (fileId: string) => {
     try {
@@ -216,10 +225,20 @@ export default function ReportCard() {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-center">Role Fit Index Report</CardTitle>
-      </CardHeader>
+    <>
+      <Card className="w-full">
+        <CardHeader className="relative">
+          <CardTitle className="text-center">
+            Role Fit Index Report
+          </CardTitle>
+          <Button 
+            onClick={handlePrint} 
+            className="absolute top-1/2 right-6 -translate-y-1/2 flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+        </CardHeader>
       <CardContent className="space-y-8">
         {/* Header */}
         <div className="text-center space-y-1">
@@ -309,113 +328,135 @@ export default function ReportCard() {
 
         {/* Concern Tags */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Concern Tags</h2>
-          <LoginMask>
-
-            <div className="flex flex-wrap gap-2">
-              {report.concern_tags?.length ? (
-                report.concern_tags.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
-                  >
-                    {tag}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-500 text-sm">None.</span>
-              )}
-            </div>
-          </LoginMask>
-
+          <h2 className="text-lg font-semibold mb-3">Concern Tags</h2>
+          <div className="rounded-lg bg-gray-50 p-5">
+            <LoginMask>
+              <div className="flex flex-wrap gap-2">
+                {report.concern_tags?.length ? (
+                  report.concern_tags.map((tag, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                    >
+                      {tag}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">None.</span>
+                )}
+              </div>
+            </LoginMask>
+          </div>
         </div>
 
         {/* Pros */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Pros</h2>
-          <LoginMask>
-            <ul className="space-y-1">
-              {prosList.length ? (
-                prosList.map((p, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-gray-800 break-words"
-                  >
-                    <Check className="h-4 w-4 text-green-600 mt-0.5" />
-                    {p}
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500">No pros listed.</li>
-              )}
-            </ul>
-          </LoginMask>
+          <h2 className="text-lg font-semibold mb-3">Pros</h2>
+          <div className="rounded-lg bg-gray-50 p-5">
+            <LoginMask>
+              <ul className="space-y-2">
+                {prosList.length ? (
+                  prosList.map((p, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-gray-800 break-words"
+                    >
+                      <Check className="h-4 w-4 text-green-600 mt-0.5" />
+                      {p}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No pros listed.</li>
+                )}
+              </ul>
+            </LoginMask>
+          </div>
         </div>
 
         {/* Cons */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Cons</h2>
-          <LoginMask>
-            <ul className="space-y-1">
-              {consList.length ? (
-                consList.map((c, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-gray-800 break-words"
-                  >
-                    <X className="h-4 w-4 text-red-600 mt-0.5" />
-                    {c}
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500">No advice listed.</li>
-              )}
-            </ul>
-          </LoginMask>
+          <h2 className="text-lg font-semibold mb-3">Cons</h2>
+          <div className="rounded-lg bg-gray-50 p-5">
+            <LoginMask>
+              <ul className="space-y-2">
+                {consList.length ? (
+                  consList.map((c, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-gray-800 break-words"
+                    >
+                      <X className="h-4 w-4 text-red-600 mt-0.5" />
+                      {c}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No cons listed.</li>
+                )}
+              </ul>
+            </LoginMask>
+          </div>
         </div>
 
         {/* Hiring Advices */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Hiring Advices</h2>
-          <LoginMask>
-            <ul className="space-y-1">
-              {hiring_advices.length ? (
-                hiring_advices.map((c, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-gray-800 break-words"
-                  >
-                    - {c}
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500">No advice listed.</li>
-              )}
-            </ul>
-          </LoginMask>
+          <h2 className="text-lg font-semibold mb-3">Hiring Advices</h2>
+          <div className="rounded-lg bg-gray-50 p-5">
+            <LoginMask>
+              <ul className="space-y-2">
+                {hiring_advices.length ? (
+                  hiring_advices.map((c, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-gray-800 break-words"
+                    >
+                      - {c}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No advice listed.</li>
+                )}
+              </ul>
+            </LoginMask>
+          </div>
         </div>
 
         {/* Candidate Advices */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Candidate Advices</h2>
-          <LoginMask>
-            <ul className="space-y-1">
-              {candidate_advices.length ? (
-                candidate_advices.map((c, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-gray-800 break-words"
-                  >
-                    - {c}
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500">No advice listed.</li>
-              )}
-            </ul>
-          </LoginMask>
+          <h2 className="text-lg font-semibold mb-3">Candidate Advices</h2>
+          <div className="rounded-lg bg-gray-50 p-5">
+            <LoginMask>
+              <ul className="space-y-2">
+                {candidate_advices.length ? (
+                  candidate_advices.map((c, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-gray-800 break-words"
+                    >
+                      - {c}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No advice listed.</li>
+                )}
+              </ul>
+            </LoginMask>
+          </div>
         </div>
       </CardContent>
-    </Card >
+      </Card>
+
+      {/* Hidden printable component */}
+      <div style={{ display: 'none' }}>
+        <PrintableReport
+          ref={printRef}
+          report={report}
+          reportId={reportId}
+          candidateName={candidateName()}
+          roleName={roleName}
+          companyName={companyName}
+          backfillStatus={backfillStatus}
+        />
+      </div>
+    </>
   );
 }
