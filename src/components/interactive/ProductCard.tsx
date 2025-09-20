@@ -19,6 +19,7 @@ interface ProductCardProps {
   features: string[];
   buttonLabel: string;
   buttonHref: string;
+  tagColor?: string;
 }
 
 export default function ProductCard({
@@ -30,6 +31,7 @@ export default function ProductCard({
   features,
   buttonLabel,
   buttonHref,
+  tagColor = "bg-emerald-100 text-emerald-700",
 }: ProductCardProps) {
   return (
     <Card className="flex flex-col h-full shadow-md">
@@ -42,7 +44,7 @@ export default function ProductCard({
           </div>
           <Badge
             variant="secondary"
-            className="bg-emerald-100 text-emerald-700"
+            className={tagColor}
           >
             {launchDate}
           </Badge>

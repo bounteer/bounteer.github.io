@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
 import { EXTERNAL } from "@/constant";
 import { getUserProfile, type UserProfile } from "@/lib/utils";
@@ -26,6 +27,7 @@ type ReportRow = {
   index: number;
   weighted_index?: number;
   date_created: string;
+  opt_in_talent_pool?: boolean;
   submission?: {
     id: number;
     cv_file?: string; // Directus file UUID
@@ -198,6 +200,7 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
                   <TableHead className="w-18">RFI</TableHead>
                   <TableHead className="w-18">WRFI</TableHead>
                   <TableHead>Job Description (JD)</TableHead>
+                  <TableHead className="w-32">Talent Pool</TableHead>
                   <TableHead className="w-32">JD Link</TableHead>
                   <TableHead className="w-32">CV Link</TableHead>
                 </TableRow>
@@ -206,7 +209,7 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
                 {pageSlice.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center py-8 text-gray-500"
                     >
                       No reports found.
@@ -234,6 +237,23 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
                         <TableCell >{r.index}</TableCell>
                         <TableCell >{r.weighted_index || "—"}</TableCell>
                         <TableCell>{jobName}</TableCell>
+                        <TableCell>
+                          {r.index > 75 ? (
+                            r.opt_in_talent_pool ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
+                                ✓ Opted In
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                                Not Opted In
+                              </Badge>
+                            )
+                          ) : (
+                            <Badge variant="outline" className="text-gray-400 border-gray-300">
+                              Not Eligible
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell >
                           <Button
                             asChild

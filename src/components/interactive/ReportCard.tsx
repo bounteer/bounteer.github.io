@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Check, X, Download, Shield, LogIn } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { getUserProfile, getLoginUrl, type UserProfile } from '@/lib/utils';
+import { Checkbox } from "@/components/ui/checkbox";
 import LoginMask from './LoginMask';
 import PrintableReport from './PrintableReport';
 
@@ -29,6 +30,7 @@ type Report = {
   candidate_advice: string;
   concern_tags: string[];
   date_created: string;
+  opt_in_talent_pool?: boolean;
   submission?: {
     job_description?: {
       id: string;
@@ -64,6 +66,8 @@ export default function ReportCard() {
   const [reportId, setReportId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [talentPoolOptIn, setTalentPoolOptIn] = useState(false);
+  const [talentPoolSubmitting, setTalentPoolSubmitting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const blacklist = ["Bounteer Production", ""];
@@ -72,6 +76,37 @@ export default function ReportCard() {
     contentRef: printRef,
     documentTitle: `Role-Fit-Report-${reportId || 'unknown'}`,
   });
+
+  const handleTalentPoolOptIn = async () => {
+    if (!report || !currentUser) return;
+    
+    setTalentPoolSubmitting(true);
+    try {
+      const response = await fetch(`${EXTERNAL.directus_url}/items/role_fit_index_report/${report.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+        },
+        body: JSON.stringify({
+          opt_in_talent_pool: talentPoolOptIn
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update talent pool preference');
+      }
+      
+      // Show success message
+      alert(talentPoolOptIn ? 'Successfully opted in to Bounteer Talent Pool!' : 'Successfully opted out of Bounteer Talent Pool.');
+      
+    } catch (error) {
+      console.error('Error updating talent pool preference:', error);
+      alert('Failed to update talent pool preference. Please try again.');
+    } finally {
+      setTalentPoolSubmitting(false);
+    }
+  };
 
   const downloadCV = async (fileId: string) => {
     try {
@@ -182,6 +217,11 @@ export default function ReportCard() {
         }
         
         setReport(reportData);
+        
+        // Set talent pool opt-in state from report data
+        if (reportData?.opt_in_talent_pool !== undefined) {
+          setTalentPoolOptIn(reportData.opt_in_talent_pool);
+        }
       } catch (e: any) {
         setError(e.message || "Unexpected error");
       } finally {
@@ -510,6 +550,46 @@ export default function ReportCard() {
             </LoginMask>
           </div>
         </div>
+
+        {/* Talent Pool Opt-in - Only show if role fit index > 75 and user is authenticated */}
+        {report.index > 75 && currentUser && (
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold mb-3">🎯 Join Bounteer Talent Pool</h2>
+            <div className="rounded-lg bg-green-50 border border-green-200 p-5">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="talentPoolOptIn"
+                  checked={talentPoolOptIn}
+                  onCheckedChange={setTalentPoolOptIn}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <label 
+                    htmlFor="talentPoolOptIn" 
+                    className="font-medium text-green-900 cursor-pointer"
+                  >
+                    Get matched with relevant job opportunities
+                  </label>
+                  <p className="text-sm text-green-700 mt-1">
+                    With a {report.index}/100 Role Fit Index, you're a great candidate! 
+                    Join our talent pool to get matched with hiring partners looking for candidates like you. 
+                    Your profile and report data will only be shared when there's a strong match.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  onClick={handleTalentPoolOptIn}
+                  disabled={talentPoolSubmitting}
+                  variant="default"
+                  size="sm"
+                >
+                  {talentPoolSubmitting ? "Saving..." : "Save Preference"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Download Button */}
         <div className="flex justify-center pt-4">
