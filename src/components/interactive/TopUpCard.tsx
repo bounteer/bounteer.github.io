@@ -22,6 +22,7 @@ type Product = {
   description?: string | null;
   category?: string | null;
   stripe_product_id?: string | null;
+  is_test?: boolean;
 };
 
 type Props = {
@@ -30,14 +31,16 @@ type Props = {
   category?: string;
   limit?: number;
   className?: string;
+  show_test?: boolean;
 };
 
 export default function TopUpCard({
   directusUrl,
   readToken,
   category = "topup",
-  limit = 3,
+  limit = 10,
   className,
+  show_test = false,
 }: Props) {
   const [items, setItems] = React.useState<Product[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -53,7 +56,7 @@ export default function TopUpCard({
       try {
         setLoading(true);
         const params = new URLSearchParams({
-          fields: "id,name,price,description,category,stripe_product_id",
+          fields: "id,name,price,description,category,stripe_product_id,is_test",
           limit: String(limit),
           sort: "price",
         });
@@ -76,7 +79,7 @@ export default function TopUpCard({
 
         if (data.length === 0 && category) {
           const r = await fetch(
-            `${directusUrl}/items/product?fields=id,name,price,description,category,stripe_product_id&limit=${limit}&sort=price`,
+            `${directusUrl}/items/product?fields=id,name,price,description,category,stripe_product_id,is_test&limit=${limit}&sort=price`,
             {
               signal: controller.signal,
               headers: {
@@ -88,7 +91,9 @@ export default function TopUpCard({
           data = j.data || [];
         }
 
-        setItems(data.slice(0, limit));
+        // Filter test items based on show_test parameter
+        const filteredData = show_test ? data : data.filter(item => !item.is_test);
+        setItems(filteredData.slice(0, limit));
         setError(null);
       } catch (e: any) {
         if (e?.name !== "AbortError") setError(e.message || String(e));
@@ -99,7 +104,7 @@ export default function TopUpCard({
 
     load();
     return () => controller.abort();
-  }, [directusUrl, readToken, category, limit]);
+  }, [directusUrl, readToken, category, limit, show_test]);
 
   const fmt = new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -200,11 +205,18 @@ export default function TopUpCard({
           return (
             <Card key={p.id} className="border bg-white">
               <CardHeader className="space-y-2">
-                {p.category ? (
-                  <Badge variant="outline" className="shrink-0 w-fit">
-                    {p.category}
-                  </Badge>
-                ) : null}
+                <div className="flex gap-2 flex-wrap">
+                  {p.category ? (
+                    <Badge variant="outline" className="shrink-0 w-fit">
+                      {p.category}
+                    </Badge>
+                  ) : null}
+                  {p.is_test ? (
+                    <Badge variant="secondary" className="shrink-0 w-fit">
+                      Test Item
+                    </Badge>
+                  ) : null}
+                </div>
                 <CardTitle className="text-base">{p.name}</CardTitle>
               </CardHeader>
 
