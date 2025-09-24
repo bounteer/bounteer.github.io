@@ -50,6 +50,12 @@ function fmtMinutes(iso: string) {
   )}:${p(d.getMinutes())}`;
 }
 
+function getExpressionLevel(score: number): string {
+  if (score >= 80) return "High";
+  if (score >= 60) return "Mid";
+  return "Low";
+}
+
 const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
   ({ report, reportId, candidateName, roleName, companyName, backfillStatus, reportType = "full" }, ref) => {
     const prosList =
@@ -167,9 +173,12 @@ const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
               <div key={label} className="mb-2">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-semibold" style={{ fontSize: '11px' }}>{label}</span>
-                  <span className="text-gray-600" style={{ fontSize: '9px' }}>
-                    {score}/100 · {confidence}% confidence
-                  </span>
+                  <div className="text-gray-600 flex items-center gap-2" style={{ fontSize: '9px' }}>
+                    <span>{score}/100 · {confidence}% confidence</span>
+                    <span className="font-bold text-black">
+                      {getExpressionLevel(score)}
+                    </span>
+                  </div>
                 </div>
                 <ProgressBar value={score} />
               </div>

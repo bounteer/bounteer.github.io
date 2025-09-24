@@ -59,6 +59,16 @@ function prettifyStatus(raw: string) {
   return raw.replace(/_/g, " ");
 }
 
+function getExpressionLevel(score: number): { level: string; color: string } {
+  if (score >= 80) {
+    return { level: "High", color: "text-green-600" };
+  } else if (score >= 60) {
+    return { level: "Mid", color: "text-yellow-600" };
+  } else {
+    return { level: "Low", color: "text-red-600" };
+  }
+}
+
 export default function ReportCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -421,17 +431,23 @@ export default function ReportCard() {
                 score: report.cultural_score,
                 confidence: report.cultural_confidence,
               },
-            ].map(({ label, score, confidence }) => (
-              <div key={label}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium">{label}</span>
-                  <span className="text-sm text-gray-600">
-                    {score}/100 · {confidence}% confidence
-                  </span>
+            ].map(({ label, score, confidence }) => {
+              const expression = getExpressionLevel(score);
+              return (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium">{label}</span>
+                    <div className="text-sm text-gray-600 flex items-center gap-2">
+                      <span>{score}/100 · {confidence}% confidence</span>
+                      <span className={`font-semibold ${expression.color}`}>
+                        {expression.level}
+                      </span>
+                    </div>
+                  </div>
+                  <Progress value={score} />
                 </div>
-                <Progress value={score} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
