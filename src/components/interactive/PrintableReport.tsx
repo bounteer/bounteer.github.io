@@ -38,6 +38,7 @@ interface PrintableReportProps {
   roleName: string;
   companyName: string;
   backfillStatus: string;
+  reportType?: "concise" | "full";
 }
 
 function fmtMinutes(iso: string) {
@@ -50,7 +51,7 @@ function fmtMinutes(iso: string) {
 }
 
 const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
-  ({ report, reportId, candidateName, roleName, companyName, backfillStatus }, ref) => {
+  ({ report, reportId, candidateName, roleName, companyName, backfillStatus, reportType = "full" }, ref) => {
     const prosList =
       report?.pros
         ?.split("\n")
@@ -176,103 +177,108 @@ const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
           </div>
         </div>
 
-        {/* Concern Tags */}
-        <div className="mb-3 no-break">
-          <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Concern Tags</h2>
-          <div className="bg-gray-50 rounded-lg px-5 py-3">
-            <div className="flex flex-wrap gap-2">
-              {report.concern_tags?.length ? (
-                report.concern_tags.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 rounded-full font-medium border-2 border-amber-300 bg-amber-50"
-                    style={{ fontSize: '12px' }}
-                  >
-                    {tag}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-500" style={{ fontSize: '12px' }}>None.</span>
-              )}
+        {/* Full Report Sections - Only show if reportType is "full" */}
+        {reportType === "full" && (
+          <>
+            {/* Concern Tags */}
+            <div className="mb-3 no-break">
+              <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Concern Tags</h2>
+              <div className="bg-gray-50 rounded-lg px-5 py-3">
+                <div className="flex flex-wrap gap-2">
+                  {report.concern_tags?.length ? (
+                    report.concern_tags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 rounded-full font-medium border-2 border-amber-300 bg-amber-50"
+                        style={{ fontSize: '12px' }}
+                      >
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500" style={{ fontSize: '12px' }}>None.</span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Pros */}
-        <div className="mb-3 no-break">
-          <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Pros</h2>
-          <div className="bg-gray-50 rounded-lg px-5 py-3">
-            <ul className="space-y-1">
-              {prosList.length ? (
-                prosList.map((p, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="leading-normal" style={{ fontSize: '12px' }}>{p}</span>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500" style={{ fontSize: '12px' }}>No pros listed.</li>
-              )}
-            </ul>
-          </div>
-        </div>
+            {/* Pros */}
+            <div className="mb-3 no-break">
+              <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Pros</h2>
+              <div className="bg-gray-50 rounded-lg px-5 py-3">
+                <ul className="space-y-1">
+                  {prosList.length ? (
+                    prosList.map((p, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="leading-normal" style={{ fontSize: '12px' }}>{p}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500" style={{ fontSize: '12px' }}>No pros listed.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
 
-        {/* Cons */}
-        <div className="mb-3 no-break">
-          <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Cons</h2>
-          <div className="bg-gray-50 rounded-lg px-5 py-3">
-            <ul className="space-y-1">
-              {consList.length ? (
-                consList.map((c, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <X className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="leading-normal" style={{ fontSize: '12px' }}>{c}</span>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500" style={{ fontSize: '12px' }}>No cons listed.</li>
-              )}
-            </ul>
-          </div>
-        </div>
+            {/* Cons */}
+            <div className="mb-3 no-break">
+              <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Cons</h2>
+              <div className="bg-gray-50 rounded-lg px-5 py-3">
+                <ul className="space-y-1">
+                  {consList.length ? (
+                    consList.map((c, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <X className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <span className="leading-normal" style={{ fontSize: '12px' }}>{c}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500" style={{ fontSize: '12px' }}>No cons listed.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
 
-        {/* Hiring Advice */}
-        <div className="mb-3 no-break">
-          <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Hiring Advice</h2>
-          <div className="bg-gray-50 rounded-lg px-5 py-3">
-            <ul className="space-y-0.5">
-              {hiring_advices.length ? (
-                hiring_advices.map((c, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-black font-bold mt-0.5">•</span>
-                    <span className="leading-normal" style={{ fontSize: '12px' }}>{c}</span>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500" style={{ fontSize: '12px' }}>No advice listed.</li>
-              )}
-            </ul>
-          </div>
-        </div>
+            {/* Hiring Advice */}
+            <div className="mb-3 no-break">
+              <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Hiring Advice</h2>
+              <div className="bg-gray-50 rounded-lg px-5 py-3">
+                <ul className="space-y-0.5">
+                  {hiring_advices.length ? (
+                    hiring_advices.map((c, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <span className="text-black font-bold mt-0.5">•</span>
+                        <span className="leading-normal" style={{ fontSize: '12px' }}>{c}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500" style={{ fontSize: '12px' }}>No advice listed.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
 
-        {/* Candidate Advice */}
-        <div className="mb-3 no-break">
-          <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Candidate Advice</h2>
-          <div className="bg-gray-50 rounded-lg px-5 py-3">
-            <ul className="space-y-0.5">
-              {candidate_advices.length ? (
-                candidate_advices.map((c, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-black font-bold mt-0.5">•</span>
-                    <span className="leading-normal" style={{ fontSize: '12px' }}>{c}</span>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500" style={{ fontSize: '12px' }}>No advice listed.</li>
-              )}
-            </ul>
-          </div>
-        </div>
+            {/* Candidate Advice */}
+            <div className="mb-3 no-break">
+              <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Candidate Advice</h2>
+              <div className="bg-gray-50 rounded-lg px-5 py-3">
+                <ul className="space-y-0.5">
+                  {candidate_advices.length ? (
+                    candidate_advices.map((c, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <span className="text-black font-bold mt-0.5">•</span>
+                        <span className="leading-normal" style={{ fontSize: '12px' }}>{c}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500" style={{ fontSize: '12px' }}>No advice listed.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-6 pt-3 border-t text-gray-500">

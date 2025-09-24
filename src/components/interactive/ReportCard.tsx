@@ -68,6 +68,7 @@ export default function ReportCard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [talentPoolOptIn, setTalentPoolOptIn] = useState(false);
   const [talentPoolSubmitting, setTalentPoolSubmitting] = useState(false);
+  const [reportType, setReportType] = useState<"concise" | "full">("concise");
   const printRef = useRef<HTMLDivElement>(null);
 
   const blacklist = ["Bounteer Production", ""];
@@ -591,15 +592,36 @@ export default function ReportCard() {
           </div>
         )}
 
-        {/* Download Button */}
-        <div className="flex justify-center pt-4">
-          <Button 
-            onClick={handlePrint} 
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Button>
+        {/* PDF Report Download */}
+        <div className="border-t pt-6">
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3 text-center">Download PDF Report</h3>
+            <div className="flex justify-center gap-3">
+              <Button 
+                onClick={() => {
+                  setReportType("concise");
+                  setTimeout(handlePrint, 100);
+                }}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Concise PDF
+                <span className="text-xs text-gray-500 ml-1">(RFI + WRFI + Scores)</span>
+              </Button>
+              <Button 
+                onClick={() => {
+                  setReportType("full");
+                  setTimeout(handlePrint, 100);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Full PDF
+                <span className="text-xs text-gray-500 ml-1">(Complete Report)</span>
+              </Button>
+            </div>
+          </div>
         </div>
       </CardContent>
       </Card>
@@ -614,6 +636,7 @@ export default function ReportCard() {
           roleName={roleName}
           companyName={companyName}
           backfillStatus={backfillStatus}
+          reportType={reportType}
         />
       </div>
     </>
