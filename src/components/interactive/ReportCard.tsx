@@ -59,13 +59,13 @@ function prettifyStatus(raw: string) {
   return raw.replace(/_/g, " ");
 }
 
-function getExpressionLevel(score: number): { level: string; color: string } {
+function getExpressionLevel(score: number): { level: string; color: string; imagePath: string } {
   if (score >= 80) {
-    return { level: "High", color: "text-green-600" };
+    return { level: "High", color: "text-green-600", imagePath: "/expression_high.png" };
   } else if (score >= 60) {
-    return { level: "Mid", color: "text-yellow-600" };
+    return { level: "Mid", color: "text-yellow-600", imagePath: "/expression_mid.png" };
   } else {
-    return { level: "Low", color: "text-red-600" };
+    return { level: "Low", color: "text-red-600", imagePath: "/expression_low.png" };
   }
 }
 
@@ -393,19 +393,31 @@ export default function ReportCard() {
           </p>
         </div>
 
-        {/* Indexes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-lg bg-gray-50 p-5 text-center">
-            <h2 className="text-lg font-semibold">Role Fit Index</h2>
-            <p className="text-3xl font-bold">{report.index}/100</p>
-              <p className="text-xs text-gray-600 mt-2">40% Technical + 30% Domain + 20% Career + 10% Cultural</p>
+          {/* Expression and Indexes */}
+          <div className="flex gap-6">
+            <div
+              className="rounded-lg bg-cover bg-center bg-no-repeat p-5 text-center flex flex-col justify-center items-center flex-shrink-0"
+              style={{
+                backgroundImage: `url(${getExpressionLevel(report.index).imagePath})`,
+                backgroundSize: 'cover',
+                aspectRatio: '832 / 1248',
+                width: '200px'
+              }}
+            >
+            </div>
+            <div className="flex flex-col gap-6 flex-1">
+              <div className="rounded-lg bg-gray-50 p-5 text-center">
+                <h2 className="text-lg font-semibold">Role Fit Index</h2>
+                <p className="text-3xl font-bold">{report.index}/100</p>
+                <p className="text-xs text-gray-600 mt-2">40% Technical + 30% Domain + 20% Career + 10% Cultural</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-5 text-center">
+                <h2 className="text-lg font-semibold">Weighted Role Fit Index</h2>
+                <p className="text-3xl font-bold">{report.weighted_index}/100</p>
+                <p className="text-xs text-gray-600 mt-0.5">40% Technical + 30% Domain + 20% Career + 10% Cultural<br />(each score × confidence)</p>
+              </div>
+            </div>
           </div>
-          <div className="rounded-lg bg-gray-50 p-5 text-center">
-            <h2 className="text-lg font-semibold">Weighted Role Fit Index</h2>
-            <p className="text-3xl font-bold">{report.weighted_index}/100</p>
-              <p className="text-xs text-gray-600 mt-0.5">40% Technical + 30% Domain + 20% Career + 10% Cultural<br />(each score × confidence)</p>
-          </div>
-        </div>
 
         <div>
           <h2 className="text-lg font-semibold mb-3">Breakdown Scores</h2>
