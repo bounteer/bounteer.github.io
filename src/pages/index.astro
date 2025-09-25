@@ -2,13 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import Hero from "../components/Hero.astro";
-import Features from "../components/Features.astro";
-import Statement from "../components/Statement.astro";
-import CallToAction from "../components/CallToAction.astro";
-import Pricing from "../components/Pricing.astro";
 import Footer from "../components/Footer.astro";
-import Comparison from "../components/Comparison.astro";
-import OnboardingSteps from "../components/OnboardingSteps.astro";
 import Products from "../components/Products.astro";
 ---
 
@@ -16,21 +10,15 @@ import Products from "../components/Products.astro";
   <Header />
   <main>
     <Hero />
-    <!-- <Statement /> -->
-    <!-- <OnboardingSteps /> -->
     <Products />
-    <!-- <Features /> -->
-    <!-- <Pricing /> -->
-    <!-- <Comparison /> -->
-    <!-- <CallToAction /> -->
     <Footer />
   </main>
-  
+
   <script>
     // Handle post-authentication redirect
     const urlParams = new URLSearchParams(window.location.search);
-    const nextPath = urlParams.get('next');
-    
+    const nextPath = urlParams.get("next");
+
     if (nextPath) {
       // Clean up the URL and redirect
       window.history.replaceState({}, document.title, window.location.pathname);

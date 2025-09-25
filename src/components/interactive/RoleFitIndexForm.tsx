@@ -43,7 +43,7 @@ export default function RoleFitForm() {
   // auth + quota states
   const [me, setMe] = useState<Me>(null);
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
-  const [credits, setCredits] = useState<Credits>({ used: 0, remaining: 2 });
+  const [credits, setCredits] = useState<Credits>({ used: 0, remaining: 3 });
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -100,7 +100,7 @@ export default function RoleFitForm() {
         if (!cancelled) {
           setIsAuthed(false);
           setMe(null);
-          setCredits({ used: 0, remaining: 2 }); // Default guest credits
+          setCredits({ used: 0, remaining: 3 }); // Default guest credits
         }
       }
     })();
@@ -527,7 +527,7 @@ export default function RoleFitForm() {
               <div className="text-center">
                 {isAuthed === false ? (
                   <p className="text-sm text-gray-700 mb-2">
-                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 2
+                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 3
                     <span className="text-xs text-gray-500 block mt-1">
                       <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-primary-600 hover:text-primary-800 underline">Login</a> and get 5 free credits
                     </span>
