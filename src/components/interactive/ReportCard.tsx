@@ -5,7 +5,7 @@ import { useReactToPrint } from "react-to-print";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Check, X, Download, Shield, LogIn } from "lucide-react";
+import { Check, X, Download, Shield, LogIn, FileText } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { getUserProfile, getLoginUrl, type UserProfile } from '@/lib/utils';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +30,9 @@ type Report = {
   candidate_advice: string;
   concern_tags: string[];
   date_created: string;
+  summary?: string;
+  immediate_fix?: string;
+  cover_letter?: string;
   opt_in_talent_pool?: boolean;
   submission?: {
     job_description?: {
@@ -87,6 +90,57 @@ export default function ReportCard() {
     contentRef: printRef,
     documentTitle: `Role-Fit-Report-${reportId || 'unknown'}`,
   });
+
+  const generateCoverLetterPDF = () => {
+    if (!report?.cover_letter) return;
+
+    // Create a temporary div for the cover letter content
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.width = '210mm';
+    tempDiv.style.padding = '20mm';
+    tempDiv.style.fontFamily = 'Arial, sans-serif';
+    tempDiv.style.fontSize = '12px';
+    tempDiv.style.lineHeight = '1.6';
+    tempDiv.style.color = 'black';
+    tempDiv.style.backgroundColor = 'white';
+
+    tempDiv.innerHTML = `
+      <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Cover Letter</h1>
+        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">${candidateName()} - ${roleName} @ ${companyName}</p>
+      </div>
+      <div style="white-space: pre-wrap; text-align: justify;">${report.cover_letter}</div>
+    `;
+
+    document.body.appendChild(tempDiv);
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Cover Letter - ${candidateName()}</title>
+            <style>
+              @media print {
+                body { margin: 0; }
+                @page { margin: 20mm; }
+              }
+            </style>
+          </head>
+          <body>
+            ${tempDiv.innerHTML}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    // Clean up
+    document.body.removeChild(tempDiv);
+  };
 
   const handleTalentPoolOptIn = async () => {
     if (!report || !currentUser) return;
@@ -393,29 +447,17 @@ export default function ReportCard() {
           </p>
         </div>
 
-          {/* Expression and Indexes */}
-          <div className="flex gap-6">
-            <div
-              className="rounded-lg bg-cover bg-center bg-no-repeat p-5 text-center flex flex-col justify-center items-center flex-shrink-0"
-              style={{
-                backgroundImage: `url(${getExpressionLevel(report.index).imagePath})`,
-                backgroundSize: 'cover',
-                aspectRatio: '832 / 1248',
-                width: '200px'
-              }}
-            >
+          {/* Indexes */}
+          <div className="flex flex-col gap-6">
+            <div className="rounded-lg bg-gray-50 p-5 text-center">
+              <h2 className="text-lg font-semibold">Role Fit Index</h2>
+              <p className="text-3xl font-bold">{report.index}/100</p>
+              <p className="text-xs text-gray-600 mt-2">40% Technical + 30% Domain + 20% Career + 10% Cultural</p>
             </div>
-            <div className="flex flex-col gap-6 flex-1">
-              <div className="rounded-lg bg-gray-50 p-5 text-center">
-                <h2 className="text-lg font-semibold">Role Fit Index</h2>
-                <p className="text-3xl font-bold">{report.index}/100</p>
-                <p className="text-xs text-gray-600 mt-2">40% Technical + 30% Domain + 20% Career + 10% Cultural</p>
-              </div>
-              <div className="rounded-lg bg-gray-50 p-5 text-center">
-                <h2 className="text-lg font-semibold">Weighted Role Fit Index</h2>
-                <p className="text-3xl font-bold">{report.weighted_index}/100</p>
-                <p className="text-xs text-gray-600 mt-0.5">40% Technical + 30% Domain + 20% Career + 10% Cultural<br />(each score × confidence)</p>
-              </div>
+            <div className="rounded-lg bg-gray-50 p-5 text-center">
+              <h2 className="text-lg font-semibold">Weighted Role Fit Index</h2>
+              <p className="text-3xl font-bold">{report.weighted_index}/100</p>
+              <p className="text-xs text-gray-600 mt-0.5">40% Technical + 30% Domain + 20% Career + 10% Cultural<br />(each score × confidence)</p>
             </div>
           </div>
 
@@ -462,6 +504,33 @@ export default function ReportCard() {
             })}
           </div>
         </div>
+
+          {/* Summary & Immediate Fix with Expression Image */}
+          {(report.summary || report.immediate_fix) && (
+            <div>
+              <h2 className="text-lg font-semibold mb-3">Summary & Immediate Actions</h2>
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                <div
+                  className="rounded-lg bg-cover bg-center bg-no-repeat p-5 text-center flex flex-col justify-center items-center flex-shrink-0 mx-auto md:mx-0 w-[120px] md:w-[180px]"
+                  style={{
+                    backgroundImage: `url(${getExpressionLevel(report.index).imagePath})`,
+                    backgroundSize: 'cover',
+                    aspectRatio: '832 / 1248'
+                  }}
+                >
+                </div>
+                <div className="rounded-lg bg-gray-50 p-5 flex-1">
+                  <LoginMask>
+                    <div className="text-gray-800 break-words whitespace-pre-wrap">
+                      {[report.summary, report.immediate_fix]
+                        .filter(Boolean)
+                        .join('\n\n')}
+                    </div>
+                  </LoginMask>
+                </div>
+              </div>
+            </div>
+          )}
 
         {/* Concern Tags */}
         <div>
@@ -620,34 +689,48 @@ export default function ReportCard() {
           </div>
         )}
 
-        {/* PDF Report Download */}
+          {/* PDF Downloads */}
         <div className="border-t pt-6">
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3 text-center">Download PDF Report</h3>
-            <div className="flex justify-center gap-3">
-              <Button 
-                onClick={() => {
-                  setReportType("concise");
-                  setTimeout(handlePrint, 100);
-                }}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Concise PDF
-                <span className="text-xs text-gray-500 ml-1">(RFI + WRFI + Scores)</span>
-              </Button>
-              <Button 
-                onClick={() => {
-                  setReportType("full");
-                  setTimeout(handlePrint, 100);
-                }}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Full PDF
-                <span className="text-xs text-gray-500 ml-1">(Complete Report)</span>
-              </Button>
+              <h3 className="text-sm font-medium text-gray-900 mb-3 text-center">Download Documents</h3>
+              <div className="flex justify-center items-center gap-3">
+                {/* Cover Letter Download */}
+                {report.cover_letter && (
+                  <Button
+                    onClick={generateCoverLetterPDF}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Cover Letter PDF
+                  </Button>
+                )}
+
+                {/* Report Downloads */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setReportType("concise");
+                      setTimeout(handlePrint, 100);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Concise Report PDF
+                    <span className="text-xs text-gray-500 ml-1">(RFI + WRFI + Scores)</span>
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setReportType("full");
+                      setTimeout(handlePrint, 100);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Full Report PDF
+                    <span className="text-xs text-gray-500 ml-1">(Complete Report)</span>
+                  </Button>
+                </div>
             </div>
           </div>
         </div>
