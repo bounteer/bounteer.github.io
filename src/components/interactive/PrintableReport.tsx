@@ -53,10 +53,10 @@ function fmtMinutes(iso: string) {
   )}:${p(d.getMinutes())}`;
 }
 
-function getExpressionLevel(score: number): string {
-  if (score >= 80) return "High";
-  if (score >= 60) return "Mid";
-  return "Low";
+function getExpressionLevel(score: number): { level: string; color: string; imagePath: string } {
+  if (score >= 80) return { level: "High", color: "text-green-600", imagePath: "/expression_high.png" };
+  if (score >= 60) return { level: "Mid", color: "text-yellow-600", imagePath: "/expression_mid.png" };
+  return { level: "Low", color: "text-red-600", imagePath: "/expression_low.png" };
 }
 
 const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
@@ -147,6 +147,34 @@ const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
           </div>
         </div>
 
+        {/* Expression & Summary - Show in concise and full reports */}
+        {(report.summary || report.immediate_fix) && (
+          <div className="mb-4 no-break">
+            <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Summary & Immediate Actions</h2>
+            <div className="flex gap-4">
+              {/* Expression Image Card */}
+              <div
+                className="rounded-lg bg-cover bg-center bg-no-repeat flex-shrink-0"
+                style={{
+                  backgroundImage: `url(${getExpressionLevel(report.index).imagePath})`,
+                  backgroundSize: 'cover',
+                  width: '120px',
+                  aspectRatio: '832 / 1248'
+                }}
+              >
+              </div>
+              {/* Summary Text Card */}
+              <div className="bg-gray-50 rounded-lg p-3 flex-1">
+                <div className="text-black" style={{ fontSize: '11px', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>
+                  {[report.summary, report.immediate_fix]
+                    .filter(Boolean)
+                    .join('\n\n')}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Breakdown Scores */}
         <div className="mb-4 no-break">
           <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Breakdown Scores</h2>
@@ -172,50 +200,53 @@ const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(
                 score: report.cultural_score,
                 confidence: report.cultural_confidence,
               },
-            ].map(({ label, score, confidence }) => (
-              <div key={label} className="mb-2">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold" style={{ fontSize: '11px' }}>{label}</span>
-                  <div className="text-gray-600 flex items-center gap-2" style={{ fontSize: '9px' }}>
-                    <span>{score}/100 · {confidence}% confidence</span>
-                    <span className="font-bold text-black">
-                      {getExpressionLevel(score)}
-                    </span>
+            ].map(({ label, score, confidence }) => {
+              const expression = getExpressionLevel(score);
+              return (
+                <div key={label} className="mb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold" style={{ fontSize: '11px' }}>{label}</span>
+                    <div className="text-gray-600 flex items-center gap-2" style={{ fontSize: '9px' }}>
+                      <span>{score}/100 · {confidence}% confidence</span>
+                      <span className={`font-bold ${expression.color}`}>
+                        {expression.level}
+                      </span>
+                    </div>
                   </div>
+                  <ProgressBar value={score} />
                 </div>
-                <ProgressBar value={score} />
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Concern Tags - Show in concise and full reports */}
+        <div className="mb-4 no-break">
+          <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Concern Tags</h2>
+          <div className="bg-gray-50 rounded-lg px-3 py-3">
+            <div className="flex flex-wrap gap-2">
+              {report.concern_tags?.length ? (
+                report.concern_tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 rounded-full font-medium border-2 border-amber-300 bg-amber-50"
+                    style={{ fontSize: '10px' }}
+                  >
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-500" style={{ fontSize: '11px' }}>None.</span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Full Report Sections - Only show if reportType is "full" */}
         {reportType === "full" && (
           <>
-            {/* Concern Tags */}
-            <div className="mb-3 no-break">
-              <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Concern Tags</h2>
-              <div className="bg-gray-50 rounded-lg px-5 py-3">
-                <div className="flex flex-wrap gap-2">
-                  {report.concern_tags?.length ? (
-                    report.concern_tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1 rounded-full font-medium border-2 border-amber-300 bg-amber-50"
-                        style={{ fontSize: '12px' }}
-                      >
-                        {tag}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500" style={{ fontSize: '12px' }}>None.</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Pros */}
-            <div className="mb-3 no-break">
+            {/* Pros - Start new page for full report detailed sections */}
+            <div className="mb-3 no-break page-break pt-8">
               <h2 className="font-semibold mb-2" style={{ fontSize: '16px' }}>Pros</h2>
               <div className="bg-gray-50 rounded-lg px-5 py-3">
                 <ul className="space-y-1">
