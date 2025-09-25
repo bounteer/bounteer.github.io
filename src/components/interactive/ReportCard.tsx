@@ -11,6 +11,7 @@ import { getUserProfile, getLoginUrl, type UserProfile } from '@/lib/utils';
 import { Checkbox } from "@/components/ui/checkbox";
 import LoginMask from './LoginMask';
 import PrintableReport from './PrintableReport';
+import CoverLetterCard from './CoverLetterCard';
 
 type Report = {
   id: string;
@@ -91,56 +92,6 @@ export default function ReportCard() {
     documentTitle: `Role-Fit-Report-${reportId || 'unknown'}`,
   });
 
-  const generateCoverLetterPDF = () => {
-    if (!report?.cover_letter) return;
-
-    // Create a temporary div for the cover letter content
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.width = '210mm';
-    tempDiv.style.padding = '20mm';
-    tempDiv.style.fontFamily = 'Arial, sans-serif';
-    tempDiv.style.fontSize = '12px';
-    tempDiv.style.lineHeight = '1.6';
-    tempDiv.style.color = 'black';
-    tempDiv.style.backgroundColor = 'white';
-
-    tempDiv.innerHTML = `
-      <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px;">
-        <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Cover Letter</h1>
-        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">${candidateName()} - ${roleName} @ ${companyName}</p>
-      </div>
-      <div style="white-space: pre-wrap; text-align: justify;">${report.cover_letter}</div>
-    `;
-
-    document.body.appendChild(tempDiv);
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Cover Letter - ${candidateName()}</title>
-            <style>
-              @media print {
-                body { margin: 0; }
-                @page { margin: 20mm; }
-              }
-            </style>
-          </head>
-          <body>
-            ${tempDiv.innerHTML}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-
-    // Clean up
-    document.body.removeChild(tempDiv);
-  };
 
   const handleTalentPoolOptIn = async () => {
     if (!report || !currentUser) return;
@@ -729,28 +680,15 @@ export default function ReportCard() {
         </CardContent>
       </Card>
 
-      {/* Cover Letter Card - Separate from report */}
-      {report.cover_letter && (
-        <Card className="w-full mt-6">
-          <CardHeader>
-            <CardTitle className="text-center text-lg">
-              Cover Letter
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-gray-600 mb-4">
-              Personalized cover letter generated based on your profile and the job requirements.
-            </p>
-            <Button
-              onClick={generateCoverLetterPDF}
-              className="flex items-center gap-2 mx-auto"
-            >
-              <Download className="h-4 w-4" />
-              Download Cover Letter PDF
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Cover Letter Card - Separate component */}
+      <div className="mt-6">
+        <CoverLetterCard 
+          report={report}
+          candidateName={candidateName()}
+          roleName={roleName}
+          companyName={companyName}
+        />
+      </div>
 
       {/* Hidden printable component */}
       <div style={{ display: 'none' }}>

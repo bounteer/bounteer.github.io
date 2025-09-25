@@ -1,4 +1,11 @@
-# Changelog
+# Bounteer Changelog
+
+## [0.2.0] - 2025-09-25
+### Modified
+- landing page fix
+- ### Added
+- cover letter generation
+- expression card
 
 ## [0.1.5] - 2025-09-20
 ### Added
