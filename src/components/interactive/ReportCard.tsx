@@ -87,9 +87,42 @@ export default function ReportCard() {
 
   const blacklist = ["Bounteer Production", ""];
 
+  const candidateName = () => {
+    const c = report?.submission?.user_created;
+    const first = c?.first_name?.trim() || "";
+    const last = c?.last_name?.trim() || "";
+    const combined = [first, last].filter(Boolean).join(" ") || "—";
+    return blacklist.includes(combined) ? "Guest" : combined;
+  };
+
+  const roleName = report?.submission?.job_description?.role_name ?? "—";
+  const companyName = report?.submission?.job_description?.company_name ?? "—";
+  const backfillStatus = prettifyStatus(
+    report?.submission?.job_description?.backfill_status ?? ""
+  );
+
+  // Create a nicely formatted filename for the PDF download
+  const createFileName = () => {
+    const candidate = candidateName();
+    const company = companyName !== "—" ? companyName : "Unknown-Company";
+
+    // Clean strings for filename (remove special characters, replace spaces with underscores, lowercase)
+    const cleanString = (str: string) => str
+      .replace(/[^\w\s]/g, '') // Remove special characters except word chars and spaces
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .toLowerCase() // Convert to lowercase
+      .trim();
+
+    const cleanCandidate = cleanString(candidate);
+    const cleanCompany = cleanString(company);
+
+    const prefix = reportType === "full" ? "rfi_full" : "rfi";
+    return `${prefix}_${cleanCandidate}_${cleanCompany}`;
+  };
+
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Role-Fit-Report-${reportId || 'unknown'}`,
+    documentTitle: createFileName(),
   });
 
 
@@ -271,20 +304,6 @@ export default function ReportCard() {
       ?.split("\n")
       .map((l) => l.replace(/^\s*-\s*/, "").trim())
       .filter(Boolean) || [];
-
-  const candidateName = () => {
-    const c = report?.submission?.user_created;
-    const first = c?.first_name?.trim() || "";
-    const last = c?.last_name?.trim() || "";
-    const combined = [first, last].filter(Boolean).join(" ") || "—";
-    return blacklist.includes(combined) ? "Guest" : combined;
-  };
-
-  const roleName = report?.submission?.job_description?.role_name ?? "—";
-  const companyName = report?.submission?.job_description?.company_name ?? "—";
-  const backfillStatus = prettifyStatus(
-    report?.submission?.job_description?.backfill_status ?? ""
-  );
 
   if (loading) {
     return (
@@ -651,6 +670,7 @@ export default function ReportCard() {
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-gray-900 mb-3 text-center">Download Report</h3>
               <div className="flex flex-col md:flex-row justify-center items-center gap-2">
+                {/* concise report */}
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -663,6 +683,8 @@ export default function ReportCard() {
                   Concise Report PDF
                   <span className="text-xs text-gray-500 ml-1">(RFI + WRFI + Scores)</span>
                 </Button>
+
+                {/* full report */}
                 <Button
                   onClick={() => {
                     setReportType("full");

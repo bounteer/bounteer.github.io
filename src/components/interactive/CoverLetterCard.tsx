@@ -23,6 +23,20 @@ interface CoverLetterCardProps {
 }
 
 export default function CoverLetterCard({ report, candidateName, roleName, companyName }: CoverLetterCardProps) {
+  // Create a nicely formatted filename for the cover letter PDF
+  const createCoverLetterFileName = () => {
+    // Clean strings for filename (remove special characters, replace spaces with underscores, lowercase)
+    const cleanString = (str: string) => str
+      .replace(/[^\w\s]/g, '') // Remove special characters except word chars and spaces
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .toLowerCase() // Convert to lowercase
+      .trim();
+    
+    const cleanCandidate = cleanString(candidateName);
+    
+    return `cover_letter_${cleanCandidate}`;
+  };
+
   const generateCoverLetterPDF = () => {
     if (!report?.cover_letter) return;
 
@@ -53,7 +67,7 @@ export default function CoverLetterCard({ report, candidateName, roleName, compa
       printWindow.document.write(`
         <html>
           <head>
-            <title>Cover Letter - ${candidateName}</title>
+            <title>${createCoverLetterFileName()}</title>
             <style>
               @media print {
                 body { margin: 0; }
