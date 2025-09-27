@@ -11,5 +11,8 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  integrations: [alpinejs(), react(), sitemap()]
+  integrations: [alpinejs(), react(), sitemap()],
+  redirects: {
+    '/rfi': '/role-fit-index'
+  }
 });
