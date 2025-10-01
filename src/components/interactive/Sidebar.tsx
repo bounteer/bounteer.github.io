@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Home, FileText, ListChecks, Menu, LogOut, ChevronDown, ChevronRight, BarChart3 } from "lucide-react";
+import { Home, FileText, ListChecks, Menu, LogOut, ChevronDown, ChevronRight, BarChart3, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -26,12 +26,12 @@ const navItems: NavItem[] = [
       { label: "Top Up Credits", href: "/dashboard/role-fit-index/top-up", icon: ListChecks }
     ]
   },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
   { label: "Logout", href: "/logout", icon: LogOut, isLogout: true },
 ];
 
-function NavLink({ item, active, isActive }: { 
-  item: NavItem; 
-  active?: boolean; 
+function NavLink({ item, isActive }: { 
+  item: NavItem;  
   isActive: (href: string) => boolean;
 }) {
   const Icon = item.icon;
@@ -81,7 +81,6 @@ function NavLink({ item, active, isActive }: {
               <NavLink
                 key={index}
                 item={child}
-                active={child.href ? isActive(child.href) : false}
                 isActive={isActive}
               />
             ))}
@@ -155,7 +154,6 @@ export function Sidebar() {
                   <NavLink
                     key={item.href || item.label}
                     item={item}
-                    active={item.href ? isActive(item.href) : false}
                     isActive={isActive}
                   />
                 ))}
@@ -187,7 +185,6 @@ export function Sidebar() {
               <NavLink
                 key={item.href || item.label}
                 item={item}
-                active={item.href ? isActive(item.href) : false}
                 isActive={isActive}
               />
             ))}
