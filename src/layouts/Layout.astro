@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import "../styles/transitions.css";
 import { ViewTransitions } from "astro:transitions";
+import ReferralHandler from "@/components/interactive/ReferralHandler";
 
 export interface Props {
   name: string;
@@ -69,6 +70,7 @@ const {
     transition-colors
     duration-300"
   >
+    <ReferralHandler client:load />
     <div id="page-wrapper" class="page-transition-wrapper">
       <slot />
     </div>
