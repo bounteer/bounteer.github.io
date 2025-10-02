@@ -5,6 +5,7 @@ import { useReactToPrint } from "react-to-print";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Check, X, Download, Shield, LogIn } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { getUserProfile, getLoginUrl, type UserProfile } from '@/lib/utils';
@@ -59,8 +60,21 @@ function fmtMinutes(iso: string) {
 
 function prettifyStatus(raw: string) {
   if (!raw) return "—";
-  if (raw === "failed_parse_jd") return "Job description parsing failed";
+  if (raw === "failed_parsing_jd") return "Job description parsing failed";
+  if (raw === "failed_generating_report") return "Report generation failed";
   return raw.replace(/_/g, " ");
+}
+
+function getStatusIcon(status: string) {
+  if (status === "success") return <Check className="h-4 w-4 text-green-600" />;
+  if (status?.startsWith("failed")) return <X className="h-4 w-4 text-red-600" />;
+  return null;
+}
+
+function getStatusColor(status: string) {
+  if (status === "success") return "bg-green-100 text-green-800";
+  if (status?.startsWith("failed")) return "bg-red-100 text-red-800";
+  return "bg-yellow-100 text-yellow-800";
 }
 
 function getExpressionLevel(score: number): { level: string; color: string; imagePath: string } {
@@ -97,9 +111,8 @@ export default function ReportCard() {
 
   const roleName = report?.submission?.job_description?.role_name ?? "—";
   const companyName = report?.submission?.job_description?.company_name ?? "—";
-  const backfillStatus = prettifyStatus(
-    report?.submission?.job_description?.backfill_status ?? ""
-  );
+  const rawBackfillStatus = report?.submission?.job_description?.backfill_status ?? "";
+  const backfillStatus = prettifyStatus(rawBackfillStatus);
 
   // Create a nicely formatted filename for the PDF download
   const createFileName = () => {
@@ -410,12 +423,13 @@ export default function ReportCard() {
                 )}
               </p>
             </div>
-            {backfillStatus &&
-              backfillStatus.toLowerCase() !== "success" && (
+            {rawBackfillStatus &&
+              rawBackfillStatus.toLowerCase() !== "success" && (
                 <p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2 py-1 text-xs font-medium">
+                  <Badge className={`flex items-center gap-1 ${getStatusColor(rawBackfillStatus)}`}>
+                    {getStatusIcon(rawBackfillStatus)}
                     {backfillStatus}
-                  </span>
+                  </Badge>
                 </p>
               )}
             <p className="text-sm text-gray-500">

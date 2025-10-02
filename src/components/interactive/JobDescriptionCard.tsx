@@ -34,7 +34,7 @@ function fmtMinutes(iso: string) {
 function prettifyStatus(raw: string) {
   if (!raw) return "Unknown";
   if (raw === "success") return "Successfully Processed";
-  if (raw === "failed_parse_jd") return "Failed to Parse";
+  if (raw === "failed_parsing_jd") return "Failed to Parse";
   return raw.replace(/_/g, " ");
 }
 

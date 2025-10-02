@@ -55,7 +55,6 @@ export default function CoverLetterCard({ report, candidateName, roleName, compa
     tempDiv.innerHTML = `
       <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px;">
         <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Cover Letter</h1>
-        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">${candidateName} - ${roleName} @ ${companyName}</p>
       </div>
       <div style="white-space: pre-wrap; text-align: justify;">${report.cover_letter}</div>
     `;

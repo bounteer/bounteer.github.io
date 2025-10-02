@@ -62,7 +62,7 @@ const STATE_CONFIG = {
   submitted: {
     step: 2,
     buttonText: "Analyzing…",
-    progressStep: 0,
+    progressStep: 1,
     isProcessing: true,
     canSubmit: false,
     helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
@@ -71,7 +71,7 @@ const STATE_CONFIG = {
   parsed_jd: {
     step: 2,
     buttonText: "Analyzing…",
-    progressStep: 1,
+    progressStep: 2,
     isProcessing: true,
     canSubmit: false,
     helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
@@ -80,7 +80,7 @@ const STATE_CONFIG = {
   generated_report: {
     step: 2,
     buttonText: "Analyzing…",
-    progressStep: 2,
+    progressStep: 3,
     isProcessing: true,
     canSubmit: false,
     helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
@@ -102,6 +102,15 @@ const STATE_CONFIG = {
     isProcessing: false,
     canSubmit: true,
     helperText: "Failed to parse the job description. Please check the format and try again.",
+    isError: true
+  },
+  failed_generating_report: {
+    step: 2,
+    buttonText: "Analyze Role Fit Now",
+    progressStep: 2,
+    isProcessing: false,
+    canSubmit: true,
+    helperText: "Failed to generate the report. Please try again.",
     isError: true
   }
 } as const;
@@ -369,10 +378,10 @@ export default function RoleFitForm() {
 
         if ((rec.status || "").startsWith("failed_")) {
           if (rec.status === "failed_parsing_jd") {
-            // Don't set a generic error - let the UI show the failure at the parsing step
+            // Show failure at the parsing step and allow retry
             setCurrentState("failed_parsing_jd");
             clearTimeout(timeout);
-            reject(new Error("Failed to parse job description"));
+            resolve(false); // Resolve instead of reject to allow retry
           } else {
             setGenericError("Submission failed: " + rec.status);
             clearTimeout(timeout);
@@ -583,7 +592,7 @@ export default function RoleFitForm() {
                     {stateConfig.helperText ||
                       (genericError
                         ? "Something went wrong. Please try again."
-                        : "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.")}
+                        : "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.")}
                   </p>
                 </div>
               )}
