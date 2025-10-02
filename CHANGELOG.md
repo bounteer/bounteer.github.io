@@ -1,5 +1,13 @@
 # Bounteer Changelog
 
+
+## [0.2.1] - 2025-10-02
+### Modified
+- select last CV
+- use of OSS 20B
+- editable cover letter
+
+
 ## [0.2.0] - 2025-09-25
 ### Modified
 - landing page fix
