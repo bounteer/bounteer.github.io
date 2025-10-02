@@ -96,7 +96,7 @@ export type BalanceRow = {
 export function _getGuestCredits(): Credits {
   if (typeof window === 'undefined') {
     // Server-side rendering, return default
-    return { used: 0, remaining: 3 };
+    return { used: 0, remaining: 5 };
   }
 
   try {
@@ -115,8 +115,8 @@ export function _getGuestCredits(): Credits {
     // Invalid stored credits, will set default below
   }
 
-  // No stored credits or invalid format, assign default 3 credits
-  const defaultCredits: Credits = { used: 0, remaining: 3 };
+  // No stored credits or invalid format, assign default 5 credits
+  const defaultCredits: Credits = { used: 0, remaining: 5 };
   localStorage.setItem('role-fit-index-credits', JSON.stringify(defaultCredits));
   return defaultCredits;
 }

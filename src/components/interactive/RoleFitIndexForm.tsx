@@ -36,14 +36,14 @@ export default function RoleFitForm() {
   const [buttonText, setButtonText] = useState("Analyze Role Fit Now");
   const [error, setError] = useState("");
   const [submissionStatus, setSubmissionStatus] = useState<
-    "submitted" | "parsed_jd" | "generated_report" | "redirecting"
+    "submitted" | "parsed_jd" | "generated_report" | "redirecting" | "failed_parsing_jd"
   >("submitted");
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   // auth + quota states
   const [me, setMe] = useState<Me>(null);
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
-  const [credits, setCredits] = useState<Credits>({ used: 0, remaining: 3 });
+  const [credits, setCredits] = useState<Credits>({ used: 0, remaining: 5 });
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -65,6 +65,7 @@ export default function RoleFitForm() {
     parsed_jd: 2,
     generated_report: 3,
     redirecting: 3,
+    failed_parsing_jd: 1, // Show failure at Parse Job Description stage
   };
 
   const currentStepIdx = statusToStep[submissionStatus] ?? 0;
@@ -100,7 +101,7 @@ export default function RoleFitForm() {
         if (!cancelled) {
           setIsAuthed(false);
           setMe(null);
-          setCredits({ used: 0, remaining: 3 }); // Default guest credits
+          setCredits({ used: 0, remaining: 5 }); // Default guest credits
         }
       }
     })();
@@ -174,19 +175,6 @@ export default function RoleFitForm() {
 
   /** Create submission */
   const createSubmission = async (jd: string, fileId: string) => {
-    // Consume credit
-    try {
-      console.log('About to consume credit');
-      const result = await consumeCredit(DIRECTUS_URL);
-      console.log('Consume credit result:', result);
-      if (result.success) {
-        setCredits(result.credits);
-        console.log('Updated credits state:', result.credits);
-      }
-    } catch (error) {
-      console.error('Failed to consume credit:', error);
-    }
-
     const body = {
       cv_file: fileId,
       status: "submitted",
@@ -248,6 +236,19 @@ export default function RoleFitForm() {
 
       const js = await res.json();
       if (res.ok && js?.data?.length) {
+        // Consume credit at redirecting stage
+        try {
+          console.log('About to consume credit at redirecting stage');
+          const result = await consumeCredit(DIRECTUS_URL);
+          console.log('Consume credit result:', result);
+          if (result.success) {
+            setCredits(result.credits);
+            console.log('Updated credits state:', result.credits);
+          }
+        } catch (error) {
+          console.error('Failed to consume credit:', error);
+        }
+
         // Reset form state
         form.reset({ jobDescription: "", cv: null });
         setStep(0);
@@ -301,9 +302,15 @@ export default function RoleFitForm() {
         }
 
         if ((rec.status || "").startsWith("failed_")) {
-          setError("Submission failed: " + rec.status);
-          clearTimeout(timeout);
-          reject(new Error("Submission failed"));
+          if (rec.status === "failed_parsing_jd") {
+            // Don't set a generic error - let the UI show the failure at the parsing step
+            clearTimeout(timeout);
+            reject(new Error("Failed to parse job description"));
+          } else {
+            setError("Submission failed: " + rec.status);
+            clearTimeout(timeout);
+            reject(new Error("Submission failed"));
+          }
         }
         break;
       case "delete":
@@ -471,8 +478,8 @@ export default function RoleFitForm() {
                   <div className="flex justify-between">
                     {progressSteps.map((s, i) => {
                       const isCompleted = i < currentStepIdx;
-                      const isActive = i === currentStepIdx && !error;
-                      const isFailed = !!error && i === currentStepIdx;
+                      const isActive = i === currentStepIdx && !error && submissionStatus !== "failed_parsing_jd";
+                      const isFailed = (!!error && i === currentStepIdx) || (submissionStatus === "failed_parsing_jd" && i === 1);
 
                       return (
                         <div key={s} className="flex flex-col items-center flex-1">
@@ -513,9 +520,11 @@ export default function RoleFitForm() {
 
                   {/* Helper text */}
                   <p className="text-sm text-gray-600 text-center">
-                    {error
-                      ? "Something went wrong. Please try again."
-                      : "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready."}
+                    {submissionStatus === "failed_parsing_jd"
+                      ? "Failed to parse the job description. Please check the format and try again."
+                      : error
+                        ? "Something went wrong. Please try again."
+                        : "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready."}
                   </p>
                 </div>
               )}
@@ -527,7 +536,7 @@ export default function RoleFitForm() {
               <div className="text-center">
                 {isAuthed === false ? (
                   <p className="text-sm text-gray-700 mb-2">
-                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 3
+                    Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 5
                     <span className="text-xs text-gray-500 block mt-1">
                       <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-primary-600 hover:text-primary-800 underline">Login</a> and get 5 free credits
                     </span>
