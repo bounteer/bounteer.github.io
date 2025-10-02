@@ -3,6 +3,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowUp } from "lucide-react";
+import { useState } from "react";
 
 type Report = {
   cover_letter?: string;
@@ -23,6 +24,8 @@ interface CoverLetterCardProps {
 }
 
 export default function CoverLetterCard({ report, candidateName, roleName, companyName }: CoverLetterCardProps) {
+  const [editableCoverLetter, setEditableCoverLetter] = useState(report.cover_letter || '');
+
   // Create a nicely formatted filename for the cover letter PDF
   const createCoverLetterFileName = () => {
     // Clean strings for filename (remove special characters, replace spaces with underscores, lowercase)
@@ -38,7 +41,7 @@ export default function CoverLetterCard({ report, candidateName, roleName, compa
   };
 
   const generateCoverLetterPDF = () => {
-    if (!report?.cover_letter) return;
+    if (!editableCoverLetter) return;
 
     // Create a temporary div for the cover letter content
     const tempDiv = document.createElement('div');
@@ -56,7 +59,7 @@ export default function CoverLetterCard({ report, candidateName, roleName, compa
       <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 20px;">
         <h1 style="margin: 0; font-size: 24px; font-weight: bold;">Cover Letter</h1>
       </div>
-      <div style="white-space: pre-wrap; text-align: justify;">${report.cover_letter}</div>
+      <div style="white-space: pre-wrap; text-align: justify;">${editableCoverLetter}</div>
     `;
 
     document.body.appendChild(tempDiv);
@@ -104,14 +107,18 @@ export default function CoverLetterCard({ report, candidateName, roleName, compa
         </div>
 
         {/* Cover Letter Preview */}
-        <h3 className="text-sm font-medium text-gray-900 mb-3">Preview</h3>
-        <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-          <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-            {report.cover_letter}
-          </div>
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Preview & Edit</h3>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <textarea
+            value={editableCoverLetter}
+            onChange={(e) => setEditableCoverLetter(e.target.value)}
+            className="w-full min-h-64 max-h-80 resize-y text-sm text-gray-800 bg-transparent border-none outline-none whitespace-pre-wrap leading-relaxed"
+            placeholder="Your cover letter will appear here..."
+          />
         </div>
 
         {/* Prompt Section */}
+        {/*
         <div className="filter grayscale opacity-50 pointer-events-none">
           <p className="text-sm text-gray-800 mb-3">
             Want to personalize your cover letter further? Use the prompt below to regenerate it with specific requirements or tone adjustments.
@@ -133,6 +140,7 @@ export default function CoverLetterCard({ report, candidateName, roleName, compa
             </span>
           </div>
         </div>
+        */}
 
         <Button
           onClick={generateCoverLetterPDF}

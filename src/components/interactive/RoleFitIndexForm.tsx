@@ -23,12 +23,22 @@ import { loadCredits, consumeCredit, getLoginUrl, type Credits, type UserProfile
 
 const schema = z.object({
   jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
-  cv: z.any().refine((file) => file instanceof File, "Please upload a CV"),
+  cv: z.any().refine((file) => file instanceof File || typeof file === "string", "Please upload a CV or select a previous one"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 type Me = UserProfile | null;
+
+type PreviousSubmission = {
+  id: number;
+  cv_file: string;
+  date_created: string;
+  job_description?: {
+    role_name?: string;
+    company_name?: string;
+  };
+};
 
 // State machine configuration
 const STATE_CONFIG = {
@@ -65,7 +75,7 @@ const STATE_CONFIG = {
     progressStep: 1,
     isProcessing: true,
     canSubmit: false,
-    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
   parsed_jd: {
@@ -74,7 +84,7 @@ const STATE_CONFIG = {
     progressStep: 2,
     isProcessing: true,
     canSubmit: false,
-    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
   generated_report: {
@@ -83,7 +93,7 @@ const STATE_CONFIG = {
     progressStep: 3,
     isProcessing: true,
     canSubmit: false,
-    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
   redirecting: {
@@ -92,7 +102,7 @@ const STATE_CONFIG = {
     progressStep: 3,
     isProcessing: true,
     canSubmit: false,
-    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
   failed_parsing_jd: {
@@ -127,6 +137,10 @@ export default function RoleFitForm() {
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<Credits>({ used: 0, remaining: 5 });
 
+  // previous CV state (single last CV)
+  const [lastSubmission, setLastSubmission] = useState<PreviousSubmission | null>(null);
+  const [selectedPreviousCV, setSelectedPreviousCV] = useState<string | null>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
 
   const form = useForm<FormValues>({
@@ -156,6 +170,31 @@ export default function RoleFitForm() {
       : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
   };
 
+  /** Fetch previous submissions for authenticated users */
+  const fetchPreviousSubmissions = async (userId: string): Promise<PreviousSubmission[]> => {
+    try {
+      const fields =
+        `fields=id,cv_file,date_created,` +
+        `job_description.role_name,` +
+        `job_description.company_name`;
+
+      const filter = `filter[user_created][id][_eq]=${encodeURIComponent(userId)}`;
+      const url = `${DIRECTUS_URL}/items/role_fit_index_submission?${fields}&${filter}&sort[]=-date_created&limit=1`;
+
+      const res = await fetch(url, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) return [];
+
+      const json = await res.json();
+      return Array.isArray(json.data) ? json.data.filter(s => s.cv_file) : [];
+    } catch {
+      return [];
+    }
+  };
+
   // --- Auth & Credit loading ---
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +211,14 @@ export default function RoleFitForm() {
         setIsAuthed(result.isAuthenticated);
         setCredits(result.credits);
         console.log('Set credits state to:', result.credits);
+
+        // If user is authenticated, fetch their last submission
+        if (result.isAuthenticated && result.user?.id) {
+          const submissions = await fetchPreviousSubmissions(result.user.id);
+          if (!cancelled) {
+            setLastSubmission(submissions.length > 0 ? submissions[0] : null);
+          }
+        }
       } catch {
         if (!cancelled) {
           setIsAuthed(false);
@@ -468,7 +515,16 @@ export default function RoleFitForm() {
   const onSubmit = async (values: FormValues) => {
     try {
       setCurrentState("uploading");
-      const cvFileId = await uploadFile(values.cv);
+
+      // Handle both new file uploads and previous CV selection
+      let cvFileId: string;
+      if (typeof values.cv === "string") {
+        // Using a previous CV
+        cvFileId = values.cv;
+      } else {
+        // Uploading a new file
+        cvFileId = await uploadFile(values.cv);
+      }
 
       setCurrentState("saving");
       const subId = await createSubmission(values.jobDescription, cvFileId);
@@ -532,7 +588,23 @@ export default function RoleFitForm() {
                     <FormItem className="h-full flex flex-col">
                       <FormLabel>CV (PDF only)</FormLabel>
                       <FormControl>
-                        <DragAndDropUpload onFileSelect={field.onChange} />
+                        <div className="space-y-4">
+                          {/* File upload component with optional last CV selection */}
+                          <DragAndDropUpload
+                            onFileSelect={(file) => {
+                              setSelectedPreviousCV(null);
+                              field.onChange(file);
+                            }}
+                            lastSubmission={lastSubmission}
+                            selectedPreviousCV={selectedPreviousCV}
+                            onSelectLastCV={() => {
+                              if (lastSubmission) {
+                                setSelectedPreviousCV(lastSubmission.cv_file);
+                                field.onChange(lastSubmission.cv_file);
+                              }
+                            }}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -606,7 +678,7 @@ export default function RoleFitForm() {
                   <p className="text-sm text-gray-700 mb-2">
                     Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 5
                     <span className="text-xs text-gray-500 block mt-1">
-                      <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-primary-600 hover:text-primary-800 underline">Login</a> and get 5 free credits
+                      <a href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard")} className="text-primary-600 hover:text-primary-800 underline">Login</a> and get 15 free credits
                     </span>
                   </p>
                 ) : isAuthed === true ? (
