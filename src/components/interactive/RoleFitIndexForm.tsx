@@ -101,7 +101,7 @@ const STATE_CONFIG = {
     progressStep: 1,
     isProcessing: false,
     canSubmit: true,
-    helperText: "Failed to parse the job description. Please check the format and try again.",
+    helperText: "Failed to parse the job description. This could be led by the site blocking. Please try again, or paste JD contents.",
     isError: true
   },
   failed_generating_report: {
