@@ -30,15 +30,88 @@ type FormValues = z.infer<typeof schema>;
 
 type Me = UserProfile | null;
 
+// State machine configuration
+const STATE_CONFIG = {
+  idle: {
+    step: 0,
+    buttonText: "Analyze Role Fit Now",
+    progressStep: -1,
+    isProcessing: false,
+    canSubmit: true,
+    helperText: null,
+    isError: false
+  },
+  uploading: {
+    step: 1,
+    buttonText: "Uploading CV…",
+    progressStep: 0,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: null,
+    isError: false
+  },
+  saving: {
+    step: 1,
+    buttonText: "Saving submission…",
+    progressStep: 0,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: null,
+    isError: false
+  },
+  submitted: {
+    step: 2,
+    buttonText: "Analyzing…",
+    progressStep: 0,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    isError: false
+  },
+  parsed_jd: {
+    step: 2,
+    buttonText: "Analyzing…",
+    progressStep: 1,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    isError: false
+  },
+  generated_report: {
+    step: 2,
+    buttonText: "Analyzing…",
+    progressStep: 2,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    isError: false
+  },
+  redirecting: {
+    step: 2,
+    buttonText: "Analyzing…",
+    progressStep: 3,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.",
+    isError: false
+  },
+  failed_parsing_jd: {
+    step: 2,
+    buttonText: "Analyze Role Fit Now",
+    progressStep: 1,
+    isProcessing: false,
+    canSubmit: true,
+    helperText: "Failed to parse the job description. Please check the format and try again.",
+    isError: true
+  }
+} as const;
+
+type StateKey = keyof typeof STATE_CONFIG;
+
 export default function RoleFitForm() {
-  const [step, setStep] = useState<0 | 1 | 2>(0); // 0 idle, 1 uploading, 2 analyzing
-  const [submitting, setSubmitting] = useState(false);
-  const [buttonText, setButtonText] = useState("Analyze Role Fit Now");
-  const [error, setError] = useState("");
-  const [submissionStatus, setSubmissionStatus] = useState<
-    "submitted" | "parsed_jd" | "generated_report" | "redirecting" | "failed_parsing_jd"
-  >("submitted");
+  const [currentState, setCurrentState] = useState<StateKey>("idle");
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [genericError, setGenericError] = useState("");
 
   // auth + quota states
   const [me, setMe] = useState<Me>(null);
@@ -54,22 +127,15 @@ export default function RoleFitForm() {
 
   const progressSteps = [
     "Upload CV",
-    "Parse Job Description",
+    "Parse Job Description", 
     "Generate Report",
     "Redirect to Report",
   ];
 
-  // Map backend statuses → step index
-  const statusToStep: Record<string, number> = {
-    submitted: 1,
-    parsed_jd: 2,
-    generated_report: 3,
-    redirecting: 3,
-    failed_parsing_jd: 1, // Show failure at Parse Job Description stage
-  };
-
-  const currentStepIdx = statusToStep[submissionStatus] ?? 0;
-  const percentDone = ((currentStepIdx + 1) / progressSteps.length) * 100;
+  // Get current state configuration
+  const stateConfig = STATE_CONFIG[currentState];
+  const currentStepIdx = stateConfig.progressStep;
+  const percentDone = currentStepIdx >= 0 ? ((currentStepIdx + 1) / progressSteps.length) * 100 : 0;
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
@@ -251,10 +317,8 @@ export default function RoleFitForm() {
 
         // Reset form state
         form.reset({ jobDescription: "", cv: null });
-        setStep(0);
-        setButtonText("Analyze Role Fit Now");
         setSubmissionId(null);
-        setSubmissionStatus("redirecting");
+        setCurrentState("redirecting");
 
         // Redirect to report
         window.location.href = `/role-fit-index/report?id=${encodeURIComponent(js.data[0].id)}`;
@@ -262,9 +326,9 @@ export default function RoleFitForm() {
         resolve(true);
         return;
       }
-      setError("Report ready but fetch failed.");
+      setGenericError("Report ready but fetch failed.");
     } catch {
-      setError("Report ready but fetch failed.");
+      setGenericError("Report ready but fetch failed.");
     }
   };
 
@@ -294,7 +358,9 @@ export default function RoleFitForm() {
         // Handle status updates
         if (rec.status) {
           console.log(rec.status);
-          setSubmissionStatus(rec.status);
+          if (rec.status in STATE_CONFIG) {
+            setCurrentState(rec.status as StateKey);
+          }
         }
 
         if (rec.status === "generated_report") {
@@ -304,10 +370,11 @@ export default function RoleFitForm() {
         if ((rec.status || "").startsWith("failed_")) {
           if (rec.status === "failed_parsing_jd") {
             // Don't set a generic error - let the UI show the failure at the parsing step
+            setCurrentState("failed_parsing_jd");
             clearTimeout(timeout);
             reject(new Error("Failed to parse job description"));
           } else {
-            setError("Submission failed: " + rec.status);
+            setGenericError("Submission failed: " + rec.status);
             clearTimeout(timeout);
             reject(new Error("Submission failed"));
           }
@@ -361,7 +428,6 @@ export default function RoleFitForm() {
 
         const ws = new WebSocket(u.toString());
         wsRef.current = ws;
-        setSubmissionStatus("submitted");
 
         const timeout = setTimeout(() => {
           try { ws.close(); } catch { }
@@ -382,7 +448,7 @@ export default function RoleFitForm() {
 
         ws.onclose = () => {
           clearTimeout(timeout);
-          reject(new Error("WS closed"));
+          reject(new Error("WS closed, something went wrong, try again!"));
         };
       } catch (e) {
         reject(e);
@@ -391,27 +457,21 @@ export default function RoleFitForm() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    setSubmitting(true);
     try {
-      setStep(1);
-      setButtonText("Uploading CV…");
+      setCurrentState("uploading");
       const cvFileId = await uploadFile(values.cv);
 
-      setButtonText("Saving submission…");
+      setCurrentState("saving");
       const subId = await createSubmission(values.jobDescription, cvFileId);
       setSubmissionId(subId);
 
-      setStep(2);
-      setButtonText("Analyzing…");
-      setError("");
+      setCurrentState("submitted");
+      setGenericError("");
 
       await subscribeWS(subId);
     } catch (err: any) {
-      setError(err?.message || "Unexpected error");
-      setStep(0);
-      setButtonText("Analyze Role Fit Now");
-    } finally {
-      setSubmitting(false);
+      setGenericError(err?.message || "Unexpected error");
+      setCurrentState("idle");
     }
   };
 
@@ -472,14 +532,14 @@ export default function RoleFitForm() {
               </div>
 
               {/* Progress & Stepper */}
-              {step >= 1 && (
+              {stateConfig.step >= 1 && (
                 <div className="mt-8 space-y-6">
                   {/* Step circles */}
                   <div className="flex justify-between">
                     {progressSteps.map((s, i) => {
                       const isCompleted = i < currentStepIdx;
-                      const isActive = i === currentStepIdx && !error && submissionStatus !== "failed_parsing_jd";
-                      const isFailed = (!!error && i === currentStepIdx) || (submissionStatus === "failed_parsing_jd" && i === 1);
+                      const isActive = i === currentStepIdx && !stateConfig.isError;
+                      const isFailed = stateConfig.isError && i === currentStepIdx;
 
                       return (
                         <div key={s} className="flex flex-col items-center flex-1">
@@ -520,17 +580,16 @@ export default function RoleFitForm() {
 
                   {/* Helper text */}
                   <p className="text-sm text-gray-600 text-center">
-                    {submissionStatus === "failed_parsing_jd"
-                      ? "Failed to parse the job description. Please check the format and try again."
-                      : error
+                    {stateConfig.helperText ||
+                      (genericError
                         ? "Something went wrong. Please try again."
-                        : "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready."}
+                        : "Analyzing your CV & JD — this usually takes ~30 seconds. You'll be redirected when the report is ready.")}
                   </p>
                 </div>
               )}
 
               {/* Error */}
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {genericError && <p className="text-sm text-red-600">{genericError}</p>}
 
               {/* Credit display (RIGHT ABOVE THE BUTTON) */}
               <div className="text-center">
@@ -569,9 +628,9 @@ export default function RoleFitForm() {
                   type="submit"
                   variant="default"
                   className="w-full"
-                  disabled={submitting || step !== 0}
+                    disabled={!stateConfig.canSubmit}
                 >
-                  {buttonText}
+                    {stateConfig.buttonText}
                 </Button>
               )}
 
