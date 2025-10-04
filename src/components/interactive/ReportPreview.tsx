@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { getAuthHeaders, type UserProfile } from '@/lib/utils';
-import RainbowGlowWrapper from './RainbowGlowWrapper';
 
 type FullReport = {
   id: string;
@@ -43,13 +42,21 @@ type FullReport = {
 interface ReportPreviewProps {
   reportId: string | null;
   currentUser: UserProfile | null;
-  isNewlyGenerated?: boolean;
 }
 
-export default function ReportPreview({ reportId, currentUser, isNewlyGenerated = false }: ReportPreviewProps) {
+export default function ReportPreview({ reportId, currentUser }: ReportPreviewProps) {
   const [fullReportData, setFullReportData] = useState<FullReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<{
+    strengths: boolean;
+    improvements: boolean;
+    advice: boolean;
+  }>({
+    strengths: false,
+    improvements: false,
+    advice: false,
+  });
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
@@ -74,6 +81,14 @@ export default function ReportPreview({ reportId, currentUser, isNewlyGenerated 
     if (score >= 80) return "text-green-600";
     if (score >= 60) return "text-yellow-600";
     return "text-red-600";
+  };
+
+  // Toggle section expansion
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   // Fetch full report data
@@ -148,83 +163,157 @@ export default function ReportPreview({ reportId, currentUser, isNewlyGenerated 
   }
 
   return (
-    <RainbowGlowWrapper
-      isActive={isNewlyGenerated}
-      duration={10000}
-      intensity="subtle"
-      animationSpeed={3}
-      borderRadius="rounded-lg"
-    >
-      <div className="border rounded-lg bg-white max-h-96 overflow-y-auto">
-      <div className="p-4 space-y-4">
+    <div className="border rounded-lg bg-white h-full flex flex-col">
+      <div className="p-4 space-y-4 flex-1 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b">
           <div>
-            <h4 className="font-semibold text-lg">Report #{fullReportData.id}</h4>
+            <h4 className="font-semibold text-xl">Report #{fullReportData.id}</h4>
             <p className="text-sm text-gray-600">{formatDate(fullReportData.date_created)}</p>
           </div>
           <div className="text-right">
-            <div className={`text-2xl font-bold ${getRFIScoreColor(fullReportData.index)}`}>
+            <div className={`text-3xl font-bold ${getRFIScoreColor(fullReportData.index)}`}>
               {formatRFIScore(fullReportData.index)}
             </div>
-            <p className="text-xs text-gray-500">Role Fit Index</p>
+            <p className="text-sm text-gray-500">Role Fit Index</p>
           </div>
         </div>
 
         {/* Score Breakdown */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex justify-between">
-            <span>Technical:</span>
-            <span className={getRFIScoreColor(fullReportData.technical_score)}>
-              {formatRFIScore(fullReportData.technical_score)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Domain:</span>
-            <span className={getRFIScoreColor(fullReportData.domain_score)}>
-              {formatRFIScore(fullReportData.domain_score)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Career:</span>
-            <span className={getRFIScoreColor(fullReportData.career_score)}>
-              {formatRFIScore(fullReportData.career_score)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Cultural:</span>
-            <span className={getRFIScoreColor(fullReportData.cultural_score)}>
-              {formatRFIScore(fullReportData.cultural_score)}
-            </span>
+        <div>
+          <h5 className="font-medium text-lg mb-2">Full Scores</h5>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="text-center p-3 bg-gray-50 rounded">
+              <div className={`text-lg font-bold ${getRFIScoreColor(fullReportData.technical_score)}`}>
+                {formatRFIScore(fullReportData.technical_score)}
+              </div>
+              <div className="font-medium text-sm">Technical</div>
+              <div className="text-xs text-gray-500">{Math.round(fullReportData.technical_confidence)}% conf.</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded">
+              <div className={`text-lg font-bold ${getRFIScoreColor(fullReportData.domain_score)}`}>
+                {formatRFIScore(fullReportData.domain_score)}
+              </div>
+              <div className="font-medium text-sm">Domain</div>
+              <div className="text-xs text-gray-500">{Math.round(fullReportData.domain_confidence)}% conf.</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded">
+              <div className={`text-lg font-bold ${getRFIScoreColor(fullReportData.career_score)}`}>
+                {formatRFIScore(fullReportData.career_score)}
+              </div>
+              <div className="font-medium text-sm">Career</div>
+              <div className="text-xs text-gray-500">{Math.round(fullReportData.career_confidence)}% conf.</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded">
+              <div className={`text-lg font-bold ${getRFIScoreColor(fullReportData.cultural_score)}`}>
+                {formatRFIScore(fullReportData.cultural_score)}
+              </div>
+              <div className="font-medium text-sm">Cultural</div>
+              <div className="text-xs text-gray-500">{Math.round(fullReportData.cultural_confidence)}% conf.</div>
+            </div>
           </div>
         </div>
 
         {/* Immediate Fix */}
         {fullReportData.immediate_fix && (
           <div>
-            <h5 className="font-medium text-sm text-orange-700 mb-1">Immediate Fix</h5>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {fullReportData.immediate_fix}
-            </p>
+            <h5 className="font-medium text-lg text-orange-700 mb-2">Immediate Fixes</h5>
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {fullReportData.immediate_fix}
+              </p>
+            </div>
           </div>
         )}
 
+        {/* Insights */}
+        <div className="space-y-3">
+          <h5 className="font-medium text-lg text-blue-700 mb-2">Insights</h5>
 
-        {/* View Full Report Button */}
-        <div className="pt-3 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => {
-              window.open(`/role-fit-index/report?id=${fullReportData.id}`, '_blank');
-            }}
-          >
-            View Full Report
-          </Button>
+          {fullReportData.pros && (
+            <div className="border border-green-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => toggleSection('strengths')}
+                className="w-full p-3 bg-green-50 hover:bg-green-100 transition-colors flex items-center justify-between"
+              >
+                <h6 className="font-medium text-green-800">Strengths</h6>
+                {expandedSections.strengths ? (
+                  <ChevronDown className="h-4 w-4 text-green-700" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-green-700" />
+                )}
+              </button>
+              {expandedSections.strengths && (
+                <div className="p-4 bg-white border-t border-green-200">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {fullReportData.pros}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {fullReportData.cons && (
+            <div className="border border-red-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => toggleSection('improvements')}
+                className="w-full p-3 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-between"
+              >
+                <h6 className="font-medium text-red-800">Areas for Improvement</h6>
+                {expandedSections.improvements ? (
+                  <ChevronDown className="h-4 w-4 text-red-700" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-red-700" />
+                )}
+              </button>
+              {expandedSections.improvements && (
+                <div className="p-4 bg-white border-t border-red-200">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {fullReportData.cons}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {fullReportData.candidate_advice && (
+            <div className="border border-blue-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => toggleSection('advice')}
+                className="w-full p-3 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
+              >
+                <h6 className="font-medium text-blue-800">Candidate Advice</h6>
+                {expandedSections.advice ? (
+                  <ChevronDown className="h-4 w-4 text-blue-700" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-blue-700" />
+                )}
+              </button>
+              {expandedSections.advice && (
+                <div className="p-4 bg-white border-t border-blue-200">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {fullReportData.candidate_advice}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* View Full Report Button */}
+      <div className="p-6">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => {
+            window.open(`/role-fit-index/report?id=${fullReportData.id}`, '_blank');
+          }}
+        >
+          View Full Report
+        </Button>
       </div>
-    </RainbowGlowWrapper>
+    </div>
   );
 }

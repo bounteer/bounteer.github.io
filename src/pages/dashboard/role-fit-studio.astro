@@ -18,8 +18,34 @@ import RoleFitStudio from "@/components/interactive/RoleFitStudio";
 
       <!-- Main content -->
       <section class="flex-1 px-6 py-10">
+        <!-- Page Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-semibold tracking-tight mb-2">Role Fit Studio</h1>
+          <p class="text-sm text-muted-foreground">
+            Select a job description and incrementally improve your CV with professional suggestions.
+          </p>
+        </div>
+
         <!-- React form hydration -->
         <RoleFitStudio client:load />
+
+        <!-- View All Reports link -->
+        <div class="text-center mt-8">
+          <a
+            href="/dashboard/role-fit-index"
+            class="text-sm text-primary-600 hover:text-primary-800 underline"
+          >
+            View All Reports
+          </a>
+        </div>
+
+        <!-- Terms & Conditions agreement -->
+        <p class="text-xs text-gray-500 text-center pt-8">
+          By using this service, you agree to our{" "}
+          <a href="/legal" class="text-gray-500 hover:text-gray-700 underline">
+            Terms of Service and Privacy Policy
+          </a>
+        </p>
       </section>
     </main>
 

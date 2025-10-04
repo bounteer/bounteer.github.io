@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +19,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import ReportPreview from "./ReportPreview";
-import RainbowGlowWrapper from "./RainbowGlowWrapper";
+import RainbowGlowWrapper, { type GlowState } from "./RainbowGlowWrapper";
 import {
   Search,
   Loader2,
@@ -171,7 +171,6 @@ type StateKey = keyof typeof STATE_CONFIG;
 
 export default function RoleFitStudio() {
   const [currentState, setCurrentState] = useState<StateKey>("idle");
-  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [genericError, setGenericError] = useState("");
 
   // auth + quota states
@@ -191,7 +190,6 @@ export default function RoleFitStudio() {
   const [jobDescriptionReports, setJobDescriptionReports] = useState<PreviousReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<PreviousReport | null>(null);
   const [showDebug, setShowDebug] = useState(false);
-  const [newlyGeneratedReportId, setNewlyGeneratedReportId] = useState<string | null>(null);
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
@@ -559,18 +557,11 @@ export default function RoleFitStudio() {
 
                     // Select the newly generated report
                     setSelectedReport(newReport);
-                    setNewlyGeneratedReportId(newReport.id);
-                    
-                    // Clear the effect after 10 seconds
-                    setTimeout(() => {
-                      setNewlyGeneratedReportId(null);
-                    }, 10000);
                   }
                 }
 
                 // Reset form state
                 form.reset({ jobDescription: selectedJobDescription ? parseInt(selectedJobDescription.id) : 0, cv: null });
-                setSubmissionId(null);
                 setSelectedPreviousCV(null);
                 setCurrentState("idle");
 
@@ -625,7 +616,6 @@ export default function RoleFitStudio() {
       setCurrentState("saving");
       const subId = await createSubmission(values.jobDescription, cvFileId);
       console.log("Submission ID:", subId);
-      setSubmissionId(subId);
 
       setCurrentState("submitted");
       setGenericError("");
@@ -644,22 +634,29 @@ export default function RoleFitStudio() {
     };
   }, []);
 
-  return (
-    <div className="w-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight mb-2">Role Fit Studio</h1>
-        <p className="text-sm text-muted-foreground">
-          Select a job description and incrementally improve your CV with professional suggestions.
-        </p>
-      </div>
+  const getStudioGlowState = (): GlowState => {
+    if (currentState === "submitted" || currentState === "parsed_jd" || currentState === "generated_report") {
+      return "processing";
+    }
+    if (currentState === "uploading" || currentState === "saving") {
+      return "listening";
+    }
+    return "idle";
+  };
 
+  return (
+    <RainbowGlowWrapper
+      glowState={getStudioGlowState()}
+      className="w-full"
+      borderRadius="rounded-xl"
+    >
       <Card className="mb-8">
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Side - Job Description Selector */}
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            {/* Left Panel - Job Description, Previous Reports, Upload CV */}
+            <div className="lg:col-span-2 space-y-6">
               <div>
-                <h3 className="text-lg font-medium mb-4">1. Job Description</h3>
+                <h3 className="text-lg font-medium mb-4">Job Description</h3>
 
                 {/* Search */}
                 <div className="relative mb-4">
@@ -749,54 +746,48 @@ export default function RoleFitStudio() {
                 </div>
               </div>
 
-              {/* Previous Reports moved here below Job Description */}
+              {/* Previous Reports (compact) */}
               <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-lg font-medium">2. Previous Report</h3>
+                <h3 className="text-lg font-medium">Previous Reports</h3>
 
                 {selectedJobDescription ? (
                   jobDescriptionReports.length > 0 ? (
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        Reports for this role ({jobDescriptionReports.length})
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-gray-700">
+                        Reports ({jobDescriptionReports.length})
                       </h4>
-                      <div className="flex gap-3 overflow-x-auto pb-3 max-h-36 px-3 py-3">
+                      <div className="flex gap-2 overflow-x-auto pb-2">
                         {jobDescriptionReports.map((report) => {
-                          const isNewlyGenerated = newlyGeneratedReportId === report.id;
                           const isSelected = selectedReport?.id === report.id;
                           
                           return (
-                            <RainbowGlowWrapper
+                            <div
                               key={report.id}
-                              isActive={isNewlyGenerated}
-                              duration={10000}
-                              intensity="subtle"
-                              animationSpeed={3}
+                              className={cn(
+                                "p-2 rounded text-xs border cursor-pointer transition-all hover:shadow-sm flex-shrink-0 min-w-24 relative",
+                                isSelected
+                                  ? "border-primary-500 bg-primary-50"
+                                  : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                              )}
+                              onClick={() => handleReportSelect(report)}
                             >
-                              <div
-                                className={cn(
-                                  "p-3 rounded-lg text-sm border cursor-pointer transition-all hover:shadow-md flex-shrink-0 min-w-36 relative",
-                                  isSelected
-                                    ? "border-primary-500 bg-primary-50"
-                                    : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
-                                )}
-                                onClick={() => handleReportSelect(report)}
-                              >
-                                <div className="space-y-1">
-                                  <div className="font-medium text-gray-900 text-xs">
+                              {isSelected && (
+                                <Check className="h-2 w-2 text-primary-600 absolute top-1 right-1" />
+                              )}
+                              <div className="flex items-center gap-2">
+                                <div className={`font-bold text-lg leading-tight ${getRFIScoreColor(report.index)}`}>
+                                  {formatRFIScore(report.index)}
+                                </div>
+                                <div className="flex flex-col justify-center min-w-0">
+                                  <div className="font-medium text-gray-900 text-xs leading-tight truncate">
                                     #{report.id}
                                   </div>
-                                  <div className={`font-bold text-xs ${getRFIScoreColor(report.index)}`}>
-                                    {formatRFIScore(report.index)}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-xs text-gray-500 leading-tight truncate">
                                     {formatDate(report.date_created)}
                                   </div>
-                                  {isSelected && (
-                                    <Check className="h-3 w-3 text-primary-600" />
-                                  )}
                                 </div>
                               </div>
-                            </RainbowGlowWrapper>
+                            </div>
                           );
                         })}
                       </div>
@@ -813,240 +804,179 @@ export default function RoleFitStudio() {
                   </div>
                 )}
               </div>
+
+              {/* Upload CV Section */}
+              <div className="pt-3 border-t">
+                <h3 className="text-base font-medium mb-3">Upload CV (PDF only)</h3>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                    {/* Hidden field for job description ID */}
+                    <FormField
+                      control={form.control}
+                      name="jobDescription"
+                      render={({ field }) => (
+                        <input type="hidden" {...field} />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cv"
+                      render={({ field }) => (
+                        <FormItem>
+                          {/* <FormLabel className="text-sm">CV (PDF only)</FormLabel> */}
+                          <FormControl>
+                            <DragAndDropUpload
+                              onFileSelect={(file) => {
+                                setSelectedPreviousCV(null);
+                                field.onChange(file);
+                              }}
+                              lastSubmission={lastSubmission?.submission ? {
+                                id: lastSubmission.submission.id,
+                                cv_file: lastSubmission.submission.cv_file,
+                                date_created: lastSubmission.date_created,
+                                job_description: lastSubmission.submission.job_description
+                              } : null}
+                              selectedPreviousCV={selectedPreviousCV}
+                              onSelectLastCV={() => {
+                                if (lastSubmission?.submission?.cv_file) {
+                                  setSelectedPreviousCV(lastSubmission.submission.cv_file);
+                                  field.onChange(lastSubmission.submission.cv_file);
+                                }
+                              }}
+                              showLastCVOption={false}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Progress & Stepper */}
+                    {stateConfig.step >= 1 && (
+                      <div className="space-y-2">
+                        {/* Step circles - more compact */}
+                        <div className="flex justify-between">
+                          {progressSteps.map((s, i) => {
+                            const isCompleted = i < currentStepIdx;
+                            const isActive = i === currentStepIdx && !stateConfig.isError;
+                            const isFailed = stateConfig.isError && i === currentStepIdx;
+
+                            return (
+                              <div key={s} className="flex flex-col items-center flex-1">
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center mb-1 ${isFailed
+                                    ? "bg-red-600 text-white"
+                                    : isCompleted
+                                      ? "bg-green-600 text-white"
+                                      : isActive
+                                        ? "border-2 border-primary-600 text-primary-600"
+                                        : "border-2 border-gray-300 text-gray-400"
+                                    }`}
+                                >
+                                  {isFailed && <X className="h-2 w-2" />}
+                                  {isCompleted && <Check className="h-2 w-2" />}
+                                  {isActive && <Loader2 className="h-2 w-2 animate-spin" />}
+                                </div>
+                                <span
+                                  className={`text-xs text-center leading-tight ${isFailed
+                                    ? "text-red-600 font-medium"
+                                    : isCompleted
+                                      ? "text-green-700 font-medium"
+                                      : isActive
+                                        ? "text-primary-700 font-medium"
+                                        : "text-gray-500"
+                                    }`}
+                                >
+                                  {s}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <Progress value={percentDone} className="w-full h-2" />
+
+                        {/* Helper text - more compact */}
+                        <p className="text-xs text-gray-600 text-center leading-tight">
+                          {stateConfig.helperText ||
+                            (genericError
+                              ? "Something went wrong. Please try again."
+                              : "Analyzing ~20 seconds")}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Error */}
+                    {genericError && <p className="text-xs text-red-600">{genericError}</p>}
+
+                    {/* Credit display - more compact */}
+                    <div className="text-center">
+                      {isAuthed === false ? (
+                        <p className="text-xs text-gray-700 mb-2">
+                          Credits: <span className="font-semibold">{credits.remaining}</span> / 5
+                          <span className="text-xs text-gray-500 block">
+                            <a
+                              href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard/role-fit-studio")}
+                              className="text-primary-600 hover:text-primary-800 underline"
+                            >
+                              Login
+                            </a> for 15 free
+                          </span>
+                        </p>
+                      ) : isAuthed === true ? (
+                          <p className="text-xs text-gray-700 mb-2">
+                            Credits: <span className="font-semibold">{credits.remaining}</span> /{" "}
+                            <span className="font-semibold">{totalQuota}</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-500 mb-2">
+                          Loading...
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Submit button or top-up link */}
+                    {credits.remaining === 0 ? (
+                      <Button
+                        asChild
+                        variant="default"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <a href="/dashboard/role-fit-index/top-up">
+                          Top Up Credits
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        variant="default"
+                          size="sm"
+                        className="w-full"
+                        disabled={!stateConfig.canSubmit}
+                      >
+                        {stateConfig.buttonText}
+                      </Button>
+                    )}
+                  </form>
+                </Form>
+              </div>
             </div>
 
-            {/* Right Side - Report Preview */}
-            <div className="space-y-4 flex flex-col h-full">
+            {/* Right Panel - Report Preview (bigger, expandable) */}
+            <div className="lg:col-span-3 space-y-4 flex flex-col min-h-96">
               <h3 className="text-lg font-medium">Report Preview</h3>
-              <div className="flex-1 overflow-hidden p-3">
+              <div className="flex-1">
                 <ReportPreview
                   reportId={selectedReport?.id || null}
                   currentUser={me}
-                  isNewlyGenerated={newlyGeneratedReportId === selectedReport?.id}
                 />
               </div>
             </div>
           </div>
-
-          {/* CV Upload Section - Below the two columns */}
-          <div className="mt-8 pt-6 border-t">
-            <h3 className="text-lg font-medium mb-4">Upload New CV and Get New Report</h3>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Hidden field for job description ID */}
-                <FormField
-                  control={form.control}
-                  name="jobDescription"
-                  render={({ field }) => (
-                    <input type="hidden" {...field} />
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cv"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CV (PDF only)</FormLabel>
-                      <FormControl>
-                        <DragAndDropUpload
-                          onFileSelect={(file) => {
-                            setSelectedPreviousCV(null);
-                            field.onChange(file);
-                          }}
-                          lastSubmission={lastSubmission?.submission ? {
-                            id: lastSubmission.submission.id,
-                            cv_file: lastSubmission.submission.cv_file,
-                            date_created: lastSubmission.date_created,
-                            job_description: lastSubmission.submission.job_description
-                          } : null}
-                          selectedPreviousCV={selectedPreviousCV}
-                          onSelectLastCV={() => {
-                            if (lastSubmission?.submission?.cv_file) {
-                              setSelectedPreviousCV(lastSubmission.submission.cv_file);
-                              field.onChange(lastSubmission.submission.cv_file);
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Progress & Stepper */}
-                {stateConfig.step >= 1 && (
-                  <div className="space-y-6">
-                    {/* Step circles */}
-                    <div className="flex justify-between">
-                      {progressSteps.map((s, i) => {
-                        const isCompleted = i < currentStepIdx;
-                        const isActive = i === currentStepIdx && !stateConfig.isError;
-                        const isFailed = stateConfig.isError && i === currentStepIdx;
-
-                        return (
-                          <div key={s} className="flex flex-col items-center flex-1">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${isFailed
-                                ? "bg-red-600 text-white"
-                                : isCompleted
-                                  ? "bg-green-600 text-white"
-                                  : isActive
-                                    ? "border-2 border-primary-600 text-primary-600"
-                                    : "border-2 border-gray-300 text-gray-400"
-                                }`}
-                            >
-                              {isFailed && <X className="h-4 w-4" />}
-                              {isCompleted && <Check className="h-4 w-4" />}
-                              {isActive && <Loader2 className="h-4 w-4 animate-spin" />}
-                            </div>
-                            <span
-                              className={`text-xs text-center ${isFailed
-                                ? "text-red-600 font-medium"
-                                : isCompleted
-                                  ? "text-green-700 font-medium"
-                                  : isActive
-                                    ? "text-primary-700 font-medium"
-                                    : "text-gray-500"
-                                }`}
-                            >
-                              {s}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <Progress value={percentDone} className="w-full" />
-
-                    {/* Helper text */}
-                    <p className="text-sm text-gray-600 text-center">
-                      {stateConfig.helperText ||
-                        (genericError
-                          ? "Something went wrong. Please try again."
-                          : "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.")}
-                    </p>
-                  </div>
-                )}
-
-                {/* Error */}
-                {genericError && <p className="text-sm text-red-600">{genericError}</p>}
-
-                {/* Credit display */}
-                <div className="text-center">
-                  {isAuthed === false ? (
-                    <p className="text-sm text-gray-700 mb-2">
-                      Credits Remaining: <span className="font-semibold">{credits.remaining}</span> / 5
-                      <span className="text-xs text-gray-500 block mt-1">
-                        <a
-                          href={getLoginUrl(DIRECTUS_URL, EXTERNAL.auth_idp_key, "/dashboard/role-fit-studio")}
-                          className="text-primary-600 hover:text-primary-800 underline"
-                        >
-                          Login
-                        </a> and get 15 free credits
-                      </span>
-                    </p>
-                  ) : isAuthed === true ? (
-                    <p className="text-sm text-gray-700 mb-2">
-                      Credits Remaining: <span className="font-semibold">{credits.remaining}</span> /{" "}
-                      <span className="font-semibold">{totalQuota}</span>
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500 mb-2">
-                      Loading credits...
-                    </p>
-                  )}
-                </div>
-
-                {/* Submit button or top-up link */}
-                {credits.remaining === 0 ? (
-                  <Button
-                    asChild
-                    variant="default"
-                    className="w-full"
-                  >
-                    <a href="/dashboard/role-fit-index/top-up">
-                      Top Up Credits to Continue
-                    </a>
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    variant="default"
-                    className="w-full"
-                      disabled={!stateConfig.canSubmit}
-                  >
-                    {stateConfig.buttonText}
-                  </Button>
-                )}
-
-                {/* Form State Debug - Collapsible */}
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowDebug(!showDebug)}
-                    className="text-sm text-gray-600 hover:text-gray-800 underline"
-                  >
-                    {showDebug ? 'Hide' : 'Show'} Form Debug Info
-                  </button>
-
-                  {showDebug && (
-                    <div className="mt-2 p-3 bg-gray-100 rounded-md">
-                      <h4 className="text-sm font-medium mb-2">Form State Debug:</h4>
-                      <div className="space-y-2 text-xs">
-                        <div>
-                          <strong>Values:</strong>
-                          <pre className="text-gray-700 whitespace-pre-wrap">
-                            {JSON.stringify(form.getValues(), null, 2)}
-                          </pre>
-                        </div>
-                        <div>
-                          <strong>Errors:</strong>
-                          <pre className="text-gray-700 whitespace-pre-wrap">
-                            {JSON.stringify(form.formState.errors, null, 2)}
-                          </pre>
-                        </div>
-                        <div>
-                          <strong>Form State:</strong>
-                          <pre className="text-gray-700 whitespace-pre-wrap">
-                            {JSON.stringify({
-                              isDirty: form.formState.isDirty,
-                              isValid: form.formState.isValid,
-                              isSubmitting: form.formState.isSubmitting,
-                              touchedFields: form.formState.touchedFields,
-                              dirtyFields: form.formState.dirtyFields,
-                              isSubmitted: form.formState.isSubmitted
-                            }, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </form>
-            </Form>
-          </div>
         </CardContent>
       </Card>
 
-      {/* View All Reports link for logged-in users */}
-      {isAuthed === true && (
-        <div className="text-center">
-          <a
-            href="/dashboard/role-fit-index"
-            className="text-sm text-primary-600 hover:text-primary-800 underline"
-          >
-            View All Reports
-          </a>
-        </div>
-      )}
-
-      {/* Terms & Conditions agreement */}
-      <p className="text-xs text-gray-500 text-center pt-8">
-        By using this service, you agree to our{" "}
-        <a href="/legal" className="text-gray-500 hover:text-gray-700 underline">
-          Terms of Service and Privacy Policy
-        </a>
-      </p>
-    </div>
+    </RainbowGlowWrapper >
   );
 }

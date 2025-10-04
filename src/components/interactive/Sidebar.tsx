@@ -18,27 +18,27 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
-  { 
-    label: "Role Fit Index", 
-    href: "/dashboard/role-fit-index", 
+  {
+    label: "Role Fit Index",
+    href: "/dashboard/role-fit-index",
     icon: FileText,
     children: [
-      { label: "Role Fit Studio", href: "/dashboard/role-fit-studio", icon: BarChart3 },
       { label: "Top Up Credits", href: "/dashboard/role-fit-index/top-up", icon: ListChecks }
     ]
   },
+  { label: "Role Fit Studio", href: "/dashboard/role-fit-studio", icon: BarChart3 },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
   { label: "Logout", href: "/logout", icon: LogOut, isLogout: true },
 ];
 
-function NavLink({ item, isActive, isCollapsed }: { 
-  item: NavItem;  
+function NavLink({ item, isActive, isCollapsed }: {
+  item: NavItem;
   isActive: (href: string) => boolean;
   isCollapsed?: boolean;
 }) {
   const Icon = item.icon;
   const [isExpanded, setIsExpanded] = React.useState(false);
-  
+
   // Auto-expand if any child is active
   React.useEffect(() => {
     if (item.children) {

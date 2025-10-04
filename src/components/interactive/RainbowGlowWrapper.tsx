@@ -3,113 +3,78 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
+export type GlowState = "idle" | "listening" | "processing" | "done";
+
 interface RainbowGlowWrapperProps {
   children: React.ReactNode;
+  glowState?: GlowState;
   isActive?: boolean;
-  duration?: number; // Duration in milliseconds, default 10000 (10 seconds)
+  duration?: number;
+  intensity?: "subtle" | "medium" | "strong";
+  animationSpeed?: number;
   className?: string;
-  animationSpeed?: number; // Animation cycle speed in seconds, default 3
-  intensity?: 'subtle' | 'medium' | 'strong'; // Glow intensity
-  borderRadius?: string; // Custom border radius, defaults to 'rounded-lg'
+  borderRadius?: string;
 }
 
 export default function RainbowGlowWrapper({
   children,
-  isActive = false,
-  duration = 10000,
+  glowState = "idle",
   className = "",
-  animationSpeed = 3,
-  intensity = 'subtle',
-  borderRadius = 'rounded-lg'
+  borderRadius = "rounded-xl",
 }: RainbowGlowWrapperProps) {
-  const [showGlow, setShowGlow] = useState(false);
+  const [internalState, setInternalState] = useState<GlowState>("idle");
 
-  // Intensity configurations
-  const intensityConfig = {
-    subtle: {
-      boxShadow: '0 0 8px {color1}, 0 0 12px {color2}',
-      borderOpacity: 0.6,
-      glowOpacity1: 0.4,
-      glowOpacity2: 0.2
-    },
-    medium: {
-      boxShadow: '0 0 12px {color1}, 0 0 20px {color2}',
-      borderOpacity: 0.7,
-      glowOpacity1: 0.6,
-      glowOpacity2: 0.3
-    },
-    strong: {
-      boxShadow: '0 0 20px {color1}, 0 0 30px {color2}, 0 0 40px {color3}',
-      borderOpacity: 0.8,
-      glowOpacity1: 0.8,
-      glowOpacity2: 0.6,
-      glowOpacity3: 0.4
+  useEffect(() => {
+    if (glowState === "done") {
+      // Flash "done" then fade back to idle
+      setInternalState("done");
+      const t = setTimeout(() => setInternalState("idle"), 1200);
+      return () => clearTimeout(t);
     }
-  };
+    setInternalState(glowState);
+  }, [glowState]);
 
-  const config = intensityConfig[intensity];
-  
-  // Generate CSS keyframes based on intensity
-  const generateKeyframes = () => {
-    const colors = [
-      [255, 0, 0],     // Red
-      [255, 165, 0],   // Orange
-      [255, 255, 0],   // Yellow
-      [0, 255, 0],     // Green
-      [0, 0, 255],     // Blue
-      [75, 0, 130],    // Indigo
-      [238, 130, 238]  // Violet
-    ];
-
-    return colors.map((color, index) => {
-      const percentage = (index * 100 / (colors.length - 1)).toFixed(2);
-      const [r, g, b] = color;
-      
-      let boxShadow = config.boxShadow
-        .replace('{color1}', `rgba(${r}, ${g}, ${b}, ${config.glowOpacity1})`)
-        .replace('{color2}', `rgba(${r}, ${g}, ${b}, ${config.glowOpacity2})`);
-      
-      if (intensity === 'strong') {
-        boxShadow = boxShadow.replace('{color3}', `rgba(${r}, ${g}, ${b}, ${config.glowOpacity3 || 0.4})`);
-      }
-
-      return `
-        ${percentage}% {
-          box-shadow: ${boxShadow};
-          border-color: rgba(${r}, ${g}, ${b}, ${config.borderOpacity});
-        }
-      `;
-    }).join('');
-  };
-
-  const rainbowGlowStyles = `
-    @keyframes rainbow-glow-${intensity} {
-      ${generateKeyframes()}
+  // Keyframes for pastel rainbow animation
+  const rainbowKeyframes = `
+    @keyframes pastel-shift {
+      0% { box-shadow: 0 0 12px 4px rgba(255,153,240,0.5); border-color: rgba(255,153,240,0.6); }
+      25% { box-shadow: 0 0 12px 6px rgba(173,216,255,0.5); border-color: rgba(173,216,255,0.6); }
+      50% { box-shadow: 0 0 12px 6px rgba(180,255,200,0.5); border-color: rgba(180,255,200,0.6); }
+      75% { box-shadow: 0 0 12px 6px rgba(255,235,153,0.5); border-color: rgba(255,235,153,0.6); }
+      100% { box-shadow: 0 0 12px 4px rgba(255,200,200,0.5); border-color: rgba(255,200,200,0.6); }
     }
   `;
 
-  useEffect(() => {
-    if (isActive) {
-      setShowGlow(true);
-      const timeout = setTimeout(() => {
-        setShowGlow(false);
-      }, duration);
+  const baseClasses = cn(
+    "relative transition-all backdrop-blur-md border",
+    borderRadius,
+    className
+  );
 
-      return () => clearTimeout(timeout);
-    } else {
-      setShowGlow(false);
-    }
-  }, [isActive, duration]);
+  const stateStyles: Record<GlowState, React.CSSProperties> = {
+    idle: {
+      borderColor: "rgba(200,200,200,0.3)",
+      boxShadow: "none",
+    },
+    listening: {
+      animation: "pulse 3s ease-in-out infinite",
+      borderColor: "rgba(200,200,255,0.4)",
+      boxShadow: "0 0 8px rgba(200,200,255,0.3)",
+    },
+    processing: {
+      animation: "pastel-shift 6s ease-in-out infinite",
+    },
+    done: {
+      borderColor: "rgba(34,197,94,0.8)",
+      boxShadow: "0 0 20px rgba(34,197,94,0.6)",
+      transition: "all 0.6s ease",
+    },
+  };
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: rainbowGlowStyles }} />
-      <div
-        className={cn("transition-all", borderRadius, className)}
-        style={showGlow ? {
-          animation: `rainbow-glow-${intensity} ${animationSpeed}s ease-in-out infinite`,
-        } : {}}
-      >
+      <style>{rainbowKeyframes}</style>
+      <div className={baseClasses} style={stateStyles[internalState]}>
         {children}
       </div>
     </>

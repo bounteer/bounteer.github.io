@@ -238,7 +238,7 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
                         <TableCell >{r.weighted_index || "—"}</TableCell>
                         <TableCell>{jobName}</TableCell>
                         <TableCell>
-                          {r.index > 75 ? (
+                          {r.index > 80 ? (
                             r.opt_in_talent_pool ? (
                               <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
                                 ✓ Opted In

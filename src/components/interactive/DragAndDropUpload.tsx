@@ -19,9 +19,10 @@ interface DragAndDropUploadProps {
   lastSubmission?: PreviousSubmission | null;
   selectedPreviousCV?: string | null;
   onSelectLastCV?: () => void;
+  showLastCVOption?: boolean;
 }
 
-export default function DragAndDropUpload({ onFileSelect, lastSubmission, selectedPreviousCV, onSelectLastCV }: DragAndDropUploadProps) {
+export default function DragAndDropUpload({ onFileSelect, lastSubmission, selectedPreviousCV, onSelectLastCV, showLastCVOption = true }: DragAndDropUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -39,7 +40,7 @@ export default function DragAndDropUpload({ onFileSelect, lastSubmission, select
 
   return (
     <Card
-      className={`p-6 border-2 border-dashed text-center cursor-pointer transition h-full min-h-[300px] flex flex-col ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
+      className={`p-2 sm:p-4 border-2 border-dashed text-center cursor-pointer transition h-full min-h-[120px] sm:min-h-[200px] flex flex-col ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
         }`}
       onClick={() => fileInputRef.current?.click()}
       onDragOver={(e) => {
@@ -53,13 +54,13 @@ export default function DragAndDropUpload({ onFileSelect, lastSubmission, select
         handleFiles(e.dataTransfer.files);
       }}
     >
-      <CardContent className="flex flex-col items-center gap-4 flex-1 justify-center">
-        {/* Show last CV option if available */}
-        {lastSubmission && (
-          <div className="w-full mb-4">
-            <p className="text-sm text-gray-600 mb-2">Use last CV:</p>
+      <CardContent className="flex flex-col items-center gap-1 sm:gap-2 flex-1 justify-center">
+        {/* Show last CV option if available and enabled */}
+        {lastSubmission && showLastCVOption && (
+          <div className="w-full mb-2">
+            <p className="text-xs sm:text-sm text-gray-600 mb-1">Use last CV:</p>
             <div
-              className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${selectedPreviousCV === lastSubmission.cv_file
+              className={`flex items-center p-2 sm:p-3 border rounded cursor-pointer transition-colors ${selectedPreviousCV === lastSubmission.cv_file
                 ? 'border-primary-500 bg-primary-50'
                 : 'border-gray-200 hover:border-gray-300'
                 }`}
@@ -68,31 +69,31 @@ export default function DragAndDropUpload({ onFileSelect, lastSubmission, select
                 onSelectLastCV?.();
               }}
             >
-              <FileText className="h-4 w-4 text-gray-500 mr-2" />
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 mr-1 sm:mr-2 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                   {lastSubmission.job_description?.role_name
-                    ? `CV for ${lastSubmission.job_description.role_name}${lastSubmission.job_description.company_name ? ` at ${lastSubmission.job_description.company_name}` : ''}`
-                    : 'Last uploaded CV'
+                    ? `${lastSubmission.job_description.role_name}${lastSubmission.job_description.company_name ? ` - ${lastSubmission.job_description.company_name}` : ''}`
+                    : 'Last CV'
                   }
                 </p>
-                <p className="text-xs text-gray-500">
-                  Uploaded on {new Date(lastSubmission.date_created).toLocaleDateString()}
+                <p className="text-xs text-gray-500 hidden sm:block">
+                  {new Date(lastSubmission.date_created).toLocaleDateString()}
                 </p>
               </div>
               {selectedPreviousCV === lastSubmission.cv_file && (
-                <Check className="h-4 w-4 text-primary-600" />
+                <Check className="h-3 w-3 sm:h-4 sm:w-4 text-primary-600 flex-shrink-0" />
               )}
             </div>
-            <div className="text-center my-3">
+            <div className="text-center my-2">
               <span className="text-xs text-gray-400">OR</span>
             </div>
           </div>
         )}
 
-        <Upload className="h-10 w-10 text-gray-400" />
-        <p className="text-sm text-gray-600">
-          Drag & drop your CV here <br /> or click to select a file
+        <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+        <p className="text-xs text-gray-600 leading-tight">
+          Drag & drop CV or <span className="sm:hidden">tap</span><span className="hidden sm:inline">click</span> to select
         </p>
 
         {/* Native hidden input for file picker */}
