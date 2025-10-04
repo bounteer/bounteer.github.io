@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
+import ReportPreview from "./ReportPreview";
 import {
   Search,
   Loader2,
@@ -78,6 +79,7 @@ type PreviousReport = {
     };
   };
 };
+
 
 // State machine from the original form
 const STATE_CONFIG = {
@@ -186,6 +188,8 @@ export default function RoleFitStudio() {
   const [lastSubmission, setLastSubmission] = useState<PreviousReport | null>(null);
   const [selectedPreviousCV, setSelectedPreviousCV] = useState<string | null>(null);
   const [jobDescriptionReports, setJobDescriptionReports] = useState<PreviousReport[]>([]);
+  const [selectedReport, setSelectedReport] = useState<PreviousReport | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
@@ -371,12 +375,21 @@ export default function RoleFitStudio() {
     return "text-red-600";
   };
 
+
+  // Handle report selection
+  const handleReportSelect = (report: PreviousReport) => {
+    setSelectedReport(report);
+  };
+
   // Handle job description selection
   const handleJobDescriptionSelect = async (jd: JobDescription) => {
     setSelectedJobDescription(jd);
-    form.setValue("jobDescription", jd.id);
+    form.setValue("jobDescription", parseInt(jd.id));
     form.trigger("jobDescription"); // Trigger validation
     console.log("Selected JD ID:", jd.id);
+
+    // Clear selected report when changing job description
+    setSelectedReport(null);
 
     // Fetch previous reports for this job description
     if (me?.id) {
@@ -521,18 +534,12 @@ export default function RoleFitStudio() {
                   console.error('Failed to consume credit:', error);
                 }
 
-                // Reset form state
-                form.reset({ jobDescription: "", cv: null });
-                setSubmissionId(null);
-                setSelectedJobDescription(null);
-                setSelectedPreviousCV(null);
-                setCurrentState("redirecting");
-
-                // Get the report and redirect
+                // Get the report
                 const reportUrl = new URL(`${DIRECTUS_URL}/items/role_fit_index_report`);
                 reportUrl.searchParams.set("limit", "1");
                 reportUrl.searchParams.set("sort", "-date_created");
                 reportUrl.searchParams.set("filter[submission][_eq]", String(id));
+                reportUrl.searchParams.set("fields", "id,date_created,index,submission.id,submission.cv_file,submission.job_description.id,submission.job_description.role_name,submission.job_description.company_name");
 
                 const reportRes = await fetch(reportUrl.toString(), {
                   credentials: isAuthed ? "include" : "omit",
@@ -541,8 +548,23 @@ export default function RoleFitStudio() {
 
                 const reportJs = await reportRes.json();
                 if (reportRes.ok && reportJs?.data?.length) {
-                  window.location.href = `/role-fit-index/report?id=${encodeURIComponent(reportJs.data[0].id)}`;
+                  const newReport = reportJs.data[0];
+
+                  // Refresh the previous reports for the current job description
+                  if (me?.id && selectedJobDescription?.id) {
+                    const updatedReports = await fetchJobDescriptionReports(me.id, selectedJobDescription.id);
+                    setJobDescriptionReports(updatedReports);
+
+                    // Select the newly generated report
+                    setSelectedReport(newReport);
+                  }
                 }
+
+                // Reset form state
+                form.reset({ jobDescription: selectedJobDescription ? parseInt(selectedJobDescription.id) : 0, cv: null });
+                setSubmissionId(null);
+                setSelectedPreviousCV(null);
+                setCurrentState("idle");
 
                 clearTimeout(timeout);
                 resolve(true);
@@ -619,7 +641,7 @@ export default function RoleFitStudio() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">Role Fit Studio</h1>
         <p className="text-sm text-muted-foreground">
-          Select a job description and upload your CV to get detailed Role Fit Index analysis
+          Select a job description and incrementally improve your CV with professional suggestions.
         </p>
       </div>
 
@@ -627,9 +649,9 @@ export default function RoleFitStudio() {
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Side - Job Description Selector */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium mb-4">Job Description</h3>
+                <h3 className="text-lg font-medium mb-4">1. Job Description</h3>
 
                 {/* Search */}
                 <div className="relative mb-4">
@@ -644,7 +666,7 @@ export default function RoleFitStudio() {
                 </div>
 
                 {/* Job Description List */}
-                <div className="max-h-96 overflow-y-auto space-y-3">
+                <div className="max-h-48 overflow-hidden">
                   {loadingJobDescriptions ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -663,121 +685,131 @@ export default function RoleFitStudio() {
                       )}
                     </div>
                   ) : (
-                    filteredJobDescriptions.map((jd) => (
-                      <div
-                        key={jd.id}
-                        className={cn(
-                          "p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md",
-                          selectedJobDescription?.id === jd.id
-                            ? "border-primary-500 bg-primary-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        )}
-                        onClick={() => handleJobDescriptionSelect(jd)}
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <h3 className="font-semibold text-sm">
-                                {jd.role_name || "Untitled Role"}
-                              </h3>
-                              {jd.company_name && (
-                                <p className="text-sm text-gray-600 flex items-center">
-                                  <Building2 className="h-3 w-3 mr-1" />
-                                  {jd.company_name}
-                                </p>
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                          {filteredJobDescriptions.map((jd) => (
+                            <div
+                              key={jd.id}
+                              className={cn(
+                                "p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md flex-shrink-0 min-w-64",
+                                selectedJobDescription?.id === jd.id
+                                  ? "border-primary-500 bg-primary-50"
+                                  : "border-gray-200 hover:border-gray-300"
                               )}
-                            </div>
-                            {selectedJobDescription?.id === jd.id && (
-                              <Check className="h-4 w-4 text-primary-600 flex-shrink-0" />
-                            )}
-                          </div>
+                              onClick={() => handleJobDescriptionSelect(jd)}
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between">
+                                  <div className="space-y-1">
+                                    <h3 className="font-semibold text-sm">
+                                      {jd.role_name || "Untitled Role"}
+                                    </h3>
+                                    {jd.company_name && (
+                                      <p className="text-sm text-gray-600 flex items-center">
+                                        <Building2 className="h-3 w-3 mr-1" />
+                                        {jd.company_name}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {selectedJobDescription?.id === jd.id && (
+                                    <Check className="h-4 w-4 text-primary-600 flex-shrink-0" />
+                                  )}
+                                </div>
 
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            {jd.location && (
-                              <Badge variant="secondary" className="text-xs">
-                                <MapPin className="h-3 w-3 mr-1" />
-                                {jd.location}
-                              </Badge>
-                            )}
-                            {jd.salary_range && (
-                              <Badge variant="secondary" className="text-xs">
-                                <DollarSign className="h-3 w-3 mr-1" />
-                                {jd.salary_range}
-                              </Badge>
-                            )}
-                            <Badge variant="outline" className="text-xs">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {formatDate(jd.date_created)}
-                            </Badge>
-                          </div>
+                                <div className="flex flex-col gap-1 text-xs">
+                                  {jd.location && (
+                                    <Badge variant="secondary" className="text-xs w-fit">
+                                      <MapPin className="h-3 w-3 mr-1" />
+                                      {jd.location}
+                                    </Badge>
+                                  )}
+                                  {jd.salary_range && (
+                                    <Badge variant="secondary" className="text-xs w-fit">
+                                      <DollarSign className="h-3 w-3 mr-1" />
+                                      {jd.salary_range}
+                                    </Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-xs w-fit">
+                                    <Calendar className="h-3 w-3 mr-1" />
+                                    {formatDate(jd.date_created)}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    ))
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Right Side - Previous Reports Overview */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Previous Reports</h3>
+              {/* Previous Reports moved here below Job Description */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="text-lg font-medium">2. Previous Report</h3>
 
-              {selectedJobDescription ? (
-                jobDescriptionReports.length > 0 ? (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-gray-700">
-                      Reports for this role ({jobDescriptionReports.length})
-                    </h4>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {jobDescriptionReports.map((report) => (
-                        <div
-                          key={report.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm border hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="font-medium text-gray-900">
-                                Report #{report.id}
+                {selectedJobDescription ? (
+                  jobDescriptionReports.length > 0 ? (
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Reports for this role ({jobDescriptionReports.length})
+                      </h4>
+                      <div className="flex gap-2 overflow-x-auto pb-2 max-h-32">
+                        {jobDescriptionReports.map((report) => (
+                          <div
+                            key={report.id}
+                            className={cn(
+                              "p-3 rounded-lg text-sm border cursor-pointer transition-all hover:shadow-md flex-shrink-0 min-w-36",
+                              selectedReport?.id === report.id
+                                ? "border-primary-500 bg-primary-50"
+                                : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                            )}
+                            onClick={() => handleReportSelect(report)}
+                          >
+                            <div className="space-y-1">
+                              <div className="font-medium text-gray-900 text-xs">
+                                #{report.id}
                               </div>
-                              <div className={`font-bold text-sm ${getRFIScoreColor(report.index)}`}>
-                                RFI: {formatRFIScore(report.index)}
+                              <div className={`font-bold text-xs ${getRFIScoreColor(report.index)}`}>
+                                {formatRFIScore(report.index)}
                               </div>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {formatDate(report.date_created)}
+                              <div className="text-xs text-gray-500">
+                                {formatDate(report.date_created)}
+                              </div>
+                              {selectedReport?.id === report.id && (
+                                <Check className="h-3 w-3 text-primary-600" />
+                              )}
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs ml-3"
-                            onClick={() => {
-                              window.open(`/role-fit-index/report?id=${report.id}`, '_blank');
-                            }}
-                          >
-                            View Report
-                          </Button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <div className="text-sm">No previous reports for this role</div>
+                      <div className="text-xs mt-1">Upload your CV below to create your first analysis</div>
+                    </div>
+                  )
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-sm">No previous reports for this role</div>
-                    <div className="text-xs mt-1">Upload your CV below to create your first analysis</div>
+                  <div className="text-center py-4 text-gray-500">
+                    <div className="text-sm">Select a job description to see previous reports</div>
                   </div>
-                )
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <div className="text-sm">Select a job description to see previous reports</div>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            {/* Right Side - Report Preview */}
+            <div className="space-y-4 flex flex-col h-full">
+              <h3 className="text-lg font-medium">Report Preview</h3>
+              <div className="flex-1 overflow-hidden">
+                <ReportPreview
+                  reportId={selectedReport?.id || null}
+                  currentUser={me}
+                />
+              </div>
             </div>
           </div>
 
           {/* CV Upload Section - Below the two columns */}
           <div className="mt-8 pt-6 border-t">
-            <h3 className="text-lg font-medium mb-4">Upload New CV</h3>
+            <h3 className="text-lg font-medium mb-4">Upload New CV and Get New Report</h3>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Hidden field for job description ID */}
@@ -926,36 +958,48 @@ export default function RoleFitStudio() {
                   </Button>
                 )}
 
-                {/* Form State Debug */}
-                <div className="mt-4 p-3 bg-gray-100 rounded-md">
-                  <h4 className="text-sm font-medium mb-2">Form State Debug:</h4>
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <strong>Values:</strong>
-                      <pre className="text-gray-700 whitespace-pre-wrap">
-                        {JSON.stringify(form.getValues(), null, 2)}
-                      </pre>
+                {/* Form State Debug - Collapsible */}
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="text-sm text-gray-600 hover:text-gray-800 underline"
+                  >
+                    {showDebug ? 'Hide' : 'Show'} Form Debug Info
+                  </button>
+
+                  {showDebug && (
+                    <div className="mt-2 p-3 bg-gray-100 rounded-md">
+                      <h4 className="text-sm font-medium mb-2">Form State Debug:</h4>
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <strong>Values:</strong>
+                          <pre className="text-gray-700 whitespace-pre-wrap">
+                            {JSON.stringify(form.getValues(), null, 2)}
+                          </pre>
+                        </div>
+                        <div>
+                          <strong>Errors:</strong>
+                          <pre className="text-gray-700 whitespace-pre-wrap">
+                            {JSON.stringify(form.formState.errors, null, 2)}
+                          </pre>
+                        </div>
+                        <div>
+                          <strong>Form State:</strong>
+                          <pre className="text-gray-700 whitespace-pre-wrap">
+                            {JSON.stringify({
+                              isDirty: form.formState.isDirty,
+                              isValid: form.formState.isValid,
+                              isSubmitting: form.formState.isSubmitting,
+                              touchedFields: form.formState.touchedFields,
+                              dirtyFields: form.formState.dirtyFields,
+                              isSubmitted: form.formState.isSubmitted
+                            }, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <strong>Errors:</strong>
-                      <pre className="text-gray-700 whitespace-pre-wrap">
-                        {JSON.stringify(form.formState.errors, null, 2)}
-                      </pre>
-                    </div>
-                    <div>
-                      <strong>Form State:</strong>
-                      <pre className="text-gray-700 whitespace-pre-wrap">
-                        {JSON.stringify({
-                          isDirty: form.formState.isDirty,
-                          isValid: form.formState.isValid,
-                          isSubmitting: form.formState.isSubmitting,
-                          touchedFields: form.formState.touchedFields,
-                          dirtyFields: form.formState.dirtyFields,
-                          isSubmitted: form.formState.isSubmitted
-                        }, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </form>
             </Form>
