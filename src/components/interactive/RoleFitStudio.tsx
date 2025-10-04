@@ -34,6 +34,7 @@ import {
   loadCredits,
   consumeCredit,
   getLoginUrl,
+  getAuthHeaders,
   type Credits,
   type UserProfile,
   cn
@@ -205,14 +206,6 @@ export default function RoleFitStudio() {
   const percentDone = currentStepIdx >= 0 ? ((currentStepIdx + 1) / progressSteps.length) * 100 : 0;
   const totalQuota = useMemo(() => credits.used + credits.remaining, [credits]);
 
-  // Helper function to get authorization header
-  const getAuthHeaders = (user: UserProfile | null = null): Record<string, string> => {
-    const currentUser = user || me;
-    const authenticated = isAuthed !== null ? isAuthed : (currentUser !== null);
-    return authenticated
-      ? {} // No auth header needed for authenticated users (using session cookies)
-      : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
-  };
 
   // Fetch job descriptions
   const fetchJobDescriptions = async (user: UserProfile | null = null): Promise<JobDescription[]> => {
@@ -254,7 +247,7 @@ export default function RoleFitStudio() {
 
       const res = await fetch(url, {
         credentials: "include",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(me),
       });
 
       if (!res.ok) return null;
@@ -275,7 +268,7 @@ export default function RoleFitStudio() {
 
       const res = await fetch(url, {
         credentials: "include",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(me),
       });
 
       if (!res.ok) return [];
@@ -381,7 +374,9 @@ export default function RoleFitStudio() {
   // Handle job description selection
   const handleJobDescriptionSelect = async (jd: JobDescription) => {
     setSelectedJobDescription(jd);
-    form.setValue("jobDescription", jd.raw_input);
+    form.setValue("jobDescription", jd.id);
+    form.trigger("jobDescription"); // Trigger validation
+    console.log("Selected JD:", jd);
 
     // Fetch previous reports for this job description
     if (me?.id) {
@@ -416,7 +411,7 @@ export default function RoleFitStudio() {
 
     const res = await fetch(url.toString(), {
       credentials: isAuthed ? "include" : "omit",
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(me),
     });
     const js = await res.json();
     if (!res.ok) throw new Error(js?.errors?.[0]?.message || "Checksum lookup failed");
@@ -437,7 +432,7 @@ export default function RoleFitStudio() {
     const uploadRes = await fetch(`${DIRECTUS_URL}/files`, {
       method: "POST",
       credentials: isAuthed ? "include" : "omit",
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(me),
       body: fd,
     });
     const uploadJs = await uploadRes.json();
@@ -450,11 +445,12 @@ export default function RoleFitStudio() {
   };
 
   /** Create submission */
-  const createSubmission = async (jd: string, fileId: string) => {
+  const createSubmission = async (jdId: string, fileId: string) => {
+
     const body = {
       cv_file: fileId,
       status: "submitted",
-      job_description: { raw_input: jd },
+      job_description: jdId,
       ...(isAuthed && me?.id ? { user: me.id } : {}),
     };
 
@@ -462,7 +458,7 @@ export default function RoleFitStudio() {
       method: "POST",
       credentials: isAuthed ? "include" : "omit",
       headers: {
-        ...getAuthHeaders(),
+        ...getAuthHeaders(me),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -540,7 +536,7 @@ export default function RoleFitStudio() {
 
                 const reportRes = await fetch(reportUrl.toString(), {
                   credentials: isAuthed ? "include" : "omit",
-                  headers: getAuthHeaders(),
+                  headers: getAuthHeaders(me),
                 });
 
                 const reportJs = await reportRes.json();
@@ -582,6 +578,7 @@ export default function RoleFitStudio() {
   };
 
   const onSubmit = async (values: FormValues) => {
+    console.log("Form values:", values);
     try {
       setCurrentState("uploading");
 
@@ -779,9 +776,17 @@ export default function RoleFitStudio() {
 
           {/* CV Upload Section - Below the two columns */}
           <div className="mt-8 pt-6 border-t">
-            <h3 className="text-lg font-medium mb-4">Upload Your CV</h3>
+            <h3 className="text-lg font-medium mb-4">Upload New CV</h3>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Hidden field for job description ID */}
+                <FormField
+                  control={form.control}
+                  name="jobDescription"
+                  render={({ field }) => (
+                    <input type="hidden" {...field} />
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="cv"
@@ -914,7 +919,7 @@ export default function RoleFitStudio() {
                     type="submit"
                     variant="default"
                     className="w-full"
-                    disabled={!stateConfig.canSubmit || !selectedJobDescription}
+                      disabled={!stateConfig.canSubmit}
                   >
                     {stateConfig.buttonText}
                   </Button>

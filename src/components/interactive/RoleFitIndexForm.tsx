@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
-import { loadCredits, consumeCredit, getLoginUrl, type Credits, type UserProfile } from '@/lib/utils';
+import { loadCredits, consumeCredit, getLoginUrl, getAuthHeaders, type Credits, type UserProfile } from '@/lib/utils';
 
 const schema = z.object({
   jdRawInput: z.string().min(1, "Paste the JD or provide a URL"),
@@ -163,12 +163,6 @@ export default function RoleFitForm() {
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
 
-  // Helper function to get authorization header
-  const getAuthHeaders = (): Record<string, string> => {
-    return isAuthed
-      ? {} // No auth header needed for authenticated users (using session cookies)
-      : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
-  };
 
   /** Fetch previous submissions for authenticated users */
   const fetchPreviousSubmissions = async (userId: string): Promise<PreviousSubmission[]> => {
@@ -181,10 +175,13 @@ export default function RoleFitForm() {
       const filter = `filter[user_created][id][_eq]=${encodeURIComponent(userId)}`;
       const url = `${DIRECTUS_URL}/items/role_fit_index_submission?${fields}&${filter}&sort[]=-date_created&limit=1`;
 
+      // TODO the auth header is not using hte logged in user currently (using generic)
       const res = await fetch(url, {
         credentials: "include",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(me),
       });
+
+      console.log("result:" + JSON.stringify(res));
 
       if (!res.ok) return [];
 
@@ -255,8 +252,8 @@ export default function RoleFitForm() {
     url.searchParams.set("limit", "1");
 
     const res = await fetch(url.toString(), {
-      credentials: isAuthed ? "include" : "omit",
-      headers: getAuthHeaders(),
+      credentials: "include",
+      headers: getAuthHeaders(me),
     });
     const js = await res.json();
     if (!res.ok) throw new Error(js?.errors?.[0]?.message || "Checksum lookup failed");
@@ -269,7 +266,6 @@ export default function RoleFitForm() {
   const uploadFile = async (file: File) => {
     // 1) hash
     const sha = await sha256OfFile(file);
-    console.log(sha)
     // 2) check if we already have it
     const existingId = await findFileIdBySha(sha);
     console.log("existingId: " + existingId)
@@ -283,7 +279,7 @@ export default function RoleFitForm() {
     const uploadRes = await fetch(`${DIRECTUS_URL}/files`, {
       method: "POST",
       credentials: isAuthed ? "include" : "omit",
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(me),
       body: fd,
     });
     const uploadJs = await uploadRes.json();
@@ -314,7 +310,7 @@ export default function RoleFitForm() {
       `${DIRECTUS_URL}/items/job_description?filter[raw_input_hash][_eq]=${hash}&fields=id`,
       {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(me),
         credentials: isAuthed ? "include" : "omit",
       }
     );
@@ -327,7 +323,7 @@ export default function RoleFitForm() {
         method: "POST",
         credentials: isAuthed ? "include" : "omit",
         headers: {
-          ...getAuthHeaders(),
+          ...getAuthHeaders(me),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -363,14 +359,14 @@ export default function RoleFitForm() {
       `limit=1`,
       {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(me),
         credentials: "include",
       }
     );
 
     const checkJson = await checkRes.json();
     const existingSubmission = checkJson?.data?.[0];
-    
+
     if (existingSubmission) {
       console.log("Found existing submission with same JD hash:", existingSubmission.id);
       return existingSubmission.id;
@@ -385,7 +381,7 @@ export default function RoleFitForm() {
     const jdId = await getOrCreateJobDescription(jd_raw_input);
     console.log(jdId);
 
-  // Create submission
+    // Create submission
     const body = {
       cv_file: fileId,
       status: "submitted",
@@ -397,7 +393,7 @@ export default function RoleFitForm() {
       method: "POST",
       credentials: isAuthed ? "include" : "omit",
       headers: {
-        ...getAuthHeaders(),
+        ...getAuthHeaders(me),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -441,7 +437,7 @@ export default function RoleFitForm() {
 
       const res = await fetch(url.toString(), {
         credentials: isAuthed ? "include" : "omit",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(me),
       });
 
       const js = await res.json();
@@ -606,11 +602,11 @@ export default function RoleFitForm() {
 
       // Check for existing submission with same JD hash by same user
       const existingSubmissionId = await checkExistingSubmission(values.jdRawInput);
-      
+
       if (existingSubmissionId) {
         // Skip insertion and redirect to existing report
         console.log("Skipping insertion - found existing submission:", existingSubmissionId);
-        
+
         // Try to find the existing report for this submission
         const reportRes = await fetch(
           `${DIRECTUS_URL}/items/role_fit_index_report?` +
@@ -619,14 +615,14 @@ export default function RoleFitForm() {
           `limit=1`,
           {
             method: "GET",
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(me),
             credentials: isAuthed ? "include" : "omit",
           }
         );
-        
+
         const reportJson = await reportRes.json();
         const existingReport = reportJson?.data?.[0];
-        
+
         if (existingReport) {
           // Redirect to existing report
           window.location.href = `/role-fit-index/report?id=${encodeURIComponent(existingReport.id)}`;

@@ -313,6 +313,14 @@ export async function loadCredits(directusUrl: string): Promise<{
   }
 }
 
+// TODO check if we are ussing the logged in user's session or a generic guest token
+// Helper function to get authorization headers
+export function getAuthHeaders(user: UserProfile | null = null): Record<string, string> {
+  return user !== null
+    ? {} // No auth header needed for authenticated users (using session cookies)
+    : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
+}
+
 // Get package version from package.json
 export async function getPackageVersion(): Promise<string> {
   try {
