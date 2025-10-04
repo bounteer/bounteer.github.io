@@ -22,7 +22,7 @@ import { EXTERNAL } from '@/constant';
 import { loadCredits, consumeCredit, getLoginUrl, type Credits, type UserProfile } from '@/lib/utils';
 
 const schema = z.object({
-  jobDescription: z.string().min(1, "Paste the JD or provide a URL"),
+  jdRawInput: z.string().min(1, "Paste the JD or provide a URL"),
   cv: z.any().refine((file) => file instanceof File || typeof file === "string", "Please upload a CV or select a previous one"),
 });
 
@@ -145,12 +145,12 @@ export default function RoleFitForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { jobDescription: "", cv: null },
+    defaultValues: { jdRawInput: "", cv: null },
   });
 
   const progressSteps = [
     "Upload CV",
-    "Parse Job Description", 
+    "Parse Job Description",
     "Generate Report",
     "Redirect to Report",
   ];
@@ -295,12 +295,101 @@ export default function RoleFitForm() {
     return fileId;
   };
 
-  /** Create submission */
-  const createSubmission = async (jd: string, fileId: string) => {
+
+  async function sha256(message: string) {
+    const msgBuffer = new TextEncoder().encode(message);              // encode string → bytes
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgBuffer); // hash
+    const hashArray = Array.from(new Uint8Array(hashBuffer));         // convert buffer → byte array
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join(""); // bytes → hex string
+  }
+
+
+
+  /** Get existing JD by hash or create new one */
+  const getOrCreateJobDescription = async (jd_raw_input: string): Promise<string> => {
+    const hash = await sha256(jd_raw_input);
+    console.log("JD hash: " + hash);
+    // 1. Check if JD exists
+    const checkRes = await fetch(
+      `${DIRECTUS_URL}/items/job_description?filter[raw_input_hash][_eq]=${hash}&fields=id`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(),
+        credentials: isAuthed ? "include" : "omit",
+      }
+    );
+    const checkJson = await checkRes.json();
+    let jdId: string | undefined = checkJson?.data?.[0]?.id;
+
+    // 2. If not exist → create new JD
+    if (!jdId) {
+      const jdRes = await fetch(`${DIRECTUS_URL}/items/job_description`, {
+        method: "POST",
+        credentials: isAuthed ? "include" : "omit",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          raw_input: jd_raw_input,
+          raw_input_hash: hash,
+        }),
+      });
+
+      const jdJson = await jdRes.json();
+      if (!jdRes.ok) throw new Error(jdJson?.errors?.[0]?.message || "JD creation failed");
+      jdId = jdJson.data.id;
+    }
+
+    return jdId!;
+  };
+
+  /** Check if user already has a submission with the same JD hash */
+  const checkExistingSubmission = async (jd_raw_input: string): Promise<string | null> => {
+    // Only check for authenticated users
+    if (!isAuthed || !me?.id) {
+      return null;
+    }
+
+    const hash = await sha256(jd_raw_input);
+    console.log("Checking for existing submission with JD hash:", hash);
+
+    // Check for existing submission with same JD hash by same user
+    const checkRes = await fetch(
+      `${DIRECTUS_URL}/items/role_fit_index_submission?` +
+      `filter[job_description][raw_input_hash][_eq]=${hash}&` +
+      `filter[user_created][id][_eq]=${me.id}&` +
+      `fields=id&` +
+      `limit=1`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      }
+    );
+
+    const checkJson = await checkRes.json();
+    const existingSubmission = checkJson?.data?.[0];
+    
+    if (existingSubmission) {
+      console.log("Found existing submission with same JD hash:", existingSubmission.id);
+      return existingSubmission.id;
+    }
+
+    return null;
+  };
+
+  /** Create submission (deduplicates JD first) */
+  const createSubmission = async (jd_raw_input: string, fileId: string) => {
+    // Resolve JD (dedupe)
+    const jdId = await getOrCreateJobDescription(jd_raw_input);
+    console.log(jdId);
+
+  // Create submission
     const body = {
       cv_file: fileId,
       status: "submitted",
-      job_description: { raw_input: jd },
+      job_description: jdId, // always link by ID
       ...(isAuthed && me?.id ? { user: me.id } : {}),
     };
 
@@ -313,17 +402,16 @@ export default function RoleFitForm() {
       },
       body: JSON.stringify(body),
     });
+
     const js = await res.json();
     if (!res.ok) throw new Error(js?.errors?.[0]?.message || "Submission failed");
     return js.data.id as string;
   };
 
-
   /** Handle WebSocket authentication */
   const handleWSAuth = (ws: WebSocket) => {
     const authToken = EXTERNAL.directus_key;
     const authPayload = JSON.stringify({ type: "auth", access_token: authToken });
-    console.log("auth payload:", authPayload);
     ws.send(authPayload);
   };
 
@@ -372,7 +460,7 @@ export default function RoleFitForm() {
         }
 
         // Reset form state
-        form.reset({ jobDescription: "", cv: null });
+        form.reset({ jdRawInput: "", cv: null });
         setSubmissionId(null);
         setCurrentState("redirecting");
 
@@ -516,6 +604,39 @@ export default function RoleFitForm() {
     try {
       setCurrentState("uploading");
 
+      // Check for existing submission with same JD hash by same user
+      const existingSubmissionId = await checkExistingSubmission(values.jdRawInput);
+      
+      if (existingSubmissionId) {
+        // Skip insertion and redirect to existing report
+        console.log("Skipping insertion - found existing submission:", existingSubmissionId);
+        
+        // Try to find the existing report for this submission
+        const reportRes = await fetch(
+          `${DIRECTUS_URL}/items/role_fit_index_report?` +
+          `filter[submission][_eq]=${existingSubmissionId}&` +
+          `fields=id&` +
+          `limit=1`,
+          {
+            method: "GET",
+            headers: getAuthHeaders(),
+            credentials: isAuthed ? "include" : "omit",
+          }
+        );
+        
+        const reportJson = await reportRes.json();
+        const existingReport = reportJson?.data?.[0];
+        
+        if (existingReport) {
+          // Redirect to existing report
+          window.location.href = `/role-fit-index/report?id=${encodeURIComponent(existingReport.id)}`;
+          return;
+        } else {
+          // No report found, treat as new submission
+          console.log("No existing report found, proceeding with new submission");
+        }
+      }
+
       // Handle both new file uploads and previous CV selection
       let cvFileId: string;
       if (typeof values.cv === "string") {
@@ -527,7 +648,7 @@ export default function RoleFitForm() {
       }
 
       setCurrentState("saving");
-      const subId = await createSubmission(values.jobDescription, cvFileId);
+      const subId = await createSubmission(values.jdRawInput, cvFileId);
       setSubmissionId(subId);
 
       setCurrentState("submitted");
@@ -564,7 +685,7 @@ export default function RoleFitForm() {
                 {/* Left: JD */}
                 <FormField
                   control={form.control}
-                  name="jobDescription"
+                  name="jdRawInput"
                   render={({ field }) => (
                     <FormItem className="h-full flex flex-col">
                       <FormLabel>Job Description (Text or URL)</FormLabel>
