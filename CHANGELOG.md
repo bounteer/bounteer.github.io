@@ -1,5 +1,11 @@
 # Bounteer Changelog
 
+## [0.3.0] - 2025-10-04
+### Added
+- Role Fit Studio
+### Modified
+- changed the flow of role fit index to upload job description before new submission
+
 ## [0.2.1] - 2025-10-02
 ### Modified
 - select last CV
