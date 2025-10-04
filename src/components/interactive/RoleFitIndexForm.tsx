@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
+import RainbowGlowWrapper from "./RainbowGlowWrapper";
 import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { loadCredits, consumeCredit, getLoginUrl, getAuthHeaders, type Credits, type UserProfile } from '@/lib/utils';
@@ -670,7 +671,13 @@ export default function RoleFitForm() {
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      <Card>
+      <RainbowGlowWrapper
+        isActive={stateConfig.isProcessing}
+        duration={90000} // 90 seconds to match the websocket timeout
+        intensity="medium"
+        animationSpeed={4}
+      >
+        <Card>
         <CardHeader>
           <CardTitle>Upload JD and CV</CardTitle>
         </CardHeader>
@@ -835,7 +842,8 @@ export default function RoleFitForm() {
             </form>
           </Form>
         </CardContent>
-      </Card>
+        </Card>
+      </RainbowGlowWrapper>
 
       {/* View All Reports link for logged-in users */}
       {isAuthed === true && (

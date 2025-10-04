@@ -1,5 +1,9 @@
 # Bounteer Changelog
 
+## [0.4.0] - 2025-10-04
+### Added
+- Rainbow Effect
+
 ## [0.3.0] - 2025-10-04
 ### Added
 - Role Fit Studio

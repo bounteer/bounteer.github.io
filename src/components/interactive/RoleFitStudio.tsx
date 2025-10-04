@@ -19,6 +19,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import ReportPreview from "./ReportPreview";
+import RainbowGlowWrapper from "./RainbowGlowWrapper";
 import {
   Search,
   Loader2,
@@ -190,6 +191,7 @@ export default function RoleFitStudio() {
   const [jobDescriptionReports, setJobDescriptionReports] = useState<PreviousReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<PreviousReport | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [newlyGeneratedReportId, setNewlyGeneratedReportId] = useState<string | null>(null);
 
   const DIRECTUS_URL = EXTERNAL.directus_url;
 
@@ -557,6 +559,12 @@ export default function RoleFitStudio() {
 
                     // Select the newly generated report
                     setSelectedReport(newReport);
+                    setNewlyGeneratedReportId(newReport.id);
+                    
+                    // Clear the effect after 10 seconds
+                    setTimeout(() => {
+                      setNewlyGeneratedReportId(null);
+                    }, 10000);
                   }
                 }
 
@@ -751,34 +759,46 @@ export default function RoleFitStudio() {
                       <h4 className="text-sm font-medium text-gray-700">
                         Reports for this role ({jobDescriptionReports.length})
                       </h4>
-                      <div className="flex gap-2 overflow-x-auto pb-2 max-h-32">
-                        {jobDescriptionReports.map((report) => (
-                          <div
-                            key={report.id}
-                            className={cn(
-                              "p-3 rounded-lg text-sm border cursor-pointer transition-all hover:shadow-md flex-shrink-0 min-w-36",
-                              selectedReport?.id === report.id
-                                ? "border-primary-500 bg-primary-50"
-                                : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
-                            )}
-                            onClick={() => handleReportSelect(report)}
-                          >
-                            <div className="space-y-1">
-                              <div className="font-medium text-gray-900 text-xs">
-                                #{report.id}
+                      <div className="flex gap-3 overflow-x-auto pb-3 max-h-36 px-3 py-3">
+                        {jobDescriptionReports.map((report) => {
+                          const isNewlyGenerated = newlyGeneratedReportId === report.id;
+                          const isSelected = selectedReport?.id === report.id;
+                          
+                          return (
+                            <RainbowGlowWrapper
+                              key={report.id}
+                              isActive={isNewlyGenerated}
+                              duration={10000}
+                              intensity="subtle"
+                              animationSpeed={3}
+                            >
+                              <div
+                                className={cn(
+                                  "p-3 rounded-lg text-sm border cursor-pointer transition-all hover:shadow-md flex-shrink-0 min-w-36 relative",
+                                  isSelected
+                                    ? "border-primary-500 bg-primary-50"
+                                    : "bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                                )}
+                                onClick={() => handleReportSelect(report)}
+                              >
+                                <div className="space-y-1">
+                                  <div className="font-medium text-gray-900 text-xs">
+                                    #{report.id}
+                                  </div>
+                                  <div className={`font-bold text-xs ${getRFIScoreColor(report.index)}`}>
+                                    {formatRFIScore(report.index)}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {formatDate(report.date_created)}
+                                  </div>
+                                  {isSelected && (
+                                    <Check className="h-3 w-3 text-primary-600" />
+                                  )}
+                                </div>
                               </div>
-                              <div className={`font-bold text-xs ${getRFIScoreColor(report.index)}`}>
-                                {formatRFIScore(report.index)}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {formatDate(report.date_created)}
-                              </div>
-                              {selectedReport?.id === report.id && (
-                                <Check className="h-3 w-3 text-primary-600" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                            </RainbowGlowWrapper>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : (
@@ -798,10 +818,11 @@ export default function RoleFitStudio() {
             {/* Right Side - Report Preview */}
             <div className="space-y-4 flex flex-col h-full">
               <h3 className="text-lg font-medium">Report Preview</h3>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden p-3">
                 <ReportPreview
                   reportId={selectedReport?.id || null}
                   currentUser={me}
+                  isNewlyGenerated={newlyGeneratedReportId === selectedReport?.id}
                 />
               </div>
             </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { getAuthHeaders, type UserProfile } from '@/lib/utils';
+import RainbowGlowWrapper from './RainbowGlowWrapper';
 
 type FullReport = {
   id: string;
@@ -42,9 +43,10 @@ type FullReport = {
 interface ReportPreviewProps {
   reportId: string | null;
   currentUser: UserProfile | null;
+  isNewlyGenerated?: boolean;
 }
 
-export default function ReportPreview({ reportId, currentUser }: ReportPreviewProps) {
+export default function ReportPreview({ reportId, currentUser, isNewlyGenerated = false }: ReportPreviewProps) {
   const [fullReportData, setFullReportData] = useState<FullReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +148,14 @@ export default function ReportPreview({ reportId, currentUser }: ReportPreviewPr
   }
 
   return (
-    <div className="border rounded-lg bg-white max-h-96 overflow-y-auto">
+    <RainbowGlowWrapper
+      isActive={isNewlyGenerated}
+      duration={10000}
+      intensity="subtle"
+      animationSpeed={3}
+      borderRadius="rounded-lg"
+    >
+      <div className="border rounded-lg bg-white max-h-96 overflow-y-auto">
       <div className="p-4 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b">
@@ -215,6 +224,7 @@ export default function ReportPreview({ reportId, currentUser }: ReportPreviewPr
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </RainbowGlowWrapper>
   );
 }
