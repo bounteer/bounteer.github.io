@@ -41,7 +41,7 @@ import {
 } from '@/lib/utils';
 
 const schema = z.object({
-  jobDescription: z.string().min(1, "Please select a job description or provide a URL/text"),
+  jobDescription: z.number().min(1, "Please select a job description"),
   cv: z.any().refine((file) => file instanceof File || typeof file === "string", "Please upload a CV")
 });
 
@@ -191,7 +191,7 @@ export default function RoleFitStudio() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { jobDescription: "", cv: null }
+    defaultValues: { jobDescription: 0, cv: null }
   });
 
   const progressSteps = [
@@ -376,7 +376,7 @@ export default function RoleFitStudio() {
     setSelectedJobDescription(jd);
     form.setValue("jobDescription", jd.id);
     form.trigger("jobDescription"); // Trigger validation
-    console.log("Selected JD:", jd);
+    console.log("Selected JD ID:", jd.id);
 
     // Fetch previous reports for this job description
     if (me?.id) {
@@ -445,7 +445,7 @@ export default function RoleFitStudio() {
   };
 
   /** Create submission */
-  const createSubmission = async (jdId: string, fileId: string) => {
+  const createSubmission = async (jdId: string | number, fileId: string) => {
 
     const body = {
       cv_file: fileId,
@@ -594,6 +594,7 @@ export default function RoleFitStudio() {
 
       setCurrentState("saving");
       const subId = await createSubmission(values.jobDescription, cvFileId);
+      console.log("Submission ID:", subId);
       setSubmissionId(subId);
 
       setCurrentState("submitted");
@@ -924,6 +925,38 @@ export default function RoleFitStudio() {
                     {stateConfig.buttonText}
                   </Button>
                 )}
+
+                {/* Form State Debug */}
+                <div className="mt-4 p-3 bg-gray-100 rounded-md">
+                  <h4 className="text-sm font-medium mb-2">Form State Debug:</h4>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <strong>Values:</strong>
+                      <pre className="text-gray-700 whitespace-pre-wrap">
+                        {JSON.stringify(form.getValues(), null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <strong>Errors:</strong>
+                      <pre className="text-gray-700 whitespace-pre-wrap">
+                        {JSON.stringify(form.formState.errors, null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <strong>Form State:</strong>
+                      <pre className="text-gray-700 whitespace-pre-wrap">
+                        {JSON.stringify({
+                          isDirty: form.formState.isDirty,
+                          isValid: form.formState.isValid,
+                          isSubmitting: form.formState.isSubmitting,
+                          touchedFields: form.formState.touchedFields,
+                          dirtyFields: form.formState.dirtyFields,
+                          isSubmitted: form.formState.isSubmitted
+                        }, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
               </form>
             </Form>
           </div>
