@@ -146,9 +146,9 @@ export default function ReportCard() {
     try {
       const response = await fetch(`${EXTERNAL.directus_url}/items/role_fit_index_report/${report.id}`, {
         method: 'PATCH',
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           opt_in_talent_pool: talentPoolOptIn
@@ -251,7 +251,8 @@ export default function ReportCard() {
           `submission.cv_file`;
 
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${EXTERNAL.directus_key}` },
+          credentials: currentUser ? "include" : "omit",
+          headers: currentUser ? {} : { Authorization: `Bearer ${EXTERNAL.directus_key}` },
         });
         const json = await res.json();
         if (!res.ok) {

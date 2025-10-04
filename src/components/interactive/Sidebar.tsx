@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
     href: "/dashboard/role-fit-index", 
     icon: FileText,
     children: [
+      { label: "Role Fit Studio", href: "/dashboard/role-fit-studio", icon: BarChart3 },
       { label: "Top Up Credits", href: "/dashboard/role-fit-index/top-up", icon: ListChecks }
     ]
   },
