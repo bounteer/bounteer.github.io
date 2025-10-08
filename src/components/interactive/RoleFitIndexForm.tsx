@@ -382,17 +382,63 @@ export default function RoleFitForm() {
     return null;
   };
 
-  /** Create submission (deduplicates JD first) */
+  /** Get or create candidate reference */
+  const getOrCreateCandidateReference = async (jobDescriptionId: string, fileId: string): Promise<string> => {
+    // Check if candidate_reference already exists for this CV + JD + user combination
+    const checkRes = await fetch(
+      `${DIRECTUS_URL}/items/candidate_reference?` +
+      `filter[cv_file][_eq]=${encodeURIComponent(fileId)}&` +
+      (isAuthed && me?.id ? `filter[user_created][id][_eq]=${encodeURIComponent(me.id)}&` : '') +
+      `fields=id&limit=1`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(me),
+        credentials: isAuthed ? "include" : "omit",
+      }
+    );
+
+    const checkJson = await checkRes.json();
+    let candidateRefId = checkJson?.data?.[0]?.id;
+
+    // If not exists, create new candidate_reference
+    if (!candidateRefId) {
+      const createRefRes = await fetch(`${DIRECTUS_URL}/items/candidate_reference`, {
+        method: "POST",
+        credentials: isAuthed ? "include" : "omit",
+        headers: {
+          ...getAuthHeaders(me),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cv_file_id: fileId,
+          job_description_id: jobDescriptionId,
+          ...(isAuthed && me?.id ? { user: me.id } : {}),
+        }),
+      });
+
+      const createRefJson = await createRefRes.json();
+      if (!createRefRes.ok) throw new Error(createRefJson?.errors?.[0]?.message || "Candidate reference creation failed");
+      candidateRefId = createRefJson.data.id;
+    }
+
+    return candidateRefId;
+  };
+
+  /** Create submission (deduplicates JD and creates candidate_reference first) */
   const createSubmission = async (jd_raw_input: string, fileId: string) => {
     // Resolve JD (dedupe)
-    const jdId = await getOrCreateJobDescription(jd_raw_input);
-    console.log(jdId);
+    const jobDescriptionId = await getOrCreateJobDescription(jd_raw_input);
+    console.log(jobDescriptionId);
+
+    // Get or create candidate reference
+    const candidateRefId = await getOrCreateCandidateReference(jobDescriptionId, fileId);
+    console.log("Candidate reference ID:", candidateRefId);
 
     // Create submission
     const body = {
-      cv_file: fileId,
+      candidate_reference: candidateRefId,
+      job_description: jobDescriptionId, // always link by ID
       status: "submitted",
-      job_description: jdId, // always link by ID
       ...(isAuthed && me?.id ? { user: me.id } : {}),
     };
 

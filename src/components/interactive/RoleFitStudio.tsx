@@ -458,12 +458,12 @@ export default function RoleFitStudio() {
   };
 
   /** Create submission */
-  const createSubmission = async (jdId: string | number, fileId: string) => {
+  const createSubmission = async (jobDescriptionId: string | number, cvFileId: string) => {
 
     const body = {
-      cv_file: fileId,
+      cv_file: cvFileId,
       status: "submitted",
-      job_description: jdId,
+      job_description: jobDescriptionId,
       ...(isAuthed && me?.id ? { user: me.id } : {}),
     };
 
