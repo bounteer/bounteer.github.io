@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Download, Shield, LogIn } from "lucide-react";
-import { EXTERNAL } from '@/constant';
+import { EXTERNAL, SPEC } from '@/constant';
 import { getUserProfile, getLoginUrl, type UserProfile } from '@/lib/utils';
 import { Checkbox } from "@/components/ui/checkbox";
 import LoginMask from './LoginMask';
@@ -641,7 +641,7 @@ export default function ReportCard() {
           </div>
 
           {/* Talent Pool Opt-in - Only show if role fit index > 75 and user is authenticated */}
-          {report.index > 75 && currentUser && (
+          {report.index > SPEC.high_threshold && currentUser && (
             <div className="border-t pt-6">
               <h2 className="text-lg font-semibold mb-3">🎯 Join Bounteer Talent Pool</h2>
               <div className="rounded-lg bg-green-50 border border-green-200 p-5">
@@ -719,7 +719,7 @@ export default function ReportCard() {
 
       {/* Cover Letter Card - Separate component */}
       <div className="mt-6">
-        <CoverLetterCard 
+        <CoverLetterCard
           report={report}
           candidateName={candidateName()}
           roleName={roleName}

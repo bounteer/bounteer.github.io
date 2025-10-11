@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
-import { EXTERNAL } from "@/constant";
+import { EXTERNAL, SPEC } from "@/constant";
 import { getUserProfile, type UserProfile } from "@/lib/utils";
 
 type Props = {
@@ -238,7 +238,7 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
                         <TableCell >{r.weighted_index || "—"}</TableCell>
                         <TableCell>{jobName}</TableCell>
                         <TableCell>
-                          {r.index > 80 ? (
+                          {r.index > SPEC.high_threshold ? (
                             r.opt_in_talent_pool ? (
                               <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
                                 ✓ Opted In

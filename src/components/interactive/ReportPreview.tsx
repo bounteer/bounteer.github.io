@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
-import { EXTERNAL } from '@/constant';
+import { EXTERNAL, SPEC } from '@/constant';
 import { getAuthHeaders, type UserProfile } from '@/lib/utils';
 
 type FullReport = {
@@ -78,8 +78,8 @@ export default function ReportPreview({ reportId, currentUser }: ReportPreviewPr
   // Helper function to get RFI score color
   const getRFIScoreColor = (score?: number) => {
     if (score === undefined || score === null) return "text-gray-500";
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
+    if (score >= SPEC.high_threshold) return "text-green-600";
+    if (score >= SPEC.mid_threshold) return "text-yellow-600";
     return "text-red-600";
   };
 

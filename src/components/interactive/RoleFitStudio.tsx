@@ -9,7 +9,6 @@ import {
   Form,
   FormField,
   FormItem,
-  FormLabel,
   FormControl,
   FormMessage
 } from "@/components/ui/form";
@@ -30,7 +29,7 @@ import {
   MapPin,
   DollarSign
 } from "lucide-react";
-import { EXTERNAL } from '@/constant';
+import { EXTERNAL, SPEC } from '@/constant';
 import {
   getUserProfile,
   loadCredits,
@@ -370,8 +369,8 @@ export default function RoleFitStudio() {
   // Helper function to get RFI score color
   const getRFIScoreColor = (score?: number) => {
     if (score === undefined || score === null) return "text-gray-500";
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
+    if (score >= SPEC.high_threshold) return "text-green-600";
+    if (score >= SPEC.high_threshold) return "text-yellow-600";
     return "text-red-600";
   };
 
@@ -720,27 +719,27 @@ export default function RoleFitStudio() {
                                   )}
                                 </div>
 
-                                <div className="flex flex-col gap-1 text-xs">
-                                  {jd.location && (
-                                    <Badge variant="secondary" className="text-xs w-fit">
-                                      <MapPin className="h-3 w-3 mr-1" />
-                                      {jd.location}
-                                    </Badge>
-                                  )}
-                                  {jd.salary_range && (
-                                    <Badge variant="secondary" className="text-xs w-fit">
-                                      <DollarSign className="h-3 w-3 mr-1" />
-                                      {jd.salary_range}
-                                    </Badge>
-                                  )}
-                                  <Badge variant="outline" className="text-xs w-fit">
-                                    <Calendar className="h-3 w-3 mr-1" />
-                                    {formatDate(jd.date_created)}
-                                  </Badge>
-                                </div>
-                              </div>
+                            <div className="flex flex-col gap-1 text-xs">
+                              {jd.location && (
+                                <Badge variant="secondary" className="text-xs w-fit">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {jd.location}
+                                </Badge>
+                              )}
+                              {jd.salary_range && (
+                                <Badge variant="secondary" className="text-xs w-fit">
+                                  <DollarSign className="h-3 w-3 mr-1" />
+                                  {jd.salary_range}
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs w-fit">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {formatDate(jd.date_created)}
+                              </Badge>
                             </div>
-                          ))}
+                          </div>
+                        </div>
+                      ))}
                         </div>
                   )}
                 </div>
@@ -759,7 +758,7 @@ export default function RoleFitStudio() {
                       <div className="flex gap-2 overflow-x-auto pb-2">
                         {jobDescriptionReports.map((report) => {
                           const isSelected = selectedReport?.id === report.id;
-                          
+
                           return (
                             <div
                               key={report.id}

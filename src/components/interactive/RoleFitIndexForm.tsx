@@ -383,13 +383,33 @@ export default function RoleFitForm() {
   };
 
   /** Get or create candidate reference */
-  const getOrCreateCandidateReference = async (jobDescriptionId: string, fileId: string): Promise<string> => {
-    // Check if candidate_reference already exists for this CV + JD + user combination
+  const getOrCreateCandidateReference = async (cv_file_id?: string, linkedin_handle?: string): Promise<string | null> => {
+    // Return null if both parameters are missing
+    if (!cv_file_id && !linkedin_handle) {
+      return null;
+    }
+
+    // Build filter query based on available parameters
+    let filterQuery = '';
+    const filterParts: string[] = [];
+    
+    if (cv_file_id) {
+      filterParts.push(`filter[cv_file][_eq]=${encodeURIComponent(cv_file_id)}`);
+    }
+    
+    if (linkedin_handle) {
+      filterParts.push(`filter[linkedin_handle][_eq]=${encodeURIComponent(linkedin_handle)}`);
+    }
+    
+    if (isAuthed && me?.id) {
+      filterParts.push(`filter[user_created][id][_eq]=${encodeURIComponent(me.id)}`);
+    }
+    
+    filterQuery = filterParts.join('&');
+
+    // Check if candidate_reference already exists
     const checkRes = await fetch(
-      `${DIRECTUS_URL}/items/candidate_reference?` +
-      `filter[cv_file][_eq]=${encodeURIComponent(fileId)}&` +
-      (isAuthed && me?.id ? `filter[user_created][id][_eq]=${encodeURIComponent(me.id)}&` : '') +
-      `fields=id&limit=1`,
+      `${DIRECTUS_URL}/items/candidate_reference?${filterQuery}&fields=id&limit=1`,
       {
         method: "GET",
         headers: getAuthHeaders(me),
@@ -402,6 +422,18 @@ export default function RoleFitForm() {
 
     // If not exists, create new candidate_reference
     if (!candidateRefId) {
+      const requestBody: any = {
+        ...(isAuthed && me?.id ? { user: me.id } : {}),
+      };
+      
+      if (cv_file_id) {
+        requestBody.cv_file = cv_file_id;
+      }
+      
+      if (linkedin_handle) {
+        requestBody.linkedin_handle = linkedin_handle;
+      }
+
       const createRefRes = await fetch(`${DIRECTUS_URL}/items/candidate_reference`, {
         method: "POST",
         credentials: isAuthed ? "include" : "omit",
@@ -409,11 +441,7 @@ export default function RoleFitForm() {
           ...getAuthHeaders(me),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          cv_file_id: fileId,
-          job_description_id: jobDescriptionId,
-          ...(isAuthed && me?.id ? { user: me.id } : {}),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const createRefJson = await createRefRes.json();
@@ -426,13 +454,16 @@ export default function RoleFitForm() {
 
   /** Create submission (deduplicates JD and creates candidate_reference first) */
   const createSubmission = async (jd_raw_input: string, fileId: string) => {
+    // Get or create candidate reference
+    const candidateRefId = await getOrCreateCandidateReference(fileId);
+    if (!candidateRefId) {
+      throw new Error("Failed to create candidate reference: cv_file_id is required");
+    }
+    console.log("Candidate reference ID:", candidateRefId);
+
     // Resolve JD (dedupe)
     const jobDescriptionId = await getOrCreateJobDescription(jd_raw_input);
     console.log(jobDescriptionId);
-
-    // Get or create candidate reference
-    const candidateRefId = await getOrCreateCandidateReference(jobDescriptionId, fileId);
-    console.log("Candidate reference ID:", candidateRefId);
 
     // Create submission
     const body = {
@@ -747,7 +778,7 @@ export default function RoleFitForm() {
                         <FormControl>
                           <Textarea
                             placeholder="Paste the JD or a JD URL…"
-                            className="h-full min-h-[300px]"
+                            className="h-[300px] resize-none overflow-y-auto"
                             {...field}
                           />
                         </FormControl>

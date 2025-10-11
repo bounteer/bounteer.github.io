@@ -40,7 +40,7 @@ export default function DragAndDropUpload({ onFileSelect, lastSubmission, select
 
   return (
     <Card
-      className={`p-2 sm:p-4 border-2 border-dashed text-center cursor-pointer transition h-full min-h-[120px] sm:min-h-[200px] flex flex-col ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
+      className={`p-2 sm:p-4 border-2 border-dashed text-center cursor-pointer transition h-[300px] flex flex-col ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
         }`}
       onClick={() => fileInputRef.current?.click()}
       onDragOver={(e) => {

@@ -11,6 +11,10 @@ export const KEYWORDS = {
     email: "sho@bounteer.com",
     metaKeywords: ["bounteer", "bounty", "hiring", "recruitment", "marketplace", "AI", "job", "referrals", "social", "technology"].join(", "),
 };
+export const SPEC = {
+    mid_threshold: 60,
+    high_threshold: 80,
+};
 
 export const JOBS = [
     {
