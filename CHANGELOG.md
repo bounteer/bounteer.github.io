@@ -1,5 +1,10 @@
 # Bounteer Changelog
 
+## [0.4.1] - 2025-10-16
+### Added
+- more dynamic rainbow effect
+- RFI accept linkedin URL
+
 ## [0.4.0] - 2025-10-04
 ### Added
 - Rainbow Effect

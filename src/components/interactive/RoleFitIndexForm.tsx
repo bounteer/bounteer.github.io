@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormField,
@@ -24,7 +25,11 @@ import { loadCredits, consumeCredit, getLoginUrl, getAuthHeaders, type Credits, 
 
 const schema = z.object({
   jdRawInput: z.string().min(1, "Paste the JD or provide a URL"),
-  cv: z.any().refine((file) => file instanceof File || typeof file === "string", "Please upload a CV or select a previous one"),
+  cv: z.any().optional().refine((file) => !file || file instanceof File || typeof file === "string", "Please upload a valid CV"),
+  linkedinUrl: z.string().optional(),
+}).refine((data) => data.cv || data.linkedinUrl, {
+  message: "Please provide either a CV or LinkedIn URL/handle",
+  path: ["cv"], // Show error on CV field
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -137,7 +142,7 @@ export default function RoleFitForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { jdRawInput: "", cv: null },
+    defaultValues: { jdRawInput: "", cv: null, linkedinUrl: "" },
   });
 
   const progressSteps = [
@@ -392,19 +397,19 @@ export default function RoleFitForm() {
     // Build filter query based on available parameters
     let filterQuery = '';
     const filterParts: string[] = [];
-    
+
     if (cv_file_id) {
       filterParts.push(`filter[cv_file][_eq]=${encodeURIComponent(cv_file_id)}`);
     }
-    
+
     if (linkedin_handle) {
       filterParts.push(`filter[linkedin_handle][_eq]=${encodeURIComponent(linkedin_handle)}`);
     }
-    
+
     if (isAuthed && me?.id) {
       filterParts.push(`filter[user_created][id][_eq]=${encodeURIComponent(me.id)}`);
     }
-    
+
     filterQuery = filterParts.join('&');
 
     // Check if candidate_reference already exists
@@ -425,11 +430,11 @@ export default function RoleFitForm() {
       const requestBody: any = {
         ...(isAuthed && me?.id ? { user: me.id } : {}),
       };
-      
+
       if (cv_file_id) {
         requestBody.cv_file = cv_file_id;
       }
-      
+
       if (linkedin_handle) {
         requestBody.linkedin_handle = linkedin_handle;
       }
@@ -452,12 +457,56 @@ export default function RoleFitForm() {
     return candidateRefId;
   };
 
+  /** Extract LinkedIn handle from URL */
+  const extractLinkedInHandle = (url: string): string => {
+    if (!url) return '';
+
+    // Clean up the URL
+    const cleanUrl = url.trim();
+
+    // If it's just a handle (no URL), return as is
+    if (!cleanUrl.includes('/')) {
+      return cleanUrl;
+    }
+
+    // Extract handle from LinkedIn URL patterns
+    const patterns = [
+      /linkedin\.com\/in\/([^/?]+)/,
+      /linkedin\.com\/pub\/([^/?]+)/,
+      /linkedin\.com\/profile\/view\?id=([^&]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = cleanUrl.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+
+    // If no pattern matches but it's a URL, try to extract the last segment
+    try {
+      const urlObj = new URL(cleanUrl);
+      const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+      if (pathSegments.length > 0) {
+        return pathSegments[pathSegments.length - 1];
+      }
+    } catch {
+      // Not a valid URL, return as is
+      return cleanUrl;
+    }
+
+    return cleanUrl;
+  };
+
   /** Create submission (deduplicates JD and creates candidate_reference first) */
-  const createSubmission = async (jd_raw_input: string, fileId: string) => {
+  const createSubmission = async (jd_raw_input: string, fileId?: string, linkedinUrl?: string) => {
+    // Extract LinkedIn handle if URL is provided
+    const linkedinHandle = linkedinUrl ? extractLinkedInHandle(linkedinUrl) : undefined;
+
     // Get or create candidate reference
-    const candidateRefId = await getOrCreateCandidateReference(fileId);
+    const candidateRefId = await getOrCreateCandidateReference(fileId, linkedinHandle);
     if (!candidateRefId) {
-      throw new Error("Failed to create candidate reference: cv_file_id is required");
+      throw new Error("Failed to create candidate reference: either cv_file_id or linkedin_handle is required");
     }
     console.log("Candidate reference ID:", candidateRefId);
 
@@ -540,7 +589,7 @@ export default function RoleFitForm() {
         }
 
         // Reset form state
-        form.reset({ jdRawInput: "", cv: null });
+        form.reset({ jdRawInput: "", cv: null, linkedinUrl: "" });
         setSubmissionId(null);
         setCurrentState("redirecting");
 
@@ -718,17 +767,19 @@ export default function RoleFitForm() {
       }
 
       // Handle both new file uploads and previous CV selection
-      let cvFileId: string;
-      if (typeof values.cv === "string") {
-        // Using a previous CV
-        cvFileId = values.cv;
-      } else {
-        // Uploading a new file
-        cvFileId = await uploadFile(values.cv);
+      let cvFileId: string | undefined;
+      if (values.cv) {
+        if (typeof values.cv === "string") {
+          // Using a previous CV
+          cvFileId = values.cv;
+        } else {
+          // Uploading a new file
+          cvFileId = await uploadFile(values.cv);
+        }
       }
 
       setCurrentState("saving");
-      const subId = await createSubmission(values.jdRawInput, cvFileId);
+      const subId = await createSubmission(values.jdRawInput, cvFileId, values.linkedinUrl);
       setSubmissionId(subId);
 
       setCurrentState("submitted");
@@ -762,61 +813,118 @@ export default function RoleFitForm() {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Upload JD and CV</CardTitle>
+            <CardTitle>Upload Job Description and Profile</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-                  {/* Left: JD */}
-                  <FormField
-                    control={form.control}
-                    name="jdRawInput"
-                    render={({ field }) => (
-                      <FormItem className="h-full flex flex-col">
-                        <FormLabel>Job Description (Text or URL)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Paste the JD or a JD URL…"
-                            className="h-[300px] resize-none overflow-y-auto"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                  {/* Left Section: Job */}
+                  <div className="flex flex-col space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Job</h3>
+                    <FormField
+                      control={form.control}
+                      name="jdRawInput"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col flex-1">
+                          <FormLabel>Job Description (Text or URL)</FormLabel>
+                          <FormControl className="flex-1">
+                            <Textarea
+                              placeholder="Paste the full job description, or enter a job posting URL (e.g, Indeed, Glassdoor, etc)
 
-                  {/* Right: CV Upload */}
-                  <FormField
-                    control={form.control}
-                    name="cv"
-                    render={({ field }) => (
-                      <FormItem className="h-full flex flex-col">
-                        <FormLabel>CV (PDF only)</FormLabel>
-                        <FormControl>
-                          <div className="space-y-4">
-                            {/* File upload component with optional last CV selection */}
-                            <DragAndDropUpload
-                              onFileSelect={(file) => {
-                                setSelectedPreviousCV(null);
-                                field.onChange(file);
-                              }}
-                              lastSubmission={lastSubmission}
-                              selectedPreviousCV={selectedPreviousCV}
-                              onSelectLastCV={() => {
-                                if (lastSubmission) {
-                                  setSelectedPreviousCV(lastSubmission.cv_file);
-                                  field.onChange(lastSubmission.cv_file);
-                                }
-                              }}
+Example JD:
+Senior Software Engineer - Full Stack
+Company: Tech Innovators Inc.
+
+We are seeking a Senior Software Engineer to join our dynamic team. You will be responsible for developing scalable web applications using modern technologies.
+
+Requirements:
+• 5+ years of experience in full-stack development
+• Proficiency in React, Node.js, and TypeScript
+• Experience with cloud platforms (AWS, Azure)
+• Bachelor's degree in Computer Science or related field
+
+Responsibilities:
+• Design and implement new features
+• Collaborate with cross-functional teams
+• Participate in code reviews, mentor junior developers
+
+or paste a URL like: https://linkedin.com/jobs/view/123456789"
+                              className="h-full min-h-[400px] resize-none overflow-y-auto"
+                              {...field}
                             />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Right Section: Profile */}
+                  <div className="flex flex-col space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
+                    <div className="space-y-6 flex-1">
+                      {/* LinkedIn Profile */}
+                      <FormField
+                        control={form.control}
+                        name="linkedinUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>LinkedIn URL</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="https://linkedin.com/in/your-handle or your-handle"
+                                className="h-12"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* And/Or Separator */}
+                      <div className="flex items-center justify-center">
+                        <div className="flex-1 border-t border-gray-200"></div>
+                        <span className="px-3 text-sm text-gray-500 bg-white">and/or</span>
+                        <div className="flex-1 border-t border-gray-200"></div>
+                      </div>
+
+                      {/* CV Upload */}
+                      <FormField
+                        control={form.control}
+                        name="cv"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CV (PDF only)</FormLabel>
+                            <FormControl>
+                              <div className="space-y-4">
+                                {/* File upload component with optional last CV selection */}
+                                <DragAndDropUpload
+                                  onFileSelect={(file) => {
+                                    setSelectedPreviousCV(null);
+                                    field.onChange(file);
+                                  }}
+                                  lastSubmission={lastSubmission}
+                                  selectedPreviousCV={selectedPreviousCV}
+                                  onSelectLastCV={() => {
+                                    if (lastSubmission) {
+                                      setSelectedPreviousCV(lastSubmission.cv_file);
+                                      field.onChange(lastSubmission.cv_file);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                            <p className="text-xs text-gray-500 mt-2">
+                              Provide either a CV or LinkedIn URL (or both for better results)
+                            </p>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Progress & Stepper */}
