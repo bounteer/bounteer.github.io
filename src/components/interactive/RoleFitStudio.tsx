@@ -128,7 +128,7 @@ const STATE_CONFIG = {
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
-  generated_report: {
+  parsed_profile: {
     step: 2,
     buttonText: "Analyzing…",
     progressStep: 3,
@@ -137,10 +137,19 @@ const STATE_CONFIG = {
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
+  generated_report: {
+    step: 2,
+    buttonText: "Analyzing…",
+    progressStep: 4,
+    isProcessing: true,
+    canSubmit: false,
+    helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
+    isError: false
+  },
   redirecting: {
     step: 2,
     buttonText: "Analyzing…",
-    progressStep: 3,
+    progressStep: 4,
     isProcessing: true,
     canSubmit: false,
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
@@ -155,10 +164,19 @@ const STATE_CONFIG = {
     helperText: "Failed to parse the job description. This could be led by the site blocking. Please try again, or paste JD contents.",
     isError: true
   },
-  failed_generating_report: {
+  failed_parsing_profile: {
     step: 2,
     buttonText: "Analyze Role Fit Now",
     progressStep: 2,
+    isProcessing: false,
+    canSubmit: true,
+    helperText: "Failed to parse the profile. Please try again.",
+    isError: true
+  },
+  failed_generating_report: {
+    step: 2,
+    buttonText: "Analyze Role Fit Now",
+    progressStep: 3,
     isProcessing: false,
     canSubmit: true,
     helperText: "Failed to generate the report. Please try again.",
@@ -198,8 +216,9 @@ export default function RoleFitStudio() {
   });
 
   const progressSteps = [
-    "Upload CV",
+    "Upload Submission",
     "Parse Job Description",
+    "Parse Profile",
     "Generate Report",
     "Redirect to Report",
   ];
@@ -572,6 +591,8 @@ export default function RoleFitStudio() {
               if ((rec.status || "").startsWith("failed_")) {
                 if (rec.status === "failed_parsing_jd") {
                   setCurrentState("failed_parsing_jd");
+                } else if (rec.status === "failed_parsing_profile") {
+                  setCurrentState("failed_parsing_profile");
                 } else {
                   setCurrentState("failed_generating_report");
                 }
@@ -634,7 +655,7 @@ export default function RoleFitStudio() {
   }, []);
 
   const getStudioGlowState = (): GlowState => {
-    if (currentState === "submitted" || currentState === "parsed_jd" || currentState === "generated_report") {
+    if (currentState === "submitted" || currentState === "parsed_jd" || currentState === "parsed_profile" || currentState === "generated_report") {
       return "processing";
     }
     if (currentState === "uploading" || currentState === "saving") {

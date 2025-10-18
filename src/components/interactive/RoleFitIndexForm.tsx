@@ -75,7 +75,7 @@ const STATE_CONFIG = {
   submitted: {
     step: 2,
     buttonText: "Analyzing…",
-    progressStep: 1,
+    progressStep: 0,
     canSubmit: false,
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
@@ -88,7 +88,7 @@ const STATE_CONFIG = {
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
-  generated_report: {
+  parsed_profile: {
     step: 2,
     buttonText: "Analyzing…",
     progressStep: 3,
@@ -96,10 +96,18 @@ const STATE_CONFIG = {
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
   },
+  generated_report: {
+    step: 2,
+    buttonText: "Analyzing…",
+    progressStep: 4,
+    canSubmit: false,
+    helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
+    isError: false
+  },
   redirecting: {
     step: 2,
     buttonText: "Analyzing…",
-    progressStep: 3,
+    progressStep: 4,
     canSubmit: false,
     helperText: "Analyzing your CV & JD — this usually takes ~20 seconds. You'll be redirected when the report is ready.",
     isError: false
@@ -112,10 +120,18 @@ const STATE_CONFIG = {
     helperText: "Failed to parse the job description. This could be led by the site blocking. Please try again, or paste JD contents.",
     isError: true
   },
-  failed_generating_report: {
+  failed_parsing_profile: {
     step: 2,
     buttonText: "Analyze Role Fit Now",
     progressStep: 2,
+    canSubmit: true,
+    helperText: "Failed to parse the profile. Please try again.",
+    isError: true
+  },
+  failed_generating_report: {
+    step: 2,
+    buttonText: "Analyze Role Fit Now",
+    progressStep: 3,
     canSubmit: true,
     helperText: "Failed to generate the report. Please try again.",
     isError: true
@@ -146,8 +162,9 @@ export default function RoleFitForm() {
   });
 
   const progressSteps = [
-    "Upload CV",
+    "Upload Submission",
     "Parse Job Description",
+    "Parse Profile",
     "Generate Report",
     "Redirect to Report",
   ];
@@ -553,6 +570,7 @@ export default function RoleFitForm() {
         fields: ["id", "status"],
       },
     });
+    console.log(subscriptionPayload);
     ws.send(subscriptionPayload);
   };
 
@@ -627,7 +645,8 @@ export default function RoleFitForm() {
       case "update":
         console.log("Record updated:", rec);
         if (!rec || String(rec.id) !== String(id)) return;
-
+        //  TODO check status
+        console.log("received:" + rec);
         // Handle status updates
         if (rec.status) {
           console.log(rec.status);
@@ -644,6 +663,11 @@ export default function RoleFitForm() {
           if (rec.status === "failed_parsing_jd") {
             // Show failure at the parsing step and allow retry
             setCurrentState("failed_parsing_jd");
+            clearTimeout(timeout);
+            resolve(false); // Resolve instead of reject to allow retry
+          } else if (rec.status === "failed_parsing_profile") {
+            // Show failure at the profile parsing step and allow retry
+            setCurrentState("failed_parsing_profile");
             clearTimeout(timeout);
             resolve(false); // Resolve instead of reject to allow retry
           } else {
@@ -710,6 +734,8 @@ export default function RoleFitForm() {
         ws.onopen = () => {
           console.log("WebSocket opened");
           handleWSAuth(ws);
+          // Send subscription immediately after auth to reduce delay
+          setTimeout(() => subscribeToSubmissions(ws), 50);
         };
 
         ws.onmessage = (evt) => handleWSMessage(evt, ws, id, timeout, resolve, reject);
@@ -826,9 +852,9 @@ export default function RoleFitForm() {
                       control={form.control}
                       name="jdRawInput"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col flex-1">
+                        <FormItem className="flex flex-col">
                           <FormLabel>Job Description (Text or URL)</FormLabel>
-                          <FormControl className="flex-1">
+                          <FormControl>
                             <Textarea
                               placeholder="Paste the full job description, or enter a job posting URL (e.g, Indeed, Glassdoor, etc)
 
@@ -850,7 +876,7 @@ Responsibilities:
 • Participate in code reviews, mentor junior developers
 
 or paste a URL like: https://linkedin.com/jobs/view/123456789"
-                              className="h-full min-h-[400px] resize-none overflow-y-auto"
+                              className="h-[500px] resize-none overflow-y-auto"
                               {...field}
                             />
                           </FormControl>
