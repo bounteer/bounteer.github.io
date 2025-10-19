@@ -1,5 +1,9 @@
 # Bounteer Changelog
 
+## [0.4.2] - 2025-10-18
+### Modified
+- chnaged rfi flow so that it catches all the websocket messages
+
 ## [0.4.1] - 2025-10-16
 ### Added
 - more dynamic rainbow effect
