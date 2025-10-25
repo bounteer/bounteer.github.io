@@ -1,0 +1,32 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Footer from "@/components/Footer.astro";
+import { Sidebar } from "@/components/interactive/Sidebar";
+import OrbitCallDashboard from "@/components/interactive/OrbitCallDashboard";
+import AuthGuard from "@/components/interactive/AuthGuard";
+---
+
+<Layout title="Orbit Call Dashboard">
+  <AuthGuard client:load>
+    <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
+      <!-- Sidebar handles both mobile topbar + desktop sidebar -->
+      <Sidebar client:load />
+
+      <!-- Main content -->
+      <section class="flex-1 px-6 py-10">
+        <!-- Page Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-semibold tracking-tight mb-2">
+            Orbit Call Dashboard
+          </h1>
+          <p class="text-sm text-muted-foreground">
+            Manage and review your Orbit Call sessions and recordings.
+          </p>
+        </div>
+
+        <OrbitCallDashboard client:load />
+      </section>
+    </main>
+    <Footer />
+  </AuthGuard>
+</Layout>
