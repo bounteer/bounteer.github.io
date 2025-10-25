@@ -1,6 +1,5 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Footer from "@/components/Footer.astro";
 import { Sidebar } from "@/components/interactive/Sidebar";
 import OrbitCallDashboard from "@/components/interactive/OrbitCallDashboard";
 import AuthGuard from "@/components/interactive/AuthGuard";
@@ -27,6 +26,5 @@ import AuthGuard from "@/components/interactive/AuthGuard";
         <OrbitCallDashboard client:load />
       </section>
     </main>
-    <Footer />
   </AuthGuard>
 </Layout>

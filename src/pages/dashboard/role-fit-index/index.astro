@@ -1,6 +1,5 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Footer from "@/components/Footer.astro";
 import { Sidebar } from "@/components/interactive/Sidebar";
 import UserReportTable from "@/components/interactive/UserReportTable";
 import AuthGuard from "@/components/interactive/AuthGuard";
@@ -49,7 +48,5 @@ import { EXTERNAL } from "@/constant";
         <UserReportTable pageSize={10} client:load />
       </section>
     </main>
-
-    <Footer />
   </AuthGuard>
 </Layout>

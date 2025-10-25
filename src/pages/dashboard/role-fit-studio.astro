@@ -1,6 +1,5 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Footer from "@/components/Footer.astro";
 import { Sidebar } from "@/components/interactive/Sidebar";
 import AuthGuard from "@/components/interactive/AuthGuard";
 import RoleFitStudio from "@/components/interactive/RoleFitStudio";
@@ -20,9 +19,12 @@ import RoleFitStudio from "@/components/interactive/RoleFitStudio";
       <section class="flex-1 px-6 py-10">
         <!-- Page Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-semibold tracking-tight mb-2">Role Fit Studio</h1>
+          <h1 class="text-2xl font-semibold tracking-tight mb-2">
+            Role Fit Studio
+          </h1>
           <p class="text-sm text-muted-foreground">
-            Select a job description and incrementally improve your CV with professional suggestions.
+            Select a job description and incrementally improve your CV with
+            professional suggestions.
           </p>
         </div>
 
@@ -48,7 +50,5 @@ import RoleFitStudio from "@/components/interactive/RoleFitStudio";
         </p>
       </section>
     </main>
-
-    <Footer />
   </AuthGuard>
 </Layout>
