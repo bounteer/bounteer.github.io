@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import RainbowGlowWrapper from "./RainbowGlowWrapper";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
-import { isValidCallUrl, DEFAULT_JOB_DESCRIPTION } from "@/types/models";
+import { enrichAndValidateCallUrl } from "@/types/models";
 
+// TODO use framer-motion to link up the 3 states
 /**
  * Job Description enrichment flow has 3 stages:
  * 
@@ -35,6 +36,7 @@ type JDStage = "not_linked" | "ai_enrichment" | "manual_enrichment";
 
 export default function OrbitCallDashboard() {
   const [callUrl, setCallUrl] = useState("");
+  const [callUrlError, setCallUrlError] = useState<string>("");
   const [jobData, setJobData] = useState<JobDescriptionFormData>({
     company_name: "",
     role_name: "",
@@ -86,26 +88,52 @@ export default function OrbitCallDashboard() {
   };
 
   /**
+   * Handles URL changes with real-time validation
+   */
+  const handleCallUrlChange = (value: string) => {
+    setCallUrl(value);
+
+    if (value.trim()) {
+      const validation = enrichAndValidateCallUrl(value);
+      if (validation.error) {
+        setCallUrlError(validation.error);
+      } else {
+        setCallUrlError("");
+        // Use the enriched URL
+        if (validation.enrichedUrl && validation.enrichedUrl !== value) {
+          setCallUrl(validation.enrichedUrl);
+        }
+      }
+    } else {
+      setCallUrlError("");
+    }
+  };
+
+  /**
    * Handles sending the bot to the call
    * Validates URL and transitions from not_linked to ai_enrichment stage
    */
   const handleSendBot = () => {
-    if (!callUrl.trim()) {
-      alert("Please enter a call URL");
+    const validation = enrichAndValidateCallUrl(callUrl);
+
+    if (!validation.isValid) {
+      setCallUrlError(validation.error || "Invalid URL");
       return;
     }
-    if (!isValidCallUrl(callUrl)) {
-      alert("Please enter a valid Google Meet, MS Teams, or Zoom URL");
-      return;
+
+    // Clear any errors and use the enriched URL
+    setCallUrlError("");
+    if (validation.enrichedUrl) {
+      setCallUrl(validation.enrichedUrl);
     }
 
     // Transition to AI enrichment stage first
     console.log("Transitioning from", jdStage, "to ai_enrichment");
     setJdStage("ai_enrichment");
 
-    console.log("Sending bot to call:", callUrl);
+    console.log("Sending bot to call:", validation.enrichedUrl || callUrl);
+    console.log("Detected platform:", validation.platform);
     console.log("Job data:", jobData);
-    alert("Bot is being sent to the call!");
   };
 
   /**
@@ -128,40 +156,50 @@ export default function OrbitCallDashboard() {
           {/* Stage 1: not_linked - Only shows URL input */}
           {jdStage === "not_linked" && (
             <>
-              {/* Header */}
-              <div className="bg-black text-white p-6">
-                <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
-                <p className="text-gray-300 text-sm mt-1">Enter your call URL to get started</p>
-              </div>
+              <div className="bg-black text-white rounded-xl p-6 border border-gray-800 w-full">
+                <h3 className="text-lg font-semibold mb-1">Set Up New Orbit Call</h3>
+                <p className="text-gray-400 text-sm mb-5">
+                  Enter your call URL to get started
+                </p>
 
-              {/* Content */}
-              <div className="p-8">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="callUrl">Call URL</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="callUrl"
-                        type="url"
-                        placeholder="Paste Google Meet, MS Teams, or Zoom URL"
-                        value={callUrl}
-                        onChange={(e) => setCallUrl(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={handleSendBot}
-                        className="whitespace-nowrap"
-                        size="sm"
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="callUrl"
+                      type="url"
+                      placeholder="Paste meeting link (Google Meet, Teams, or Zoom)"
+                      value={callUrl}
+                      onChange={(e) => handleCallUrlChange(e.target.value)}
+                      className={`flex-1 text-sm bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus-visible:ring-gray-500 ${callUrlError ? 'border-red-500' : ''}`}
+                    />
+                    <Button
+                      onClick={handleSendBot}
+                      size="sm"
+                      disabled={!!callUrlError || !callUrl.trim()}
+                      className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                        </svg>
-                        Send Bot
-                      </Button>
-                    </div>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                        />
+                      </svg>
+                      Deploy
+                    </Button>
                   </div>
+                  {callUrlError && (
+                    <p className="text-sm text-red-400">{callUrlError}</p>
+                  )}
                 </div>
               </div>
+
             </>
           )}
 
@@ -174,7 +212,7 @@ export default function OrbitCallDashboard() {
                   <div>
                     <h3 className="text-lg font-semibold">Job Description Enrichment</h3>
                     <p className="text-gray-300 text-sm mt-1">
-                      {jdStage === "ai_enrichment" ? "AI is enriching your job description" : "Manual editing mode"}
+                      {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
                     </p>
                   </div>
                   <div className="flex items-center space-x-4">

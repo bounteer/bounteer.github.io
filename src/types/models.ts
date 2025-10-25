@@ -124,9 +124,56 @@ export const SUPPORTED_CALL_PLATFORMS = [
   'teams.live.com'
 ] as const;
 
+export interface UrlValidationResult {
+  isValid: boolean;
+  enrichedUrl?: string;
+  platform?: CallSetup['platform'];
+  error?: string;
+}
+
+export const enrichAndValidateCallUrl = (inputUrl: string): UrlValidationResult => {
+  if (!inputUrl || !inputUrl.trim()) {
+    return {
+      isValid: false,
+      error: 'URL is required'
+    };
+  }
+
+  let url = inputUrl.trim();
+
+  // Auto-add https:// if no protocol is specified
+  if (!url.match(/^https?:\/\//i)) {
+    url = 'https://' + url;
+  }
+
+  // Try to create a URL object to validate the format
+  try {
+    new URL(url);
+    
+    // Check if it's a supported platform
+    const platform = detectCallPlatform(url);
+    if (!platform) {
+      return {
+        isValid: false,
+        error: 'Please enter a valid Google Meet, Microsoft Teams, or Zoom URL'
+      };
+    }
+
+    return {
+      isValid: true,
+      enrichedUrl: url,
+      platform
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      error: 'Please enter a valid URL format'
+    };
+  }
+};
+
 export const isValidCallUrl = (url: string): boolean => {
-  const lowerUrl = url.toLowerCase();
-  return SUPPORTED_CALL_PLATFORMS.some(platform => lowerUrl.includes(platform));
+  return enrichAndValidateCallUrl(url).isValid;
 };
 
 export const detectCallPlatform = (url: string): CallSetup['platform'] | null => {
