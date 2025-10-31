@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import RainbowGlowWrapper from "./RainbowGlowWrapper";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
+import { createOrbitCallRequest } from "@/lib/utils";
+import { EXTERNAL } from "@/constant";
 
 // TODO use framer-motion to link up the 3 states
 /**
@@ -33,10 +35,13 @@ import { enrichAndValidateCallUrl } from "@/types/models";
  *    - Header maintains the same gradient background
  */
 type JDStage = "not_linked" | "ai_enrichment" | "manual_enrichment";
+type InputMode = "meeting" | "testing";
 
 export default function OrbitCallDashboard() {
   const [callUrl, setCallUrl] = useState("");
   const [callUrlError, setCallUrlError] = useState<string>("");
+  const [inputMode, setInputMode] = useState<InputMode>("meeting");
+  const [isDeploying, setIsDeploying] = useState(false);
   const [jobData, setJobData] = useState<JobDescriptionFormData>({
     company_name: "",
     role_name: "",
@@ -88,20 +93,35 @@ export default function OrbitCallDashboard() {
   };
 
   /**
-   * Handles URL changes with real-time validation
+   * Handles URL/filename changes with real-time validation
    */
   const handleCallUrlChange = (value: string) => {
     setCallUrl(value);
 
     if (value.trim()) {
-      const validation = enrichAndValidateCallUrl(value);
-      if (validation.error) {
-        setCallUrlError(validation.error);
+      if (inputMode === "meeting") {
+        const validation = enrichAndValidateCallUrl(value);
+        if (validation.error) {
+          setCallUrlError(validation.error);
+        } else {
+          setCallUrlError("");
+          // Use the enriched URL
+          if (validation.enrichedUrl && validation.enrichedUrl !== value) {
+            setCallUrl(validation.enrichedUrl);
+          }
+        }
       } else {
-        setCallUrlError("");
-        // Use the enriched URL
-        if (validation.enrichedUrl && validation.enrichedUrl !== value) {
-          setCallUrl(validation.enrichedUrl);
+        // Testing mode validation - check for valid filename
+        // Skip validation if filename contains "testing_filename"
+        if (value.trim().includes("testing_filename")) {
+          setCallUrlError("");
+        } else {
+          const isValidFilename = /^[a-zA-Z0-9._-]+\.(json|txt|csv)$/.test(value.trim());
+          if (!isValidFilename) {
+            setCallUrlError("Please enter a valid test filename (e.g., test-call-001.json)");
+          } else {
+            setCallUrlError("");
+          }
         }
       }
     } else {
@@ -110,30 +130,73 @@ export default function OrbitCallDashboard() {
   };
 
   /**
-   * Handles sending the bot to the call
-   * Validates URL and transitions from not_linked to ai_enrichment stage
+   * Handles sending the bot to the call or loading test file
+   * Validates URL/filename, creates Directus record, and transitions from not_linked to ai_enrichment stage
    */
-  const handleSendBot = () => {
-    const validation = enrichAndValidateCallUrl(callUrl);
+  const handleSendBot = async () => {
+    setIsDeploying(true);
+    
+    try {
+      let requestData: { meeting_url?: string; testing_filename?: string } = {};
+      
+      if (inputMode === "meeting") {
+        const validation = enrichAndValidateCallUrl(callUrl);
 
-    if (!validation.isValid) {
-      setCallUrlError(validation.error || "Invalid URL");
-      return;
+        if (!validation.isValid) {
+          setCallUrlError(validation.error || "Invalid URL");
+          setIsDeploying(false);
+          return;
+        }
+
+        // Clear any errors and use the enriched URL
+        setCallUrlError("");
+        const finalUrl = validation.enrichedUrl || callUrl;
+        if (validation.enrichedUrl) {
+          setCallUrl(validation.enrichedUrl);
+        }
+
+        requestData.meeting_url = finalUrl;
+        console.log("Sending bot to call:", finalUrl);
+        console.log("Detected platform:", validation.platform);
+      } else {
+        // Testing mode validation
+        // Skip validation if filename contains "testing_filename"
+        if (!callUrl.trim().includes("testing_filename")) {
+          const isValidFilename = /^[a-zA-Z0-9._-]+\.(json|txt|csv)$/.test(callUrl.trim());
+          if (!isValidFilename) {
+            setCallUrlError("Please enter a valid test filename (e.g., test-call-001.json)");
+            setIsDeploying(false);
+            return;
+          }
+        }
+
+        setCallUrlError("");
+        requestData.testing_filename = callUrl.trim();
+        console.log("Loading test file:", callUrl);
+      }
+
+      // Create orbit call request in Directus
+      const result = await createOrbitCallRequest(requestData, EXTERNAL.directus_url);
+      
+      if (!result.success) {
+        setCallUrlError(result.error || "Failed to create orbit call request");
+        setIsDeploying(false);
+        return;
+      }
+
+      console.log("Orbit call request created with ID:", result.id);
+
+      // Transition to AI enrichment stage
+      console.log("Transitioning from", jdStage, "to ai_enrichment");
+      setJdStage("ai_enrichment");
+      console.log("Job data:", jobData);
+      
+    } catch (error) {
+      console.error("Error in handleSendBot:", error);
+      setCallUrlError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsDeploying(false);
     }
-
-    // Clear any errors and use the enriched URL
-    setCallUrlError("");
-    if (validation.enrichedUrl) {
-      setCallUrl(validation.enrichedUrl);
-    }
-
-    // Transition to AI enrichment stage first
-    console.log("Transitioning from", jdStage, "to ai_enrichment");
-    setJdStage("ai_enrichment");
-
-    console.log("Sending bot to call:", validation.enrichedUrl || callUrl);
-    console.log("Detected platform:", validation.platform);
-    console.log("Job data:", jobData);
   };
 
   /**
@@ -159,15 +222,38 @@ export default function OrbitCallDashboard() {
               <div className="bg-black text-white rounded-xl p-6 border border-gray-800 w-full">
                 <h3 className="text-lg font-semibold mb-1">Set Up New Orbit Call</h3>
                 <p className="text-gray-400 text-sm mb-5">
-                  Enter your call URL to get started
+                  {inputMode === "meeting" ? "Enter your call URL to get started" : "Enter a test filename to load test data"}
                 </p>
 
                 <div className="space-y-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Label htmlFor="mode-toggle" className="text-sm font-medium text-white">
+                      Mode:
+                    </Label>
+                    <div className="flex items-center space-x-3">
+                      <Button
+                        onClick={() => setInputMode("meeting")}
+                        variant={inputMode === "meeting" ? "default" : "outline"}
+                        size="sm"
+                        className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
+                      >
+                        Meeting
+                      </Button>
+                      <Button
+                        onClick={() => setInputMode("testing")}
+                        variant={inputMode === "testing" ? "default" : "outline"}
+                        size="sm"
+                        className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
+                      >
+                        Testing
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Input
                       id="callUrl"
-                      type="url"
-                      placeholder="Paste meeting link (Google Meet, Teams, or Zoom)"
+                      type={inputMode === "meeting" ? "url" : "text"}
+                      placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
                       value={callUrl}
                       onChange={(e) => handleCallUrlChange(e.target.value)}
                       className={`flex-1 text-sm bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus-visible:ring-gray-500 ${callUrlError ? 'border-red-500' : ''}`}
@@ -175,23 +261,50 @@ export default function OrbitCallDashboard() {
                     <Button
                       onClick={handleSendBot}
                       size="sm"
-                      disabled={!!callUrlError || !callUrl.trim()}
+                      disabled={!!callUrlError || !callUrl.trim() || isDeploying}
                       className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                        />
-                      </svg>
-                      Deploy
+                      {isDeploying ? (
+                        <>
+                          <svg
+                            className="w-4 h-4 animate-spin"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          Deploying...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                            />
+                          </svg>
+                          Deploy
+                        </>
+                      )}
                     </Button>
                   </div>
                   {callUrlError && (
@@ -216,14 +329,16 @@ export default function OrbitCallDashboard() {
                     </p>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <Button
-                      onClick={() => window.open(callUrl, '_blank')}
-                      variant="outline"
-                      size="sm"
-                      className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
-                    >
-                      Go to Meeting
-                    </Button>
+                    {inputMode === "meeting" && (
+                      <Button
+                        onClick={() => window.open(callUrl, '_blank')}
+                        variant="outline"
+                        size="sm"
+                        className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
+                      >
+                        Go to Meeting
+                      </Button>
+                    )}
                     <div className="flex items-center space-x-3">
                       <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
                         AI Enrichment

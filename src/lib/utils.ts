@@ -321,6 +321,63 @@ export function getAuthHeaders(user: UserProfile | null = null): Record<string, 
     : { Authorization: `Bearer ${EXTERNAL.directus_key}` }; // Guest token for unauthenticated users
 }
 
+// Orbit Call Request types
+export type OrbitCallRequest = {
+  meeting_url?: string;
+  testing_filename?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at?: string;
+  user?: string;
+}
+
+// Create orbit call request in Directus
+export async function createOrbitCallRequest(
+  data: { meeting_url?: string; testing_filename?: string },
+  directusUrl: string
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    const authHeaders = getAuthHeaders(user);
+    
+    const requestData: OrbitCallRequest = {
+      ...data,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      ...(user && { user: user.id })
+    };
+
+    const response = await fetch(`${directusUrl}/items/orbit_call_request`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      id: result.data?.id || result.id
+    };
+  } catch (error) {
+    console.error('Error creating orbit call request:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 // Get package version from package.json
 export async function getPackageVersion(): Promise<string> {
   try {
