@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import RainbowGlowWrapper from "./RainbowGlowWrapper";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
-import { createOrbitCallRequest } from "@/lib/utils";
+import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
@@ -62,6 +62,10 @@ export default function OrbitCallDashboard() {
   // State for orbit call request and session
   const [requestId, setRequestId] = useState<string>("");
   const [orbitCallSession, setOrbitCallSession] = useState<OrbitCallSession | null>(null);
+  const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
+  
+  // WebSocket reference for real-time updates
+  const wsRef = useRef<WebSocket | null>(null);
 
   const validateField = (name: keyof JobDescriptionFormData, value: string): string | undefined => {
     switch (name) {
@@ -203,6 +207,7 @@ export default function OrbitCallDashboard() {
             console.log("Orbit call session found:", sessionResult.session);
             if (sessionResult.session.job_description) {
               console.log("Job description ID:", sessionResult.session.job_description);
+              setJobDescriptionId(sessionResult.session.job_description);
             }
           } else {
             console.log("Orbit call session not yet created:", sessionResult.error);
@@ -267,6 +272,135 @@ export default function OrbitCallDashboard() {
       clearTimeout(timeout);
     };
   }, [requestId, orbitCallSession]);
+
+  /**
+   * Set up WebSocket subscription for job description updates
+   */
+  const setupJobDescriptionWebSocket = async (jdId: string) => {
+    try {
+      // Clean up existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+
+      await getUserProfile(EXTERNAL.directus_url);
+      const u = new URL(EXTERNAL.directus_url);
+      u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+      u.pathname = "/websocket";
+      u.search = "";
+
+      const ws = new WebSocket(u.toString());
+      wsRef.current = ws;
+
+      const timeout = setTimeout(() => {
+        try { ws.close(); } catch { }
+        console.log("WebSocket timeout for job description subscription");
+      }, 300_000); // 5 minute timeout
+
+      ws.onopen = () => {
+        console.log("WebSocket connected for job description updates");
+        const authPayload = JSON.stringify({
+          type: "auth",
+          access_token: EXTERNAL.directus_key
+        });
+        ws.send(authPayload);
+      };
+
+      ws.onmessage = async (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+
+          if (msg.type === "auth" && msg.status === "ok") {
+            console.log("WebSocket authenticated, subscribing to job_description updates");
+            const subscriptionPayload = JSON.stringify({
+              type: "subscribe",
+              collection: "job_description",
+              query: { 
+                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk"] 
+              },
+            });
+            ws.send(subscriptionPayload);
+          } else if (msg.type === "subscription") {
+            const rec = Array.isArray(msg.data) ? msg.data[0] : msg.data?.payload ?? msg.data?.item ?? msg.data;
+
+            if (msg.event === "update" && rec && String(rec.id) === String(jdId)) {
+              console.log("Job description updated via WebSocket:", rec);
+              
+              // Update the job description form data with the new values
+              const updatedJobData: JobDescriptionFormData = {
+                company_name: rec.company_name || "",
+                role_name: rec.role_name || "",
+                location: rec.location || "",
+                salary_range: rec.salary_range || "",
+                responsibility: rec.responsibility || "",
+                minimum_requirement: rec.minimum_requirement || "",
+                preferred_requirement: rec.preferred_requirement || "",
+                perk: rec.perk || ""
+              };
+              
+              setJobData(updatedJobData);
+              console.log("Job description form updated with real-time data:", updatedJobData);
+            }
+          }
+        } catch (error) {
+          console.error("Error processing WebSocket message:", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        clearTimeout(timeout);
+      };
+
+      ws.onclose = (event) => {
+        console.log("WebSocket closed:", event.code, event.reason);
+        clearTimeout(timeout);
+        
+        // Attempt to reconnect after 5 seconds if not manually closed
+        if (event.code !== 1000) {
+          setTimeout(() => {
+            if (jobDescriptionId) {
+              console.log("Attempting to reconnect WebSocket for job description updates");
+              setupJobDescriptionWebSocket(jobDescriptionId);
+            }
+          }, 5000);
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up WebSocket:", error);
+    }
+  };
+
+  /**
+   * Effect to set up WebSocket subscription when job description ID is available
+   */
+  useEffect(() => {
+    if (jobDescriptionId && jdStage === "ai_enrichment") {
+      console.log("Setting up WebSocket subscription for job description:", jobDescriptionId);
+      setupJobDescriptionWebSocket(jobDescriptionId);
+    }
+    
+    // Cleanup WebSocket when stage changes or component unmounts
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [jobDescriptionId, jdStage]);
+
+  /**
+   * Cleanup WebSocket on component unmount
+   */
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
