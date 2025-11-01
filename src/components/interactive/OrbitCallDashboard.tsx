@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import RainbowGlowWrapper from "./RainbowGlowWrapper";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest } from "@/lib/utils";
+import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
 // TODO use framer-motion to link up the 3 states
@@ -57,6 +58,10 @@ export default function OrbitCallDashboard() {
   // State management for the 3-stage JD enrichment flow
   const [jdStage, setJdStage] = useState<JDStage>("not_linked");
   const [aiEnrichmentEnabled, setAiEnrichmentEnabled] = useState(true);
+
+  // State for orbit call request and session
+  const [requestId, setRequestId] = useState<string>("");
+  const [orbitCallSession, setOrbitCallSession] = useState<OrbitCallSession | null>(null);
 
   const validateField = (name: keyof JobDescriptionFormData, value: string): string | undefined => {
     switch (name) {
@@ -185,6 +190,27 @@ export default function OrbitCallDashboard() {
       }
 
       console.log("Orbit call request created with ID:", result.id);
+      
+      // Store the request ID
+      if (result.id) {
+        setRequestId(result.id);
+        
+        // Attempt to fetch the orbit call session (may not exist yet)
+        try {
+          const sessionResult = await get_orbit_call_session_by_request_id(result.id, EXTERNAL.directus_url);
+          if (sessionResult.success && sessionResult.session) {
+            setOrbitCallSession(sessionResult.session);
+            console.log("Orbit call session found:", sessionResult.session);
+            if (sessionResult.session.job_description) {
+              console.log("Job description ID:", sessionResult.session.job_description);
+            }
+          } else {
+            console.log("Orbit call session not yet created:", sessionResult.error);
+          }
+        } catch (sessionError) {
+          console.log("Error fetching orbit call session:", sessionError);
+        }
+      }
 
       // Transition to AI enrichment stage
       console.log("Transitioning from", jdStage, "to ai_enrichment");
@@ -207,6 +233,40 @@ export default function OrbitCallDashboard() {
     setAiEnrichmentEnabled(enabled);
     setJdStage(enabled ? "ai_enrichment" : "manual_enrichment");
   };
+
+  /**
+   * Periodically check for orbit call session if we have a request ID but no session yet
+   */
+  useEffect(() => {
+    if (!requestId || orbitCallSession) return;
+
+    const pollForSession = async () => {
+      try {
+        const sessionResult = await get_orbit_call_session_by_request_id(requestId, EXTERNAL.directus_url);
+        if (sessionResult.success && sessionResult.session) {
+          setOrbitCallSession(sessionResult.session);
+          console.log("Orbit call session found via polling:", sessionResult.session);
+          if (sessionResult.session.job_description) {
+            console.log("Job description ID:", sessionResult.session.job_description);
+          }
+        }
+      } catch (error) {
+        console.log("Error polling for orbit call session:", error);
+      }
+    };
+
+    // Poll every 5 seconds for up to 2 minutes
+    const pollInterval = setInterval(pollForSession, 5000);
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      console.log("Stopped polling for orbit call session after 2 minutes");
+    }, 120000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [requestId, orbitCallSession]);
 
   return (
     <div className="space-y-6">

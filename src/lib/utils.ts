@@ -378,6 +378,7 @@ export async function createOrbitCallRequest(
   }
 }
 
+
 // Get package version from package.json
 export async function getPackageVersion(): Promise<string> {
   try {
