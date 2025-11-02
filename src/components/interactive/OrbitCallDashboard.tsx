@@ -38,6 +38,20 @@ import { EXTERNAL } from "@/constant";
 type JDStage = "not_linked" | "ai_enrichment" | "manual_enrichment";
 type InputMode = "meeting" | "testing";
 
+interface Candidate {
+  id: string;
+  name: string;
+  title: string;
+  experience: string;
+  roleFitPercentage: number;
+  skills: string[];
+}
+
+interface CandidateSkill {
+  name: string;
+  color: 'blue' | 'purple' | 'green' | 'yellow' | 'red' | 'indigo' | 'pink' | 'gray';
+}
+
 export default function OrbitCallDashboard() {
   const [callUrl, setCallUrl] = useState("");
   const [callUrlError, setCallUrlError] = useState<string>("");
@@ -63,7 +77,10 @@ export default function OrbitCallDashboard() {
   const [requestId, setRequestId] = useState<string>("");
   const [orbitCallSession, setOrbitCallSession] = useState<OrbitCallSession | null>(null);
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
-  
+
+  // State for candidates data
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+
   // WebSocket reference for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -144,10 +161,10 @@ export default function OrbitCallDashboard() {
    */
   const handleSendBot = async () => {
     setIsDeploying(true);
-    
+
     try {
       let requestData: { meeting_url?: string; testing_filename?: string } = {};
-      
+
       if (inputMode === "meeting") {
         const validation = enrichAndValidateCallUrl(callUrl);
 
@@ -186,7 +203,7 @@ export default function OrbitCallDashboard() {
 
       // Create orbit call request in Directus
       const result = await createOrbitCallRequest(requestData, EXTERNAL.directus_url);
-      
+
       if (!result.success) {
         setCallUrlError(result.error || "Failed to create orbit call request");
         setIsDeploying(false);
@@ -194,11 +211,11 @@ export default function OrbitCallDashboard() {
       }
 
       console.log("Orbit call request created with ID:", result.id);
-      
+
       // Store the request ID
       if (result.id) {
         setRequestId(result.id);
-        
+
         // Attempt to fetch the orbit call session (may not exist yet)
         try {
           const sessionResult = await get_orbit_call_session_by_request_id(result.id, EXTERNAL.directus_url);
@@ -221,7 +238,7 @@ export default function OrbitCallDashboard() {
       console.log("Transitioning from", jdStage, "to ai_enrichment");
       setJdStage("ai_enrichment");
       console.log("Job data:", jobData);
-      
+
     } catch (error) {
       console.error("Error in handleSendBot:", error);
       setCallUrlError("An unexpected error occurred. Please try again.");
@@ -316,8 +333,8 @@ export default function OrbitCallDashboard() {
             const subscriptionPayload = JSON.stringify({
               type: "subscribe",
               collection: "job_description",
-              query: { 
-                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk"] 
+              query: {
+                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk"]
               },
             });
             ws.send(subscriptionPayload);
@@ -326,7 +343,7 @@ export default function OrbitCallDashboard() {
 
             if (msg.event === "update" && rec && String(rec.id) === String(jdId)) {
               console.log("Job description updated via WebSocket:", rec);
-              
+
               // Update the job description form data with the new values
               const updatedJobData: JobDescriptionFormData = {
                 company_name: rec.company_name || "",
@@ -338,7 +355,7 @@ export default function OrbitCallDashboard() {
                 preferred_requirement: rec.preferred_requirement || "",
                 perk: rec.perk || ""
               };
-              
+
               setJobData(updatedJobData);
               console.log("Job description form updated with real-time data:", updatedJobData);
             }
@@ -356,7 +373,7 @@ export default function OrbitCallDashboard() {
       ws.onclose = (event) => {
         console.log("WebSocket closed:", event.code, event.reason);
         clearTimeout(timeout);
-        
+
         // Attempt to reconnect after 5 seconds if not manually closed
         if (event.code !== 1000) {
           setTimeout(() => {
@@ -380,7 +397,7 @@ export default function OrbitCallDashboard() {
       console.log("Setting up WebSocket subscription for job description:", jobDescriptionId);
       setupJobDescriptionWebSocket(jobDescriptionId);
     }
-    
+
     // Cleanup WebSocket when stage changes or component unmounts
     return () => {
       if (wsRef.current) {
@@ -402,6 +419,387 @@ export default function OrbitCallDashboard() {
     };
   }, []);
 
+  const getSkillColorClasses = (color: CandidateSkill['color']) => {
+    const colorMap = {
+      blue: 'bg-blue-100 text-blue-700',
+      purple: 'bg-purple-100 text-purple-700',
+      green: 'bg-green-100 text-green-700',
+      yellow: 'bg-yellow-100 text-yellow-700',
+      red: 'bg-red-100 text-red-700',
+      indigo: 'bg-indigo-100 text-indigo-700',
+      pink: 'bg-pink-100 text-pink-700',
+      gray: 'bg-gray-100 text-gray-700'
+    };
+    return colorMap[color];
+  };
+
+  const getRoleFitColor = (percentage: number) => {
+    if (percentage >= 90) return { text: 'text-green-600', bg: 'bg-green-500' };
+    if (percentage >= 75) return { text: 'text-yellow-600', bg: 'bg-yellow-500' };
+    if (percentage >= 60) return { text: 'text-orange-600', bg: 'bg-orange-500' };
+    return { text: 'text-red-600', bg: 'bg-red-500' };
+  };
+
+  const renderCandidateCard = (candidate: Candidate) => {
+    const fitColors = getRoleFitColor(candidate.roleFitPercentage);
+
+    return (
+      <div key={candidate.id} className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <h3 className="font-medium text-sm text-gray-900">{candidate.name}</h3>
+            <p className="text-xs text-gray-600">{candidate.title}</p>
+            <p className="text-xs text-gray-500 mt-1">{candidate.experience}</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="text-right">
+              <div className="text-xs text-gray-500">Role Fit</div>
+              <div className={`text-sm font-bold ${fitColors.text}`}>{candidate.roleFitPercentage}%</div>
+            </div>
+            <div className={`w-2 h-8 ${fitColors.bg} rounded-full`}></div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-3">
+          {candidate.skills.map((skill, index) => {
+            const skillColor = index % 2 === 0 ? 'blue' : index % 3 === 0 ? 'purple' : 'green';
+            const colorClasses = getSkillColorClasses(skillColor);
+            return (
+              <span key={skill} className={`px-2 py-1 ${colorClasses} text-xs rounded-full`}>
+                {skill}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCandidatesSection = () => {
+    if (candidates.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <p className="text-sm">No candidates found. Load candidate data to see potential matches.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex space-x-4 overflow-x-auto">
+        {candidates.map(renderCandidateCard)}
+      </div>
+    );
+  };
+
+  const loadMockCandidates = () => {
+    const mockCandidates: Candidate[] = [
+      {
+        id: '1',
+        name: 'Sarah Chen',
+        title: 'Senior Software Engineer',
+        experience: '5 years experience',
+        roleFitPercentage: 92,
+        skills: ['React', 'TypeScript', 'Node.js']
+      },
+      {
+        id: '2',
+        name: 'Marcus Johnson',
+        title: 'Full Stack Developer',
+        experience: '3 years experience',
+        roleFitPercentage: 78,
+        skills: ['Python', 'Django', 'PostgreSQL']
+      },
+      {
+        id: '3',
+        name: 'Emily Rodriguez',
+        title: 'Frontend Developer',
+        experience: '4 years experience',
+        roleFitPercentage: 65,
+        skills: ['Vue.js', 'JavaScript', 'CSS']
+      }
+    ];
+    setCandidates(mockCandidates);
+  };
+
+  const clearCandidates = () => {
+    setCandidates([]);
+  };
+
+  const renderEnrichmentStage = () => (
+    <>
+      {/* Header with black background and toggle */}
+      <div className="bg-black text-white p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Job Description Enrichment</h3>
+            <p className="text-gray-300 text-sm mt-1">
+              {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            {inputMode === "meeting" && (
+              <Button
+                onClick={() => window.open(callUrl, '_blank')}
+                variant="outline"
+                size="sm"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
+              >
+                Go to Meeting
+              </Button>
+            )}
+            <div className="flex items-center space-x-3">
+              <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
+                AI Enrichment
+              </Label>
+              <Switch
+                id="ai-toggle"
+                checked={aiEnrichmentEnabled}
+                onCheckedChange={handleAiToggle}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Job Description Form */}
+      <div className="p-8">
+        <div className="space-y-4">
+          {/* Input Fields */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_name">
+                Company Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="company_name"
+                value={jobData.company_name}
+                onChange={(e) => handleJobDataChange('company_name', e.target.value)}
+                placeholder="Enter company name"
+                className={jobErrors.company_name ? 'border-red-500' : ''}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.company_name && (
+                <p className="text-sm text-red-500">{jobErrors.company_name}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role_name">
+                Role Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="role_name"
+                value={jobData.role_name}
+                onChange={(e) => handleJobDataChange('role_name', e.target.value)}
+                placeholder="Enter role title"
+                className={jobErrors.role_name ? 'border-red-500' : ''}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.role_name && (
+                <p className="text-sm text-red-500">{jobErrors.role_name}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">
+                Location <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="location"
+                value={jobData.location}
+                onChange={(e) => handleJobDataChange('location', e.target.value)}
+                placeholder="e.g., Remote, New York, NY, San Francisco, CA"
+                className={jobErrors.location ? 'border-red-500' : ''}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.location && (
+                <p className="text-sm text-red-500">{jobErrors.location}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="salary_range">
+                Salary Range
+              </Label>
+              <Input
+                id="salary_range"
+                value={jobData.salary_range}
+                onChange={(e) => handleJobDataChange('salary_range', e.target.value)}
+                placeholder="e.g., $80,000 - $120,000 USD annually"
+                className={jobErrors.salary_range ? 'border-red-500' : ''}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.salary_range && (
+                <p className="text-sm text-red-500">{jobErrors.salary_range}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Textarea Fields */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="responsibility">
+                Responsibilities <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="responsibility"
+                value={jobData.responsibility}
+                onChange={(e) => handleJobDataChange('responsibility', e.target.value)}
+                placeholder="Describe the key responsibilities for this role..."
+                className={`h-[120px] resize-none overflow-y-auto ${jobErrors.responsibility ? 'border-red-500' : ''}`}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.responsibility && (
+                <p className="text-sm text-red-500">{jobErrors.responsibility}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="minimum_requirement">
+                Minimum Requirements <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="minimum_requirement"
+                value={jobData.minimum_requirement}
+                onChange={(e) => handleJobDataChange('minimum_requirement', e.target.value)}
+                placeholder="List the essential requirements for this position..."
+                className={`h-[120px] resize-none overflow-y-auto ${jobErrors.minimum_requirement ? 'border-red-500' : ''}`}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.minimum_requirement && (
+                <p className="text-sm text-red-500">{jobErrors.minimum_requirement}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="preferred_requirement">
+                Preferred Requirements
+              </Label>
+              <Textarea
+                id="preferred_requirement"
+                value={jobData.preferred_requirement}
+                onChange={(e) => handleJobDataChange('preferred_requirement', e.target.value)}
+                placeholder="List the nice-to-have requirements..."
+                className={`h-[120px] resize-none overflow-y-auto ${jobErrors.preferred_requirement ? 'border-red-500' : ''}`}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.preferred_requirement && (
+                <p className="text-sm text-red-500">{jobErrors.preferred_requirement}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="perk">
+                Perks & Benefits
+              </Label>
+              <Textarea
+                id="perk"
+                value={jobData.perk}
+                onChange={(e) => handleJobDataChange('perk', e.target.value)}
+                placeholder="Describe the benefits and perks offered..."
+                className={`h-[120px] resize-none overflow-y-auto ${jobErrors.perk ? 'border-red-500' : ''}`}
+                disabled={jdStage === "ai_enrichment"}
+              />
+              {jobErrors.perk && (
+                <p className="text-sm text-red-500">{jobErrors.perk}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderNotLinkedStage = () => (
+    <div className="bg-black text-white rounded-xl p-6 border border-gray-800 w-full">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex gap-2">
+
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={() => setInputMode("meeting")}
+              variant={inputMode === "meeting" ? "default" : "outline"}
+              size="sm"
+              className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
+            >
+              Meeting
+            </Button>
+            <Button
+              onClick={() => setInputMode("testing")}
+              variant={inputMode === "testing" ? "default" : "outline"}
+              size="sm"
+              className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
+            >
+              Testing
+            </Button>
+          </div>
+          <Input
+            id="callUrl"
+            type={inputMode === "meeting" ? "url" : "text"}
+            placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
+            value={callUrl}
+            onChange={(e) => handleCallUrlChange(e.target.value)}
+            className={`flex-1 text-sm bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus-visible:ring-gray-500 ${callUrlError ? 'border-red-500' : ''}`}
+          />
+          <Button
+            onClick={handleSendBot}
+            size="sm"
+            disabled={!!callUrlError || !callUrl.trim() || isDeploying}
+            className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeploying ? (
+              <>
+                <svg
+                  className="w-4 h-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Deploying...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
+                </svg>
+                Deploy
+              </>
+            )}
+          </Button>
+        </div>
+        {callUrlError && (
+          <p className="text-sm text-red-400">{callUrlError}</p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Main Card - Job Description Enrichment */}
@@ -411,368 +809,38 @@ export default function OrbitCallDashboard() {
       >
         <Card className="w-full shadow-lg overflow-hidden p-0">
           {/* Stage 1: not_linked - Only shows URL input */}
-          {jdStage === "not_linked" && (
-            <>
-              <div className="bg-black text-white rounded-xl p-6 border border-gray-800 w-full">
-                <h3 className="text-lg font-semibold mb-1">Set Up New Orbit Call</h3>
-                <p className="text-gray-400 text-sm mb-5">
-                  {inputMode === "meeting" ? "Enter your call URL to get started" : "Enter a test filename to load test data"}
-                </p>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Label htmlFor="mode-toggle" className="text-sm font-medium text-white">
-                      Mode:
-                    </Label>
-                    <div className="flex items-center space-x-3">
-                      <Button
-                        onClick={() => setInputMode("meeting")}
-                        variant={inputMode === "meeting" ? "default" : "outline"}
-                        size="sm"
-                        className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
-                      >
-                        Meeting
-                      </Button>
-                      <Button
-                        onClick={() => setInputMode("testing")}
-                        variant={inputMode === "testing" ? "default" : "outline"}
-                        size="sm"
-                        className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
-                      >
-                        Testing
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      id="callUrl"
-                      type={inputMode === "meeting" ? "url" : "text"}
-                      placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
-                      value={callUrl}
-                      onChange={(e) => handleCallUrlChange(e.target.value)}
-                      className={`flex-1 text-sm bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus-visible:ring-gray-500 ${callUrlError ? 'border-red-500' : ''}`}
-                    />
-                    <Button
-                      onClick={handleSendBot}
-                      size="sm"
-                      disabled={!!callUrlError || !callUrl.trim() || isDeploying}
-                      className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isDeploying ? (
-                        <>
-                          <svg
-                            className="w-4 h-4 animate-spin"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          Deploying...
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                            />
-                          </svg>
-                          Deploy
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  {callUrlError && (
-                    <p className="text-sm text-red-400">{callUrlError}</p>
-                  )}
-                </div>
-              </div>
-
-            </>
-          )}
+          {jdStage === "not_linked" && renderNotLinkedStage()}
 
           {/* Stage 2 & 3: ai_enrichment / manual_enrichment - Full UI with gradient header */}
-          {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
-            <>
-              {/* Header with black background and toggle */}
-              <div className="bg-black text-white p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">Job Description Enrichment</h3>
-                    <p className="text-gray-300 text-sm mt-1">
-                      {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    {inputMode === "meeting" && (
-                      <Button
-                        onClick={() => window.open(callUrl, '_blank')}
-                        variant="outline"
-                        size="sm"
-                        className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
-                      >
-                        Go to Meeting
-                      </Button>
-                    )}
-                    <div className="flex items-center space-x-3">
-                      <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
-                        AI Enrichment
-                      </Label>
-                      <Switch
-                        id="ai-toggle"
-                        checked={aiEnrichmentEnabled}
-                        onCheckedChange={handleAiToggle}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Job Description Form */}
-              <div className="p-8">
-                <div className="space-y-4">
-                  {/* Input Fields */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="company_name">
-                        Company Name <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="company_name"
-                        value={jobData.company_name}
-                        onChange={(e) => handleJobDataChange('company_name', e.target.value)}
-                        placeholder="Enter company name"
-                        className={jobErrors.company_name ? 'border-red-500' : ''}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.company_name && (
-                        <p className="text-sm text-red-500">{jobErrors.company_name}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="role_name">
-                        Role Name <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="role_name"
-                        value={jobData.role_name}
-                        onChange={(e) => handleJobDataChange('role_name', e.target.value)}
-                        placeholder="Enter role title"
-                        className={jobErrors.role_name ? 'border-red-500' : ''}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.role_name && (
-                        <p className="text-sm text-red-500">{jobErrors.role_name}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">
-                        Location <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="location"
-                        value={jobData.location}
-                        onChange={(e) => handleJobDataChange('location', e.target.value)}
-                        placeholder="e.g., Remote, New York, NY, San Francisco, CA"
-                        className={jobErrors.location ? 'border-red-500' : ''}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.location && (
-                        <p className="text-sm text-red-500">{jobErrors.location}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="salary_range">
-                        Salary Range
-                      </Label>
-                      <Input
-                        id="salary_range"
-                        value={jobData.salary_range}
-                        onChange={(e) => handleJobDataChange('salary_range', e.target.value)}
-                        placeholder="e.g., $80,000 - $120,000 USD annually"
-                        className={jobErrors.salary_range ? 'border-red-500' : ''}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.salary_range && (
-                        <p className="text-sm text-red-500">{jobErrors.salary_range}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Textarea Fields */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="responsibility">
-                        Responsibilities <span className="text-red-500">*</span>
-                      </Label>
-                      <Textarea
-                        id="responsibility"
-                        value={jobData.responsibility}
-                        onChange={(e) => handleJobDataChange('responsibility', e.target.value)}
-                        placeholder="Describe the key responsibilities for this role..."
-                        className={`h-[120px] resize-none overflow-y-auto ${jobErrors.responsibility ? 'border-red-500' : ''}`}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.responsibility && (
-                        <p className="text-sm text-red-500">{jobErrors.responsibility}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="minimum_requirement">
-                        Minimum Requirements <span className="text-red-500">*</span>
-                      </Label>
-                      <Textarea
-                        id="minimum_requirement"
-                        value={jobData.minimum_requirement}
-                        onChange={(e) => handleJobDataChange('minimum_requirement', e.target.value)}
-                        placeholder="List the essential requirements for this position..."
-                        className={`h-[120px] resize-none overflow-y-auto ${jobErrors.minimum_requirement ? 'border-red-500' : ''}`}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.minimum_requirement && (
-                        <p className="text-sm text-red-500">{jobErrors.minimum_requirement}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="preferred_requirement">
-                        Preferred Requirements
-                      </Label>
-                      <Textarea
-                        id="preferred_requirement"
-                        value={jobData.preferred_requirement}
-                        onChange={(e) => handleJobDataChange('preferred_requirement', e.target.value)}
-                        placeholder="List the nice-to-have requirements..."
-                        className={`h-[120px] resize-none overflow-y-auto ${jobErrors.preferred_requirement ? 'border-red-500' : ''}`}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.preferred_requirement && (
-                        <p className="text-sm text-red-500">{jobErrors.preferred_requirement}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="perk">
-                        Perks & Benefits
-                      </Label>
-                      <Textarea
-                        id="perk"
-                        value={jobData.perk}
-                        onChange={(e) => handleJobDataChange('perk', e.target.value)}
-                        placeholder="Describe the benefits and perks offered..."
-                        className={`h-[120px] resize-none overflow-y-auto ${jobErrors.perk ? 'border-red-500' : ''}`}
-                        disabled={jdStage === "ai_enrichment"}
-                      />
-                      {jobErrors.perk && (
-                        <p className="text-sm text-red-500">{jobErrors.perk}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+          {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && renderEnrichmentStage()}
         </Card>
       </RainbowGlowWrapper>
 
       {/* Candidates Section - Only show when not in not_linked state */}
       {jdStage !== "not_linked" && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Potential Candidates</h2>
-
-          <div className="flex space-x-4 overflow-x-auto">
-            {/* Candidate 1 */}
-            <div className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-medium text-sm text-gray-900">Sarah Chen</h3>
-                  <p className="text-xs text-gray-600">Senior Software Engineer</p>
-                  <p className="text-xs text-gray-500 mt-1">5 years experience</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">Role Fit</div>
-                    <div className="text-sm font-bold text-green-600">92%</div>
-                  </div>
-                  <div className="w-2 h-8 bg-green-500 rounded-full"></div>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">React</span>
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">TypeScript</span>
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Node.js</span>
-              </div>
-            </div>
-
-            {/* Candidate 2 */}
-            <div className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-medium text-sm text-gray-900">Marcus Johnson</h3>
-                  <p className="text-xs text-gray-600">Full Stack Developer</p>
-                  <p className="text-xs text-gray-500 mt-1">3 years experience</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">Role Fit</div>
-                    <div className="text-sm font-bold text-yellow-600">78%</div>
-                  </div>
-                  <div className="w-2 h-8 bg-yellow-500 rounded-full"></div>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Python</span>
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Django</span>
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">PostgreSQL</span>
-              </div>
-            </div>
-
-            {/* Candidate 3 */}
-            <div className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-medium text-sm text-gray-900">Emily Rodriguez</h3>
-                  <p className="text-xs text-gray-600">Frontend Developer</p>
-                  <p className="text-xs text-gray-500 mt-1">4 years experience</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">Role Fit</div>
-                    <div className="text-sm font-bold text-orange-600">65%</div>
-                  </div>
-                  <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Vue.js</span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">JavaScript</span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">CSS</span>
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Potential Candidates</h2>
+            <div className="flex gap-2">
+              <Button
+                onClick={loadMockCandidates}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Load Mock Data
+              </Button>
+              <Button
+                onClick={clearCandidates}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Clear
+              </Button>
             </div>
           </div>
+          {renderCandidatesSection()}
         </div>
       )}
     </div>
