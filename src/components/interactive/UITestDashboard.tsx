@@ -11,13 +11,6 @@ import { Checkbox } from '../ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Progress } from '../ui/progress';
 import { Separator } from '../ui/separator';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '../ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
+import { BackgroundGradientAnimation } from '../ui/background-gradient-animation';
+import { GradientCard } from '../ui/gradient-card';
 
 export function UITestDashboard() {
   const [progress, setProgress] = useState(33);
@@ -42,6 +37,117 @@ export function UITestDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Main Welcome Card */}
+      <GradientCard 
+        className="h-80"
+        gradientBackgroundStart="rgb(255, 154, 0)"
+        gradientBackgroundEnd="rgb(255, 87, 34)"
+        firstColor="255, 183, 77"
+        secondColor="255, 152, 0"
+        thirdColor="255, 87, 34"
+        fourthColor="255, 193, 7"
+        fifthColor="255, 111, 0"
+        pointerColor="255, 167, 38"
+      >
+        <div className="text-center text-white max-w-2xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-orange-100 to-yellow-100">
+            Welcome to Bounteer
+          </h1>
+          <p className="text-lg text-white/95 mb-6 leading-relaxed">
+            Discover opportunities, connect with talent, and build your future with our innovative bounty platform
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button className="bg-white/25 hover:bg-white/35 text-white border border-white/40 backdrop-blur-sm px-8 py-3 text-lg font-semibold">
+              Get Started
+            </Button>
+            <Button variant="ghost" className="text-white border border-white/50 hover:bg-white/15 px-8 py-3 text-lg">
+              Learn More
+            </Button>
+          </div>
+        </div>
+      </GradientCard>
+      {/* Gradient Animation Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Background Gradient Animation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 rounded-lg overflow-hidden">
+            <BackgroundGradientAnimation
+              containerClassName="h-full w-full rounded-lg"
+              gradientBackgroundStart="rgb(108, 0, 162)"
+              gradientBackgroundEnd="rgb(0, 17, 82)"
+              firstColor="18, 113, 255"
+              secondColor="221, 74, 255"
+              thirdColor="100, 220, 255"
+              fourthColor="200, 50, 50"
+              fifthColor="180, 180, 50"
+              pointerColor="140, 100, 255"
+              interactive={true}
+            >
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div className="text-center">
+                  <h3 className="text-white text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
+                    Animated Gradient Background
+                  </h3>
+                  <p className="text-white/80 text-sm">
+                    Interactive gradient animation with mouse movement
+                  </p>
+                </div>
+              </div>
+            </BackgroundGradientAnimation>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gradient Card Component */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Gradient Card Component</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <GradientCard className="h-48">
+              <div className="text-center text-white">
+                <h3 className="text-2xl font-bold mb-2">Welcome to Bounteer</h3>
+                <p className="text-white/80">This is a card with gradient background</p>
+                <Button className="mt-4 bg-white/20 hover:bg-white/30 text-white border border-white/30">
+                  Get Started
+                </Button>
+              </div>
+            </GradientCard>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GradientCard 
+                className="h-32"
+                gradientBackgroundStart="rgb(255, 0, 150)"
+                gradientBackgroundEnd="rgb(0, 204, 255)"
+                firstColor="255, 100, 200"
+                secondColor="100, 200, 255"
+              >
+                <div className="text-center text-white">
+                  <h4 className="font-semibold">Pink & Blue</h4>
+                  <p className="text-sm text-white/80">Custom colors</p>
+                </div>
+              </GradientCard>
+              
+              <GradientCard 
+                className="h-32"
+                gradientBackgroundStart="rgb(255, 154, 0)"
+                gradientBackgroundEnd="rgb(255, 206, 84)"
+                firstColor="255, 200, 100"
+                secondColor="255, 150, 50"
+                interactive={false}
+              >
+                <div className="text-center text-white">
+                  <h4 className="font-semibold">Orange Sunset</h4>
+                  <p className="text-sm text-white/80">Static animation</p>
+                </div>
+              </GradientCard>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       {/* Buttons Section */}
       <Card>
         <CardHeader>
@@ -157,22 +263,6 @@ export function UITestDashboard() {
           <CardTitle>Interactive Elements</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label>Dialog</Label>
-            <div className="mt-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>Open Dialog</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Test Dialog</DialogTitle>
-                  </DialogHeader>
-                  <p>This is a test dialog with some content.</p>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
           <div>
             <Label>Dropdown Menu</Label>
             <div className="mt-2">

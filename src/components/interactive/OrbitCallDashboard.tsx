@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import RainbowGlowWrapper from "./RainbowGlowWrapper";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
@@ -526,38 +527,53 @@ export default function OrbitCallDashboard() {
 
   const renderEnrichmentStage = () => (
     <>
-      {/* Header with black background and toggle */}
-      <div className="bg-black text-white p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Job Description Enrichment</h3>
-            <p className="text-gray-300 text-sm mt-1">
-              {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
-            </p>
-          </div>
-          <div className="flex items-center space-x-4">
-            {inputMode === "meeting" && (
-              <Button
-                onClick={() => window.open(callUrl, '_blank')}
-                variant="outline"
-                size="sm"
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
-              >
-                Go to Meeting
-              </Button>
-            )}
-            <div className="flex items-center space-x-3">
-              <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
-                AI Enrichment
-              </Label>
-              <Switch
-                id="ai-toggle"
-                checked={aiEnrichmentEnabled}
-                onCheckedChange={handleAiToggle}
-              />
+      {/* Header with gradient background and toggle */}
+      <div className="overflow-hidden">
+        <BackgroundGradientAnimation
+          containerClassName="h-full w-full"
+          gradientBackgroundStart={jdStage === "manual_enrichment" ? "rgb(75, 85, 99)" : "rgb(255, 154, 0)"}
+          gradientBackgroundEnd={jdStage === "manual_enrichment" ? "rgb(55, 65, 81)" : "rgb(255, 87, 34)"}
+          firstColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 183, 77"}
+          secondColor={jdStage === "manual_enrichment" ? "75, 85, 99" : "255, 152, 0"}
+          thirdColor={jdStage === "manual_enrichment" ? "55, 65, 81" : "255, 87, 34"}
+          fourthColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 193, 7"}
+          fifthColor={jdStage === "manual_enrichment" ? "75, 85, 99" : "255, 111, 0"}
+          pointerColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 167, 38"}
+          interactive={jdStage !== "manual_enrichment"}
+        >
+          <div className="relative p-6 h-full flex items-center">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Job Description Enrichment</h3>
+                <p className="text-white/90 text-sm mt-1 mb-0">
+                  {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                {inputMode === "meeting" && (
+                  <Button
+                    onClick={() => window.open(callUrl, '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/25 border-white/40 text-white hover:bg-white/35 hover:text-white backdrop-blur-sm"
+                  >
+                    Go to Meeting
+                  </Button>
+                )}
+                <div className="flex items-center space-x-3">
+                  <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
+                    AI Enrichment
+                  </Label>
+                  <Switch
+                    id="ai-toggle"
+                    checked={aiEnrichmentEnabled}
+                    onCheckedChange={handleAiToggle}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </BackgroundGradientAnimation>
       </div>
 
       {/* Job Description Form */}
@@ -710,93 +726,107 @@ export default function OrbitCallDashboard() {
   );
 
   const renderNotLinkedStage = () => (
-    <div className="bg-black text-white rounded-xl p-6 border border-gray-800 w-full">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex gap-2">
-
-          <div className="flex items-center space-x-3">
-            <Button
-              onClick={() => setInputMode("meeting")}
-              variant={inputMode === "meeting" ? "default" : "outline"}
-              size="sm"
-              className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
-            >
-              Meeting
-            </Button>
-            <Button
-              onClick={() => setInputMode("testing")}
-              variant={inputMode === "testing" ? "default" : "outline"}
-              size="sm"
-              className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"}
-            >
-              Testing
-            </Button>
+    <div className="rounded-xl overflow-hidden w-full">
+      <BackgroundGradientAnimation
+        containerClassName="h-full w-full rounded-xl"
+        gradientBackgroundStart="rgb(255, 154, 0)"
+        gradientBackgroundEnd="rgb(255, 87, 34)"
+        firstColor="255, 183, 77"
+        secondColor="255, 152, 0"
+        thirdColor="255, 87, 34"
+        fourthColor="255, 193, 7"
+        fifthColor="255, 111, 0"
+        pointerColor="255, 167, 38"
+        interactive={true}
+      >
+        <div className="relative z-10 p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
           </div>
-          <Input
-            id="callUrl"
-            type={inputMode === "meeting" ? "url" : "text"}
-            placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
-            value={callUrl}
-            onChange={(e) => handleCallUrlChange(e.target.value)}
-            className={`flex-1 text-sm bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus-visible:ring-gray-500 ${callUrlError ? 'border-red-500' : ''}`}
-          />
-          <Button
-            onClick={handleSendBot}
-            size="sm"
-            disabled={!!callUrlError || !callUrl.trim() || isDeploying}
-            className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDeploying ? (
-              <>
-                <svg
-                  className="w-4 h-4 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
+
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={() => setInputMode("meeting")}
+                  variant={inputMode === "meeting" ? "default" : "outline"}
+                  size="sm"
+                  className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Deploying...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  Meeting
+                </Button>
+                <Button
+                  onClick={() => setInputMode("testing")}
+                  variant={inputMode === "testing" ? "default" : "outline"}
+                  size="sm"
+                  className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-                Deploy
-              </>
+                  Testing
+                </Button>
+              </div>
+              <Input
+                id="callUrl"
+                type={inputMode === "meeting" ? "url" : "text"}
+                placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
+                value={callUrl}
+                onChange={(e) => handleCallUrlChange(e.target.value)}
+                className={`flex-1 text-sm bg-white/20 border-white/40 text-white placeholder-white/70 focus-visible:ring-white/50 backdrop-blur-sm ${callUrlError ? 'border-red-300' : ''}`}
+              />
+              <Button
+                onClick={handleSendBot}
+                size="sm"
+                disabled={!!callUrlError || !callUrl.trim() || isDeploying}
+                className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              >
+                {isDeploying ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Deploying...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                      />
+                    </svg>
+                    Deploy
+                  </>
+                )}
+              </Button>
+            </div>
+            {callUrlError && (
+              <p className="text-sm text-red-300">{callUrlError}</p>
             )}
-          </Button>
+          </div>
         </div>
-        {callUrlError && (
-          <p className="text-sm text-red-400">{callUrlError}</p>
-        )}
-      </div>
+      </BackgroundGradientAnimation>
     </div>
   );
 
