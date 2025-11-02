@@ -668,9 +668,9 @@ export default function RoleFitStudio() {
     <RainbowGlowWrapper
       glowState={getStudioGlowState()}
       className="w-full"
-      borderRadius="rounded-xl"
+      borderRadius="rounded-4xl"
     >
-      <Card className="mb-8">
+      <Card>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left Panel - Job Description, Previous Reports, Upload CV */}
