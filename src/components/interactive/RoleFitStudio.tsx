@@ -18,7 +18,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
 import ReportPreview from "./ReportPreview";
-import RainbowGlowWrapper, { type GlowState } from "./RainbowGlowWrapper";
+import { GlowCard, type GlowState } from "./GlowCard";
 import {
   Search,
   Loader2,
@@ -665,23 +665,21 @@ export default function RoleFitStudio() {
   };
 
   return (
-    <RainbowGlowWrapper
+    <GlowCard
       glowState={getStudioGlowState()}
-      className="w-full"
-      borderRadius="rounded-4xl"
+      className="w-full rounded-4xl"
     >
-      <Card>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            {/* Left Panel - Job Description, Previous Reports, Upload CV */}
-            <div className="lg:col-span-2 space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Job Description</h3>
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Left Panel - Job Description, Previous Reports, Upload CV */}
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Job Description</h3>
 
-                {/* Search */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
+              {/* Search */}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
                     placeholder="Search by role, company, or location..."
                     className="pl-10"
                     value={searchTerm}
@@ -995,8 +993,6 @@ export default function RoleFitStudio() {
             </div>
           </div>
         </CardContent>
-      </Card>
-
-    </RainbowGlowWrapper >
+    </GlowCard>
   );
 }

@@ -18,7 +18,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DragAndDropUpload from "./DragAndDropUpload";
-import RainbowGlowWrapper from "./RainbowGlowWrapper";
+import { GlowCard } from "./GlowCard";
 import { Loader2, Check, X } from "lucide-react";
 import { EXTERNAL } from '@/constant';
 import { loadCredits, consumeCredit, getLoginUrl, getAuthHeaders, type Credits, type UserProfile } from '@/lib/utils';
@@ -831,22 +831,18 @@ export default function RoleFitForm() {
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      <RainbowGlowWrapper
+      <GlowCard
         glowState={glowState}
-        duration={90000} // 90 seconds to match the websocket timeout
-        intensity="medium"
-        animationSpeed={4}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload Job Description and Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-                  {/* Left Section: Job */}
-                  <div className="flex flex-col space-y-4">
+        <CardHeader>
+          <CardTitle>Upload Job Description and Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                {/* Left Section: Job */}
+                <div className="flex flex-col space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900">Job</h3>
                     <FormField
                       control={form.control}
@@ -1059,8 +1055,7 @@ or paste a URL like: https://linkedin.com/jobs/view/123456789"
               </form>
             </Form>
           </CardContent>
-        </Card>
-      </RainbowGlowWrapper>
+      </GlowCard>
 
       {/* View All Reports link for logged-in users */}
       {isAuthed === true && (

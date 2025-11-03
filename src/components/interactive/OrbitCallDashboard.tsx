@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import RainbowGlowWrapper from "./RainbowGlowWrapper";
+import { GlowCard } from "./GlowCard";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
@@ -833,18 +832,17 @@ export default function OrbitCallDashboard() {
   return (
     <div className="space-y-6">
       {/* Main Card - Job Description Enrichment */}
-      <RainbowGlowWrapper
+      <GlowCard
         glowState={jdStage === "ai_enrichment" ? "processing" : "idle"}
-        className="w-full"
+        color="#ff6b35"
+        className="w-full shadow-lg overflow-hidden p-0"
       >
-        <Card className="w-full shadow-lg overflow-hidden p-0">
-          {/* Stage 1: not_linked - Only shows URL input */}
-          {jdStage === "not_linked" && renderNotLinkedStage()}
+        {/* Stage 1: not_linked - Only shows URL input */}
+        {jdStage === "not_linked" && renderNotLinkedStage()}
 
-          {/* Stage 2 & 3: ai_enrichment / manual_enrichment - Full UI with gradient header */}
-          {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && renderEnrichmentStage()}
-        </Card>
-      </RainbowGlowWrapper>
+        {/* Stage 2 & 3: ai_enrichment / manual_enrichment - Full UI with gradient header */}
+        {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && renderEnrichmentStage()}
+      </GlowCard>
 
       {/* Candidates Section - Only show when not in not_linked state */}
       {jdStage !== "not_linked" && (
