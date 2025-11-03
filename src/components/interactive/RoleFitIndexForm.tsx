@@ -833,6 +833,7 @@ export default function RoleFitForm() {
     <div className="w-full max-w-6xl mx-auto">
       <GlowCard
         glowState={glowState}
+        color="#ff6b35"
       >
         <CardHeader>
           <CardTitle>Upload Job Description and Profile</CardTitle>

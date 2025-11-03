@@ -18,7 +18,7 @@ export default function RainbowGlowWrapper({
   children,
   glowState = "idle",
   className = "",
-  borderRadius = "rounded-4xl",
+  borderRadius = "rounded-3xl",
   ambient = true,
 }: RainbowGlowWrapperProps) {
   const [internalState, setInternalState] = useState<GlowState>("idle");

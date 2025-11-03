@@ -444,7 +444,7 @@ export default function OrbitCallDashboard() {
     const fitColors = getRoleFitColor(candidate.roleFitPercentage);
 
     return (
-      <div key={candidate.id} className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
+      <div key={candidate.id} className="bg-gray-50 rounded-3xl p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
             <h3 className="font-medium text-sm text-gray-900">{candidate.name}</h3>
@@ -527,56 +527,54 @@ export default function OrbitCallDashboard() {
   const renderEnrichmentStage = () => (
     <>
       {/* Header with gradient background and toggle */}
-      <div className="overflow-hidden">
-        <BackgroundGradientAnimation
-          containerClassName="h-full w-full"
-          gradientBackgroundStart={jdStage === "manual_enrichment" ? "rgb(75, 85, 99)" : "rgb(255, 154, 0)"}
-          gradientBackgroundEnd={jdStage === "manual_enrichment" ? "rgb(55, 65, 81)" : "rgb(255, 87, 34)"}
-          firstColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 183, 77"}
-          secondColor={jdStage === "manual_enrichment" ? "75, 85, 99" : "255, 152, 0"}
-          thirdColor={jdStage === "manual_enrichment" ? "55, 65, 81" : "255, 87, 34"}
-          fourthColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 193, 7"}
-          fifthColor={jdStage === "manual_enrichment" ? "75, 85, 99" : "255, 111, 0"}
-          pointerColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 167, 38"}
-          interactive={jdStage !== "manual_enrichment"}
-        >
-          <div className="relative p-6 h-full flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <h3 className="text-lg font-semibold text-white">Job Description Enrichment</h3>
-                <p className="text-white/90 text-sm mt-1 mb-0">
-                  {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                {inputMode === "meeting" && (
-                  <Button
-                    onClick={() => window.open(callUrl, '_blank')}
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/25 border-white/40 text-white hover:bg-white/35 hover:text-white backdrop-blur-sm"
-                  >
-                    Go to Meeting
-                  </Button>
-                )}
-                <div className="flex items-center space-x-3">
-                  <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
-                    AI Enrichment
-                  </Label>
-                  <Switch
-                    id="ai-toggle"
-                    checked={aiEnrichmentEnabled}
-                    onCheckedChange={handleAiToggle}
-                  />
-                </div>
+      <BackgroundGradientAnimation
+        containerClassName="h-full w-full"
+        gradientBackgroundStart={jdStage === "manual_enrichment" ? "rgb(75, 85, 99)" : "rgb(255, 154, 0)"}
+        gradientBackgroundEnd={jdStage === "manual_enrichment" ? "rgb(55, 65, 81)" : "rgb(255, 87, 34)"}
+        firstColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 183, 77"}
+        secondColor={jdStage === "manual_enrichment" ? "75, 85, 99" : "255, 152, 0"}
+        thirdColor={jdStage === "manual_enrichment" ? "55, 65, 81" : "255, 87, 34"}
+        fourthColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 193, 7"}
+        fifthColor={jdStage === "manual_enrichment" ? "75, 85, 99" : "255, 111, 0"}
+        pointerColor={jdStage === "manual_enrichment" ? "107, 114, 128" : "255, 167, 38"}
+        interactive={jdStage !== "manual_enrichment"}
+      >
+        <div className="relative p-6 h-full flex items-center">
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Job Description Enrichment</h3>
+              <p className="text-white/90 text-sm mt-1 mb-0">
+                {jdStage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              {inputMode === "meeting" && (
+                <Button
+                  onClick={() => window.open(callUrl, '_blank')}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/25 border-white/40 text-white hover:bg-white/35 hover:text-white backdrop-blur-sm"
+                >
+                  Go to Meeting
+                </Button>
+              )}
+              <div className="flex items-center space-x-3">
+                <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
+                  AI Enrichment
+                </Label>
+                <Switch
+                  id="ai-toggle"
+                  checked={aiEnrichmentEnabled}
+                  onCheckedChange={handleAiToggle}
+                />
               </div>
             </div>
           </div>
-        </BackgroundGradientAnimation>
-      </div>
+        </div>
+      </BackgroundGradientAnimation>
 
       {/* Job Description Form */}
-      <div className="p-8">
+      <div className="p-6">
         <div className="space-y-4">
           {/* Input Fields */}
           <div className="grid md:grid-cols-2 gap-4">
@@ -725,20 +723,19 @@ export default function OrbitCallDashboard() {
   );
 
   const renderNotLinkedStage = () => (
-    <div className="rounded-xl overflow-hidden w-full">
-      <BackgroundGradientAnimation
-        containerClassName="h-full w-full rounded-xl"
-        gradientBackgroundStart="rgb(255, 154, 0)"
-        gradientBackgroundEnd="rgb(255, 87, 34)"
-        firstColor="255, 183, 77"
-        secondColor="255, 152, 0"
-        thirdColor="255, 87, 34"
-        fourthColor="255, 193, 7"
-        fifthColor="255, 111, 0"
-        pointerColor="255, 167, 38"
-        interactive={true}
-      >
-        <div className="relative z-10 p-6 text-white">
+    <BackgroundGradientAnimation
+      containerClassName="h-full w-full rounded-3xl"
+      gradientBackgroundStart="rgb(255, 154, 0)"
+      gradientBackgroundEnd="rgb(255, 87, 34)"
+      firstColor="255, 183, 77"
+      secondColor="255, 152, 0"
+      thirdColor="255, 87, 34"
+      fourthColor="255, 193, 7"
+      fifthColor="255, 111, 0"
+      pointerColor="255, 167, 38"
+      interactive={true}
+    >
+      <div className="relative z-10 p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
           </div>
@@ -825,24 +822,29 @@ export default function OrbitCallDashboard() {
             )}
           </div>
         </div>
-      </BackgroundGradientAnimation>
-    </div>
+    </BackgroundGradientAnimation>
   );
 
   return (
-    <div className="space-y-6">
-      {/* Main Card - Job Description Enrichment */}
-      <GlowCard
-        glowState={jdStage === "ai_enrichment" ? "processing" : "idle"}
-        color="#ff6b35"
-        className="w-full shadow-lg overflow-hidden p-0"
-      >
-        {/* Stage 1: not_linked - Only shows URL input */}
-        {jdStage === "not_linked" && renderNotLinkedStage()}
+    <div>
+      {/* Stage 1: not_linked - Only shows URL input (no GlowCard) */}
+      {jdStage === "not_linked" && (
+        <div className="rounded-3xl overflow-hidden w-full">
+          {renderNotLinkedStage()}
+        </div>
+      )}
 
-        {/* Stage 2 & 3: ai_enrichment / manual_enrichment - Full UI with gradient header */}
-        {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && renderEnrichmentStage()}
-      </GlowCard>
+      {/* Stage 2 & 3: ai_enrichment / manual_enrichment - With GlowCard */}
+      {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
+        <GlowCard
+          glowState={jdStage === "ai_enrichment" ? "processing" : "idle"}
+          color="#ff6b35"
+          className="w-full shadow-lg overflow-hidden p-0 rounded-3xl"
+          padding={false}
+        >
+          {renderEnrichmentStage()}
+        </GlowCard>
+      )}
 
       {/* Candidates Section - Only show when not in not_linked state */}
       {jdStage !== "not_linked" && (

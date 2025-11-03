@@ -170,7 +170,7 @@ export default function UserReportTable({ pageSize = 10 }: Props) {
   };
 
   return (
-    <Card className="rounded-4xl shadow-md">
+    <Card className="rounded-3xl shadow-md">
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <CardTitle>My Role Fit Index Reports</CardTitle>

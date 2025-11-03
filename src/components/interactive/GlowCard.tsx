@@ -18,6 +18,7 @@ interface GlowCardProps extends React.ComponentPropsWithoutRef<typeof Card> {
   color?: string;
   ringThickness?: number;
   glowRadius?: number;
+  padding?: boolean;
 }
 
 const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(
@@ -28,11 +29,12 @@ const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(
       color = "#7afcff",
       ringThickness = 4,
       glowRadius = 24,
+      padding = true,
       ...props
     },
     ref
   ) => {
-    const borderRadius = (props.style?.borderRadius as string) || "var(--radius)";
+    const borderRadius = (props.style?.borderRadius as string) || "1.5rem";
     const borderColor = hexWithAlpha(color, 0.95);
 
     const outerGlow = `
@@ -92,6 +94,7 @@ const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(
         <Card
           className={cn(
             "relative z-0 w-full h-full border border-border bg-card/85 backdrop-blur-sm shadow-sm overflow-hidden",
+            !padding && "py-0",
             isActive && "border-transparent"
           )}
           style={{ borderRadius }}

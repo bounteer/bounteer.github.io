@@ -667,7 +667,8 @@ export default function RoleFitStudio() {
   return (
     <GlowCard
       glowState={getStudioGlowState()}
-      className="w-full rounded-4xl"
+      color="#ff6b35"
+      className="w-full rounded-3xl"
     >
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
