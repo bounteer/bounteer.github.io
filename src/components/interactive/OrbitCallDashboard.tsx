@@ -14,6 +14,9 @@ import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
+// Configuration: Change this to enable/disable polling mode
+const USE_POLLING_MODE = false; // Set to false to use WebSocket mode
+
 // TODO use framer-motion to link up the 3 states
 /**
  * Job Description enrichment flow has 3 stages:
@@ -83,6 +86,9 @@ export default function OrbitCallDashboard() {
 
   // WebSocket reference for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
+  
+  // Polling reference for job description updates
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const validateField = (name: keyof JobDescriptionFormData, value: string): string | undefined => {
     switch (name) {
@@ -222,9 +228,12 @@ export default function OrbitCallDashboard() {
           if (sessionResult.success && sessionResult.session) {
             setOrbitCallSession(sessionResult.session);
             console.log("Orbit call session found:", sessionResult.session);
+            console.log("Session job_description field:", sessionResult.session.job_description);
             if (sessionResult.session.job_description) {
-              console.log("Job description ID:", sessionResult.session.job_description);
+              console.log("Job description ID found, setting:", sessionResult.session.job_description);
               setJobDescriptionId(sessionResult.session.job_description);
+            } else {
+              console.log("No job_description field in session yet");
             }
           } else {
             console.log("Orbit call session not yet created:", sessionResult.error);
@@ -257,6 +266,58 @@ export default function OrbitCallDashboard() {
   };
 
   /**
+   * Fetch job description data from Directus
+   */
+  const fetchJobDescription = async (jdId: string) => {
+    try {
+      const user = await getUserProfile(EXTERNAL.directus_url);
+      const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jdId}?fields=id,company_name,role_name,location,salary_range,responsibility,minimum_requirement,preferred_requirement,perk`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch job description:', response.status, response.statusText);
+        return;
+      }
+
+      const result = await response.json();
+      const jd = result.data;
+
+      console.log("Received job description from API:", jd);
+
+      if (jd) {
+        const updatedJobData: JobDescriptionFormData = {
+          company_name: jd.company_name || "",
+          role_name: jd.role_name || "",
+          location: jd.location || "",
+          salary_range: jd.salary_range || "",
+          responsibility: jd.responsibility || "",
+          minimum_requirement: jd.minimum_requirement || "",
+          preferred_requirement: jd.preferred_requirement || "",
+          perk: jd.perk || ""
+        };
+
+        // Only update if data has changed
+        const hasChanged = Object.keys(updatedJobData).some(key => 
+          updatedJobData[key as keyof JobDescriptionFormData] !== jobData[key as keyof JobDescriptionFormData]
+        );
+
+        if (hasChanged) {
+          console.log("Job description updated via polling:", updatedJobData);
+          setJobData(updatedJobData);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching job description:', error);
+    }
+  };
+
+  /**
    * Periodically check for orbit call session if we have a request ID but no session yet
    */
   useEffect(() => {
@@ -268,8 +329,12 @@ export default function OrbitCallDashboard() {
         if (sessionResult.success && sessionResult.session) {
           setOrbitCallSession(sessionResult.session);
           console.log("Orbit call session found via polling:", sessionResult.session);
+          console.log("Polling - Session job_description field:", sessionResult.session.job_description);
           if (sessionResult.session.job_description) {
-            console.log("Job description ID:", sessionResult.session.job_description);
+            console.log("Polling - Job description ID found, setting:", sessionResult.session.job_description);
+            setJobDescriptionId(sessionResult.session.job_description);
+          } else {
+            console.log("Polling - No job_description field in session yet");
           }
         }
       } catch (error) {
@@ -390,16 +455,56 @@ export default function OrbitCallDashboard() {
   };
 
   /**
-   * Effect to set up WebSocket subscription when job description ID is available
+   * Setup polling for job description updates
    */
-  useEffect(() => {
-    if (jobDescriptionId && jdStage === "ai_enrichment") {
-      console.log("Setting up WebSocket subscription for job description:", jobDescriptionId);
-      setupJobDescriptionWebSocket(jobDescriptionId);
+  const setupJobDescriptionPolling = (jdId: string) => {
+    console.log("Setting up polling for job description:", jdId);
+    
+    // Clear any existing polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
     }
 
-    // Cleanup WebSocket when stage changes or component unmounts
+    // Initial fetch
+    fetchJobDescription(jdId);
+
+    // Set up polling every 3 seconds
+    pollingRef.current = setInterval(() => {
+      fetchJobDescription(jdId);
+    }, 3000);
+  };
+
+  /**
+   * Effect to set up real-time updates (WebSocket or Polling) when job description ID is available
+   */
+  useEffect(() => {
+    console.log("Real-time updates effect - jobDescriptionId:", jobDescriptionId, "jdStage:", jdStage, "usePolling:", USE_POLLING_MODE);
+    
+    if (jobDescriptionId && jdStage === "ai_enrichment") {
+      if (USE_POLLING_MODE) {
+        console.log("Setting up polling for job description:", jobDescriptionId);
+        setupJobDescriptionPolling(jobDescriptionId);
+      } else {
+        console.log("Setting up WebSocket subscription for job description:", jobDescriptionId);
+        setupJobDescriptionWebSocket(jobDescriptionId);
+      }
+    } else {
+      console.log("NOT setting up real-time updates - conditions not met:", {
+        hasJobDescriptionId: !!jobDescriptionId,
+        isAiEnrichment: jdStage === "ai_enrichment",
+        currentStage: jdStage,
+        usePolling: USE_POLLING_MODE
+      });
+    }
+
+    // Cleanup when stage changes or component unmounts
     return () => {
+      // Clear polling
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      // Close WebSocket
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -408,10 +513,16 @@ export default function OrbitCallDashboard() {
   }, [jobDescriptionId, jdStage]);
 
   /**
-   * Cleanup WebSocket on component unmount
+   * Cleanup WebSocket and polling on component unmount
    */
   useEffect(() => {
     return () => {
+      // Clear polling
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      // Close WebSocket
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
