@@ -3,6 +3,7 @@ import "../styles/global.css";
 import "../styles/transitions.css";
 import { ViewTransitions } from "astro:transitions";
 import ReferralHandler from "@/components/interactive/ReferralHandler";
+import { MobileFloatingButton } from "@/components/interactive/MobileFloatingButton";
 
 export interface Props {
   name: string;
@@ -74,6 +75,7 @@ const {
     <div id="page-wrapper" class="page-transition-wrapper">
       <slot />
     </div>
+    <MobileFloatingButton client:load />
 
     <script>
       // Safety: strip any "dark" class that a lib might try to add
