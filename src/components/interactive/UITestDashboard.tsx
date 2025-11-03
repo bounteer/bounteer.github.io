@@ -28,12 +28,18 @@ import {
 } from '../ui/table';
 import { BackgroundGradientAnimation } from '../ui/background-gradient-animation';
 import { GradientCard } from '../ui/gradient-card';
+import RainbowGlowWrapper from './RainbowGlowWrapper';
+import MagicGlowEffect from './MagicGlowEffect';
+import { GlowCard, CardHeader as GlowCardHeader, CardFooter, CardTitle as GlowCardTitle, CardDescription, CardContent as GlowCardContent } from './GlowCard';
 
 export function UITestDashboard() {
   const [progress, setProgress] = useState(33);
   const [switchState, setSwitchState] = useState(false);
   const [checkboxState, setCheckboxState] = useState(false);
   const [radioValue, setRadioValue] = useState("option1");
+  const [rainbowGlowState, setRainbowGlowState] = useState("idle");
+  const [magicGlowState, setMagicGlowState] = useState("idle");
+  const [glowCardState, setGlowCardState] = useState("idle");
 
   return (
     <div className="space-y-8">
@@ -148,6 +154,210 @@ export function UITestDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Rainbow Glow Wrapper Component */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rainbow Glow Wrapper</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="flex gap-4 flex-wrap">
+              <Button 
+                size="sm" 
+                variant={rainbowGlowState === "idle" ? "default" : "outline"}
+                onClick={() => setRainbowGlowState("idle")}
+              >
+                Idle
+              </Button>
+              <Button 
+                size="sm"
+                variant={rainbowGlowState === "listening" ? "default" : "outline"}
+                onClick={() => setRainbowGlowState("listening")}
+              >
+                Listening
+              </Button>
+              <Button 
+                size="sm"
+                variant={rainbowGlowState === "processing" ? "default" : "outline"}
+                onClick={() => setRainbowGlowState("processing")}
+              >
+                Processing
+              </Button>
+              <Button 
+                size="sm"
+                variant={rainbowGlowState === "done" ? "default" : "outline"}
+                onClick={() => setRainbowGlowState("done")}
+              >
+                Done
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <RainbowGlowWrapper 
+                glowState={rainbowGlowState}
+                className="h-48 p-6 flex items-center justify-center"
+              >
+                <div className="text-center text-white">
+                  <h3 className="text-xl font-bold mb-2">Rainbow Glow Wrapper</h3>
+                  <p className="text-white/80 text-sm">State: {rainbowGlowState}</p>
+                  <p className="text-white/60 text-xs mt-1">Multi-colored animated glow effects</p>
+                </div>
+              </RainbowGlowWrapper>
+              
+              <RainbowGlowWrapper 
+                glowState="idle"
+                className="h-48 p-6 flex items-center justify-center"
+                borderRadius="rounded-lg"
+                ambient={false}
+              >
+                <div className="text-center text-white">
+                  <h4 className="font-semibold mb-1">Customized</h4>
+                  <p className="text-white/80 text-sm">Rounded corners</p>
+                  <p className="text-white/60 text-xs">No ambient glow</p>
+                </div>
+              </RainbowGlowWrapper>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Magic Glow Effect Component */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Magic Glow Effect</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="flex gap-4 flex-wrap">
+              <Button 
+                size="sm"
+                variant={magicGlowState === "idle" ? "default" : "outline"}
+                onClick={() => setMagicGlowState("idle")}
+              >
+                Idle
+              </Button>
+              <Button 
+                size="sm"
+                variant={magicGlowState === "listening" ? "default" : "outline"}
+                onClick={() => setMagicGlowState("listening")}
+              >
+                Listening
+              </Button>
+              <Button 
+                size="sm"
+                variant={magicGlowState === "processing" ? "default" : "outline"}
+                onClick={() => setMagicGlowState("processing")}
+              >
+                Processing
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <MagicGlowEffect 
+                glowState={magicGlowState}
+                className="h-48 p-6 flex items-center justify-center bg-gray-900/50"
+              >
+                <div className="text-center text-white">
+                  <h3 className="text-xl font-bold mb-2">Magic Glow Effect</h3>
+                  <p className="text-white/80 text-sm">State: {magicGlowState}</p>
+                  <p className="text-white/60 text-xs mt-1">Cyan primary with subtle effects</p>
+                </div>
+              </MagicGlowEffect>
+              
+              <MagicGlowEffect 
+                glowState="processing"
+                primaryColor="#ff6b6b"
+                accentColor="#4ecdc4"
+                glowSize={16}
+                className="h-48 p-6 flex items-center justify-center bg-gray-900/50"
+                borderRadius="rounded-2xl"
+              >
+                <div className="text-center text-white">
+                  <h4 className="font-semibold mb-1">Custom Colors</h4>
+                  <p className="text-white/80 text-sm">Red & Teal</p>
+                  <p className="text-white/60 text-xs">Larger glow size</p>
+                </div>
+              </MagicGlowEffect>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Glow Card Component */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Glow Card</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="flex gap-4 flex-wrap">
+              <Button 
+                size="sm"
+                variant={glowCardState === "idle" ? "default" : "outline"}
+                onClick={() => setGlowCardState("idle")}
+              >
+                Idle
+              </Button>
+              <Button 
+                size="sm"
+                variant={glowCardState === "listening" ? "default" : "outline"}
+                onClick={() => setGlowCardState("listening")}
+              >
+                Listening
+              </Button>
+              <Button 
+                size="sm"
+                variant={glowCardState === "processing" ? "default" : "outline"}
+                onClick={() => setGlowCardState("processing")}
+              >
+                Processing
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <GlowCard 
+                glowState={glowCardState}
+                primaryColor="#ff6b35"
+                className="h-48"
+              >
+                <GlowCardHeader>
+                  <GlowCardTitle className="text-lg">Glow Card</GlowCardTitle>
+                  <CardDescription>State: {glowCardState}</CardDescription>
+                </GlowCardHeader>
+                <GlowCardContent>
+                  <p className="text-sm text-muted-foreground">
+                    This is a ShadCN card with glow effects. It maintains all card functionality while adding interactive glow states.
+                  </p>
+                </GlowCardContent>
+              </GlowCard>
+              
+              <GlowCard 
+                glowState="processing"
+                primaryColor="#ff6b35"
+                accentColor="#ff8c42"
+                glowSize={20}
+                className="h-48"
+              >
+                <GlowCardHeader>
+                  <GlowCardTitle className="text-lg">Custom Glow Card</GlowCardTitle>
+                  <CardDescription>Orange theme</CardDescription>
+                </GlowCardHeader>
+                <GlowCardContent>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Processing</Badge>
+                    <span className="text-xs text-muted-foreground">Enhanced glow</span>
+                  </div>
+                </GlowCardContent>
+                <CardFooter>
+                  <Button size="sm" className="w-full">Action Button</Button>
+                </CardFooter>
+              </GlowCard>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Buttons Section */}
       <Card>
         <CardHeader>

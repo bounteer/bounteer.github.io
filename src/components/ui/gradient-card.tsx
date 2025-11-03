@@ -33,7 +33,7 @@ export const GradientCard = ({
   return (
     <div className={cn("rounded-lg overflow-hidden shadow-lg", className)}>
       <BackgroundGradientAnimation
-        containerClassName="h-full w-full rounded-lg"
+        containerClassName="h-full w-full rounded-4x"
         gradientBackgroundStart={gradientBackgroundStart}
         gradientBackgroundEnd={gradientBackgroundEnd}
         firstColor={firstColor}
