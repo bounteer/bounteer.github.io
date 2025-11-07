@@ -379,6 +379,65 @@ export async function createOrbitCallRequest(
 }
 
 
+// Orbit Search Request types
+export type OrbitSearchRequest = {
+  jd: string;
+  call: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at?: string;
+  user?: string;
+}
+
+// Create orbit search request in Directus
+export async function createOrbitSearchRequest(
+  jdId: string,
+  callId: string,
+  directusUrl: string
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    const authHeaders = getAuthHeaders(user);
+    
+    const requestData: OrbitSearchRequest = {
+      jd: jdId,
+      call: callId,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      ...(user && { user: user.id })
+    };
+
+    const response = await fetch(`${directusUrl}/items/orbit_search_request`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      id: result.data?.id || result.id
+    };
+  } catch (error) {
+    console.error('Error creating orbit search request:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 // Get package version from package.json
 export async function getPackageVersion(): Promise<string> {
   try {

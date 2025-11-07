@@ -1,0 +1,49 @@
+---
+// Astro-only floating button component
+---
+
+<!-- SVG icon for Target (from Lucide React) -->
+<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+  <button
+    id="floating-btn"
+    class="rounded-full shadow-2xl hover:shadow-primary-700 hover:shadow-2xl transition-all duration-300 bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 flex items-center gap-2 drop-shadow-lg text-lg font-medium"
+  >
+    <!-- Target icon SVG -->
+    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+      <circle cx="12" cy="12" r="6" stroke-width="2"></circle>
+      <circle cx="12" cy="12" r="2" stroke-width="2"></circle>
+    </svg>
+    <span>Check Role Fit</span>
+  </button>
+</div>
+
+<script is:inline>
+  // Handle button click
+  function handleButtonClick() {
+    console.log('Floating button clicked!');
+    window.location.href = "/role-fit-index";
+  }
+  
+  // Initialize on page load
+  function initFloatingButton() {
+    console.log('Initializing floating button...');
+    const floatingBtn = document.getElementById('floating-btn');
+    console.log('Found button:', floatingBtn);
+    if (floatingBtn) {
+      floatingBtn.addEventListener('click', handleButtonClick);
+      console.log('Event listener added');
+    }
+  }
+  
+  // Try multiple initialization methods
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFloatingButton);
+  } else {
+    // DOM is already loaded
+    initFloatingButton();
+  }
+  
+  // Also try on window load as backup
+  window.addEventListener('load', initFloatingButton);
+</script>

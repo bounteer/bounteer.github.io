@@ -10,7 +10,7 @@ import { GlowCard } from "./GlowCard";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
-import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
+import { createOrbitCallRequest, createOrbitSearchRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
@@ -83,6 +83,10 @@ export default function OrbitCallDashboard() {
 
   // State for candidates data
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+
+  // State for search functionality
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string>("");
 
   // WebSocket reference for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
@@ -635,6 +639,43 @@ export default function OrbitCallDashboard() {
     setCandidates([]);
   };
 
+  /**
+   * Handle search people request using current JD
+   */
+  const handleSearchPeople = async () => {
+    if (!jobDescriptionId || !orbitCallSession?.id) {
+      setSearchError("Missing job description or call session ID");
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError("");
+
+    try {
+      const result = await createOrbitSearchRequest(
+        jobDescriptionId,
+        orbitCallSession.id,
+        EXTERNAL.directus_url
+      );
+
+      if (!result.success) {
+        setSearchError(result.error || "Failed to create search request");
+        return;
+      }
+
+      console.log("Orbit search request created with ID:", result.id);
+      // You could add success feedback here if needed
+      // For now, just clear any existing error
+      setSearchError("");
+
+    } catch (error) {
+      console.error("Error in handleSearchPeople:", error);
+      setSearchError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const renderEnrichmentStage = () => (
     <>
       {/* Header with gradient background and toggle */}
@@ -828,6 +869,7 @@ export default function OrbitCallDashboard() {
               )}
             </div>
           </div>
+
         </div>
       </div>
     </>
@@ -847,30 +889,36 @@ export default function OrbitCallDashboard() {
       interactive={true}
     >
       <div className="relative z-10 p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
+        {/* Row 1: Title */}
+        <div className="mb-4">
             <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <div className="flex items-center space-x-3">
-                <Button
-                  onClick={() => setInputMode("meeting")}
-                  variant={inputMode === "meeting" ? "default" : "outline"}
-                  size="sm"
-                  className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
-                >
-                  Meeting
-                </Button>
-                <Button
-                  onClick={() => setInputMode("testing")}
-                  variant={inputMode === "testing" ? "default" : "outline"}
-                  size="sm"
-                  className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
-                >
-                  Testing
-                </Button>
-              </div>
+        {/* Row 2 & 3: Responsive layout - stacked on small screens, single row on md+ */}
+        <div className="space-y-2">
+          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+            {/* Toggle buttons */}
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => setInputMode("meeting")}
+                variant={inputMode === "meeting" ? "default" : "outline"}
+                size="sm"
+                className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
+              >
+                Meeting
+              </Button>
+              <Button
+                onClick={() => setInputMode("testing")}
+                variant={inputMode === "testing" ? "default" : "outline"}
+                size="sm"
+                className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
+              >
+                Testing
+              </Button>
+            </div>
+            
+            {/* URL input and Deploy button */}
+            <div className="flex gap-2 flex-1">
               <Input
                 id="callUrl"
                 type={inputMode === "meeting" ? "url" : "text"}
@@ -883,7 +931,7 @@ export default function OrbitCallDashboard() {
                 onClick={handleSendBot}
                 size="sm"
                 disabled={!!callUrlError || !callUrl.trim() || isDeploying}
-                className="flex items-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                className="flex items-center justify-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 {isDeploying ? (
                   <>
@@ -928,10 +976,11 @@ export default function OrbitCallDashboard() {
                 )}
               </Button>
             </div>
-            {callUrlError && (
-              <p className="text-sm text-red-300">{callUrlError}</p>
-            )}
           </div>
+          {callUrlError && (
+            <p className="text-sm text-red-300">{callUrlError}</p>
+          )}
+        </div>
         </div>
     </BackgroundGradientAnimation>
   );
@@ -955,6 +1004,68 @@ export default function OrbitCallDashboard() {
         >
           {renderEnrichmentStage()}
         </GlowCard>
+      )}
+
+      {/* Search People Button - Outside the orbit call JD enrichment card */}
+      {jdStage !== "not_linked" && jobDescriptionId && orbitCallSession?.id && (
+        <div className="mt-6 mb-6">
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 mb-1">People Search</h4>
+              <p className="text-sm text-gray-500">Search for candidates matching this job description</p>
+            </div>
+            <Button
+              onClick={handleSearchPeople}
+              disabled={isSearching || !jobDescriptionId || !orbitCallSession?.id}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              {isSearching ? (
+                <>
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  Search People
+                </>
+              )}
+            </Button>
+          </div>
+          {searchError && (
+            <p className="text-sm text-red-500 mt-2 ml-4">{searchError}</p>
+          )}
+        </div>
       )}
 
       {/* Candidates Section - Only show when not in not_linked state */}
