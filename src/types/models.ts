@@ -71,6 +71,7 @@ export interface JobDescriptionFormData {
   preferred_requirement: string;
   perk: string;
   salary_range: string;
+  skill: string[];
 }
 
 export interface CallSetupFormData {
@@ -112,7 +113,8 @@ export const DEFAULT_JOB_DESCRIPTION: JobDescriptionFormData = {
 • 401(k) matching and retirement planning assistance
 • Flexible PTO and sabbatical opportunities
 • Collaborative and innovative work environment`,
-  salary_range: '$120,000 - $180,000 USD annually, plus equity and benefits'
+  salary_range: '$120,000 - $180,000 USD annually, plus equity and benefits',
+  skill: ['React', 'TypeScript', 'Node.js', 'AWS', 'Microservices', 'CI/CD']
 };
 
 // Validation utilities

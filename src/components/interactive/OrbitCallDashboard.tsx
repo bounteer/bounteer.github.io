@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { GlowCard } from "./GlowCard";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+import { DraggableSkillsTags } from "./DraggableSkillsTags";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest, createOrbitSearchRequest, getUserProfile } from "@/lib/utils";
@@ -68,7 +69,8 @@ export default function OrbitCallDashboard() {
     responsibility: "",
     minimum_requirement: "",
     preferred_requirement: "",
-    perk: ""
+    perk: "",
+    skill: []
   });
   const [jobErrors, setJobErrors] = useState<JobDescriptionFormErrors>({});
 
@@ -87,6 +89,12 @@ export default function OrbitCallDashboard() {
   // State for search functionality
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string>("");
+
+  // State for save functionality
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string>("");
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [originalJobData, setOriginalJobData] = useState<JobDescriptionFormData | null>(null);
 
   // WebSocket reference for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
@@ -111,21 +119,23 @@ export default function OrbitCallDashboard() {
     }
   };
 
-  const handleJobDataChange = (name: keyof JobDescriptionFormData, value: string) => {
+  const handleJobDataChange = (name: keyof JobDescriptionFormData, value: string | string[]) => {
     const newData = { ...jobData, [name]: value };
     setJobData(newData);
 
-    // Validate the field
-    const error = validateField(name, value);
-    const newErrors = { ...jobErrors };
+    // Validate the field (only for string fields)
+    if (typeof value === 'string') {
+      const error = validateField(name, value);
+      const newErrors = { ...jobErrors };
 
-    if (error) {
-      newErrors[name] = error;
-    } else {
-      delete newErrors[name];
+      if (error) {
+        newErrors[name] = error;
+      } else {
+        delete newErrors[name];
+      }
+
+      setJobErrors(newErrors);
     }
-
-    setJobErrors(newErrors);
   };
 
   /**
@@ -267,6 +277,13 @@ export default function OrbitCallDashboard() {
   const handleAiToggle = (enabled: boolean) => {
     setAiEnrichmentEnabled(enabled);
     setJdStage(enabled ? "ai_enrichment" : "manual_enrichment");
+    
+    // When switching to manual mode, save the current state as original data for change tracking
+    if (!enabled) {
+      setOriginalJobData({ ...jobData });
+      setSaveError("");
+      setSaveSuccess(false);
+    }
   };
 
   /**
@@ -275,7 +292,7 @@ export default function OrbitCallDashboard() {
   const fetchJobDescription = async (jdId: string) => {
     try {
       const user = await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jdId}?fields=id,company_name,role_name,location,salary_range,responsibility,minimum_requirement,preferred_requirement,perk`, {
+      const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jdId}?fields=id,company_name,role_name,location,salary_range,responsibility,minimum_requirement,preferred_requirement,perk,skill`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -303,17 +320,30 @@ export default function OrbitCallDashboard() {
           responsibility: jd.responsibility || "",
           minimum_requirement: jd.minimum_requirement || "",
           preferred_requirement: jd.preferred_requirement || "",
-          perk: jd.perk || ""
+          perk: jd.perk || "",
+          skill: Array.isArray(jd.skill) ? jd.skill : (jd.skill ? JSON.parse(jd.skill) : [])
         };
 
         // Only update if data has changed
-        const hasChanged = Object.keys(updatedJobData).some(key => 
-          updatedJobData[key as keyof JobDescriptionFormData] !== jobData[key as keyof JobDescriptionFormData]
-        );
+        const hasChanged = Object.keys(updatedJobData).some(key => {
+          const oldValue = jobData[key as keyof JobDescriptionFormData];
+          const newValue = updatedJobData[key as keyof JobDescriptionFormData];
+
+          // Handle array comparison for skill field
+          if (key === 'skill' && Array.isArray(oldValue) && Array.isArray(newValue)) {
+            return JSON.stringify(oldValue) !== JSON.stringify(newValue);
+          }
+
+          return oldValue !== newValue;
+        });
 
         if (hasChanged) {
           console.log("Job description updated via polling:", updatedJobData);
           setJobData(updatedJobData);
+          // Update original data when data comes from API (not user edits)
+          if (jdStage === "ai_enrichment") {
+            setOriginalJobData({ ...updatedJobData });
+          }
         }
       }
     } catch (error) {
@@ -403,7 +433,7 @@ export default function OrbitCallDashboard() {
               type: "subscribe",
               collection: "job_description",
               query: {
-                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk"]
+                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk", "skill"]
               },
             });
             ws.send(subscriptionPayload);
@@ -422,11 +452,16 @@ export default function OrbitCallDashboard() {
                 responsibility: rec.responsibility || "",
                 minimum_requirement: rec.minimum_requirement || "",
                 preferred_requirement: rec.preferred_requirement || "",
-                perk: rec.perk || ""
+                perk: rec.perk || "",
+                skill: Array.isArray(rec.skill) ? rec.skill : (rec.skill ? JSON.parse(rec.skill) : [])
               };
 
               setJobData(updatedJobData);
               console.log("Job description form updated with real-time data:", updatedJobData);
+              // Update original data when data comes from API (not user edits)
+              if (jdStage === "ai_enrichment") {
+                setOriginalJobData({ ...updatedJobData });
+              }
             }
           }
         } catch (error) {
@@ -640,6 +675,105 @@ export default function OrbitCallDashboard() {
   };
 
   /**
+   * Check if there are changes between original and current job data
+   */
+  const hasJobDataChanges = (): boolean => {
+    if (!originalJobData) return false;
+    
+    // Compare each field including skills array
+    const fieldsToCompare: (keyof JobDescriptionFormData)[] = [
+      'company_name', 'role_name', 'location', 'salary_range',
+      'responsibility', 'minimum_requirement', 'preferred_requirement', 'perk'
+    ];
+    
+    // Check string fields
+    for (const field of fieldsToCompare) {
+      if (originalJobData[field] !== jobData[field]) {
+        return true;
+      }
+    }
+    
+    // Check skills array separately
+    const originalSkills = originalJobData.skill || [];
+    const currentSkills = jobData.skill || [];
+    
+    if (originalSkills.length !== currentSkills.length) {
+      return true;
+    }
+    
+    for (let i = 0; i < originalSkills.length; i++) {
+      if (originalSkills[i] !== currentSkills[i]) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  /**
+   * Handle saving job description to Directus
+   */
+  const handleSaveJobDescription = async () => {
+    if (!jobDescriptionId) {
+      setSaveError("Missing job description ID");
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError("");
+    setSaveSuccess(false);
+
+    try {
+      const user = await getUserProfile(EXTERNAL.directus_url);
+      
+      // Prepare the data to save
+      const dataToSave = {
+        company_name: jobData.company_name,
+        role_name: jobData.role_name,
+        location: jobData.location,
+        salary_range: jobData.salary_range,
+        responsibility: jobData.responsibility,
+        minimum_requirement: jobData.minimum_requirement,
+        preferred_requirement: jobData.preferred_requirement,
+        perk: jobData.perk,
+        skill: JSON.stringify(jobData.skill) // Convert array to JSON string for Directus
+      };
+
+      const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jobDescriptionId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+        },
+        body: JSON.stringify(dataToSave)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to save job description:', response.status, response.statusText, errorText);
+        setSaveError(`Failed to save: ${response.status} ${response.statusText}`);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("Job description saved successfully:", result);
+      
+      // Update original data to current data since it's now saved
+      setOriginalJobData({ ...jobData });
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000); // Clear success message after 3 seconds
+
+    } catch (error) {
+      console.error('Error saving job description:', error);
+      setSaveError("An unexpected error occurred while saving. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
    * Handle search people request using current JD
    */
   const handleSearchPeople = async () => {
@@ -719,6 +853,73 @@ export default function OrbitCallDashboard() {
                   checked={aiEnrichmentEnabled}
                   onCheckedChange={handleAiToggle}
                 />
+                {jdStage === "manual_enrichment" && jobDescriptionId && (
+                  <Button
+                    onClick={handleSaveJobDescription}
+                    disabled={isSaving || !hasJobDataChanges()}
+                    size="sm"
+                    className="flex items-center gap-2 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  >
+                    {isSaving ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : saveSuccess ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        Save
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -869,6 +1070,24 @@ export default function OrbitCallDashboard() {
               )}
             </div>
           </div>
+
+          {/* Skills Section */}
+          <div>
+            <DraggableSkillsTags
+              skills={jobData.skill}
+              onChange={(skills) => handleJobDataChange('skill', skills)}
+              disabled={jdStage === "ai_enrichment"}
+              label="Skills"
+              placeholder="Add a skill and press Enter"
+            />
+          </div>
+
+          {/* Save Error Display */}
+          {saveError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{saveError}</p>
+            </div>
+          )}
 
         </div>
       </div>
