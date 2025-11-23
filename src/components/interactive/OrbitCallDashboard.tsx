@@ -90,6 +90,11 @@ export default function OrbitCallDashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string>("");
 
+  // State for webhook functionality
+  const [isSendingToWebhook, setIsSendingToWebhook] = useState(false);
+  const [webhookError, setWebhookError] = useState<string>("");
+  const [webhookSuccess, setWebhookSuccess] = useState(false);
+
   // State for save functionality
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>("");
@@ -810,6 +815,68 @@ export default function OrbitCallDashboard() {
     }
   };
 
+  /**
+   * Handle sending job description to webhook
+   */
+  const handleSendToWebhook = async () => {
+    if (!orbitCallSession?.id) {
+      setWebhookError("Missing session ID");
+      return;
+    }
+
+    setIsSendingToWebhook(true);
+    setWebhookError("");
+    setWebhookSuccess(false);
+
+    try {
+      // Prepare payload with job description and session ID
+      const payload = {
+        session_id: orbitCallSession.id,
+        job_description: {
+          company_name: jobData.company_name,
+          role_name: jobData.role_name,
+          location: jobData.location,
+          salary_range: jobData.salary_range,
+          responsibility: jobData.responsibility,
+          minimum_requirement: jobData.minimum_requirement,
+          preferred_requirement: jobData.preferred_requirement,
+          perk: jobData.perk,
+          skill: jobData.skill
+        },
+        job_description_id: jobDescriptionId,
+        timestamp: new Date().toISOString()
+      };
+
+      const webhookUrl = EXTERNAL.webhook_url;
+
+      console.log("Sending to webhook:", webhookUrl, payload);
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook request failed: ${response.status} ${response.statusText}`);
+      }
+
+      console.log("Job description sent to webhook successfully");
+      setWebhookSuccess(true);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setWebhookSuccess(false), 3000);
+
+    } catch (error) {
+      console.error("Error sending to webhook:", error);
+      setWebhookError("Failed to send to webhook. Please try again.");
+    } finally {
+      setIsSendingToWebhook(false);
+    }
+  };
+
   const renderEnrichmentStage = () => (
     <>
       {/* Header with gradient background and toggle */}
@@ -1225,65 +1292,147 @@ export default function OrbitCallDashboard() {
         </GlowCard>
       )}
 
-      {/* Search People Button - Outside the orbit call JD enrichment card */}
-      {jdStage !== "not_linked" && jobDescriptionId && orbitCallSession?.id && (
-        <div className="mt-6 mb-6">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+      {/* Action Buttons - Outside the orbit call JD enrichment card */}
+      {jdStage !== "not_linked" && orbitCallSession?.id && (
+        <div className="mt-6 mb-6 space-y-4">
+          {/* Search People Button */}
+          {jobDescriptionId && (
             <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-1">People Search</h4>
-              <p className="text-sm text-gray-500">Search for candidates matching this job description</p>
-            </div>
-            <Button
-              onClick={handleSearchPeople}
-              disabled={isSearching || !jobDescriptionId || !orbitCallSession?.id}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              {isSearching ? (
-                <>
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  Search People
-                </>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-1">People Search</h4>
+                  <p className="text-sm text-gray-500">Search for candidates matching this job description</p>
+                </div>
+                <Button
+                  onClick={handleSearchPeople}
+                  disabled={isSearching || !jobDescriptionId || !orbitCallSession?.id}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSearching ? (
+                    <>
+                      <svg
+                        className="w-4 h-4 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                      Search People
+                    </>
+                  )}
+                </Button>
+              </div>
+              {searchError && (
+                <p className="text-sm text-red-500 mt-2 ml-4">{searchError}</p>
               )}
-            </Button>
-          </div>
-          {searchError && (
-            <p className="text-sm text-red-500 mt-2 ml-4">{searchError}</p>
+            </div>
           )}
+
+          {/* Send to Webhook Button */}
+          <div>
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-1">Send to Webhook</h4>
+                <p className="text-sm text-gray-500">Send current job description and session ID to webhook endpoint</p>
+              </div>
+              <Button
+                onClick={handleSendToWebhook}
+                disabled={isSendingToWebhook || !orbitCallSession?.id}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+              >
+                {isSendingToWebhook ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Sending...
+                  </>
+                ) : webhookSuccess ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Sent
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    Send to Webhook
+                  </>
+                )}
+              </Button>
+            </div>
+            {webhookError && (
+              <p className="text-sm text-red-500 mt-2 ml-4">{webhookError}</p>
+            )}
+          </div>
         </div>
       )}
 
