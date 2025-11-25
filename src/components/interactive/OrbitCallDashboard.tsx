@@ -1507,9 +1507,13 @@ export default function OrbitCallDashboard() {
                 <p className="text-sm text-red-500 mt-2 ml-4">{searchError}</p>
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Send to Webhook Button */}
+        {/* Action Buttons - Outside the orbit call JD enrichment card */}
+        {jdStage !== "not_linked" && orbitCallSession?.id && (
+          <div className="mt-6 mb-6 space-y-4">
+            {/* Send to Webhook Button */}
           <div>
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
               <div>
