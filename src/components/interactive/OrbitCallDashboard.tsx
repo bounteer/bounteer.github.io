@@ -49,6 +49,7 @@ interface Candidate {
   experience: string;
   roleFitPercentage: number;
   skills: string[];
+  company?: string;
 }
 
 interface CandidateSkill {
@@ -742,6 +743,9 @@ export default function OrbitCallDashboard() {
           <div className="flex-1">
             <h3 className="font-medium text-sm text-gray-900">{candidate.name}</h3>
             <p className="text-xs text-gray-600">{candidate.title}</p>
+            {candidate.company && (
+              <p className="text-xs text-gray-500 mt-0.5">{candidate.company}</p>
+            )}
             <p className="text-xs text-gray-500 mt-1">{candidate.experience}</p>
           </div>
           <div className="flex items-center space-x-2">
@@ -791,7 +795,8 @@ export default function OrbitCallDashboard() {
         title: 'Senior Software Engineer',
         experience: '5 years experience',
         roleFitPercentage: 92,
-        skills: ['React', 'TypeScript', 'Node.js']
+        skills: ['React', 'TypeScript', 'Node.js'],
+        company: 'TechCorp Inc.'
       },
       {
         id: '2',
@@ -799,7 +804,8 @@ export default function OrbitCallDashboard() {
         title: 'Full Stack Developer',
         experience: '3 years experience',
         roleFitPercentage: 78,
-        skills: ['Python', 'Django', 'PostgreSQL']
+        skills: ['Python', 'Django', 'PostgreSQL'],
+        company: 'DataSoft Solutions'
       },
       {
         id: '3',
@@ -807,7 +813,8 @@ export default function OrbitCallDashboard() {
         title: 'Frontend Developer',
         experience: '4 years experience',
         roleFitPercentage: 65,
-        skills: ['Vue.js', 'JavaScript', 'CSS']
+        skills: ['Vue.js', 'JavaScript', 'CSS'],
+        company: 'Creative Studios'
       }
     ];
     setCandidates(mockCandidates);
@@ -924,7 +931,7 @@ export default function OrbitCallDashboard() {
       console.log("Fetching candidate search results for request ID:", searchRequestId);
       
       const user = await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*`, {
+      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.first_name,candidate_profile.last_name,candidate_profile.year_of_experience,candidate_profile.company_name`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -945,14 +952,22 @@ export default function OrbitCallDashboard() {
 
       if (candidateResults && candidateResults.length > 0) {
         // Transform the results to match our Candidate interface
-        const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => ({
-          id: result.id || `candidate_${index}`,
-          name: result.candidate_name || `Candidate ${index + 1}`,
-          title: result.candidate_title || "Unknown Title",
-          experience: result.candidate_experience || "Experience not specified",
-          roleFitPercentage: result.role_fit_percentage || 0,
-          skills: result.candidate_skills ? (Array.isArray(result.candidate_skills) ? result.candidate_skills : JSON.parse(result.candidate_skills)) : []
-        }));
+        const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => {
+          const candidateProfile = result.candidate_profile;
+          const firstName = candidateProfile?.first_name || '';
+          const lastName = candidateProfile?.last_name || '';
+          const fullName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || `Candidate ${index + 1}`);
+          
+          return {
+            id: candidateProfile?.id || result.id || `candidate_${index}`,
+            name: fullName,
+            title: result.candidate_title || "Unknown Title",
+            experience: candidateProfile?.year_of_experience ? `${candidateProfile.year_of_experience} years experience` : "Experience not specified",
+            roleFitPercentage: result.rfi_score || 0,
+            skills: result.candidate_skills ? (Array.isArray(result.candidate_skills) ? result.candidate_skills : JSON.parse(result.candidate_skills)) : [],
+            company: candidateProfile?.company_name || "Unknown Company"
+          };
+        });
 
         console.log("Transformed candidates:", transformedCandidates);
         setCandidates(transformedCandidates);
