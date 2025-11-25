@@ -11,7 +11,7 @@ import { BackgroundGradientAnimation } from "@/components/ui/background-gradient
 import { DraggableSkillsTags } from "./DraggableSkillsTags";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
-import { createOrbitCallRequest, createOrbitSearchRequest, getUserProfile } from "@/lib/utils";
+import { createOrbitCallRequest, createOrbitCandidateSearchRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
@@ -89,6 +89,9 @@ export default function OrbitCallDashboard() {
   // State for search functionality
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string>("");
+  const [searchRequestId, setSearchRequestId] = useState<string>("");
+  const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
+  const [candidatesListed, setCandidatesListed] = useState(false);
 
   // State for webhook functionality
   const [isSendingToWebhook, setIsSendingToWebhook] = useState(false);
@@ -103,7 +106,10 @@ export default function OrbitCallDashboard() {
 
   // WebSocket reference for real-time updates
   const wsRef = useRef<WebSocket | null>(null);
-  
+
+  // WebSocket reference for search request monitoring
+  const searchWsRef = useRef<WebSocket | null>(null);
+
   // Polling reference for job description updates
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -519,6 +525,110 @@ export default function OrbitCallDashboard() {
   };
 
   /**
+   * Set up WebSocket subscription for search request status updates
+   */
+  const setupSearchRequestWebSocket = async (requestId: string) => {
+    try {
+      // Clean up existing WebSocket connection
+      if (searchWsRef.current) {
+        searchWsRef.current.close();
+        searchWsRef.current = null;
+      }
+
+      await getUserProfile(EXTERNAL.directus_url);
+      const u = new URL(EXTERNAL.directus_url);
+      u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+      u.pathname = "/websocket";
+      u.search = "";
+
+      const ws = new WebSocket(u.toString());
+      searchWsRef.current = ws;
+
+      const timeout = setTimeout(() => {
+        try { ws.close(); } catch { }
+        console.log("WebSocket timeout for search request subscription");
+      }, 300_000); // 5 minute timeout
+
+      ws.onopen = () => {
+        console.log("WebSocket connected for search request updates");
+        const authPayload = JSON.stringify({
+          type: "auth",
+          access_token: EXTERNAL.directus_key
+        });
+        ws.send(authPayload);
+      };
+
+      ws.onmessage = async (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+
+          if (msg.type === "auth" && msg.status === "ok") {
+            console.log("WebSocket authenticated, subscribing to orbit_candidate_search_request updates");
+            const subscriptionPayload = JSON.stringify({
+              type: "subscribe",
+              collection: "orbit_candidate_search_request",
+              query: {
+                fields: ["id", "status", "session", "job_description_snapshot"]
+              },
+            });
+            ws.send(subscriptionPayload);
+          } else if (msg.type === "subscription") {
+            const rec = Array.isArray(msg.data) ? msg.data[0] : msg.data?.payload ?? msg.data?.item ?? msg.data;
+
+            // Filter for updates to our specific search request
+            if (msg.event === "update" && rec && String(rec.id) === String(requestId)) {
+              console.log("Search request updated via WebSocket:", rec);
+              console.log("Current status:", rec.status);
+
+              // Update the status state
+              if (rec.status) {
+                setSearchRequestStatus(rec.status);
+              }
+
+              // Check if status is "candidate_listed"
+              if (rec.status === "candidate_listed") {
+                console.log("Candidates listed! Status reached: candidate_listed");
+                setCandidatesListed(true);
+                setIsSearching(false);
+
+                // Close the WebSocket since we've reached the target status
+                if (searchWsRef.current) {
+                  searchWsRef.current.close();
+                  searchWsRef.current = null;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error processing search request WebSocket message:", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("Search request WebSocket error:", error);
+        clearTimeout(timeout);
+      };
+
+      ws.onclose = (event) => {
+        console.log("Search request WebSocket closed:", event.code, event.reason);
+        clearTimeout(timeout);
+
+        // Attempt to reconnect after 5 seconds if not manually closed and not yet candidate_listed
+        if (event.code !== 1000 && !candidatesListed) {
+          setTimeout(() => {
+            if (searchRequestId && !candidatesListed) {
+              console.log("Attempting to reconnect WebSocket for search request updates");
+              setupSearchRequestWebSocket(searchRequestId);
+            }
+          }, 5000);
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up search request WebSocket:", error);
+    }
+  };
+
+  /**
    * Effect to set up real-time updates (WebSocket or Polling) when job description ID is available
    */
   useEffect(() => {
@@ -557,6 +667,24 @@ export default function OrbitCallDashboard() {
   }, [jobDescriptionId, jdStage]);
 
   /**
+   * Effect to set up WebSocket subscription for search request when searchRequestId is available
+   */
+  useEffect(() => {
+    if (searchRequestId && !candidatesListed) {
+      console.log("Setting up WebSocket subscription for search request:", searchRequestId);
+      setupSearchRequestWebSocket(searchRequestId);
+    }
+
+    // Cleanup when searchRequestId changes or component unmounts
+    return () => {
+      if (searchWsRef.current) {
+        searchWsRef.current.close();
+        searchWsRef.current = null;
+      }
+    };
+  }, [searchRequestId, candidatesListed]);
+
+  /**
    * Cleanup WebSocket and polling on component unmount
    */
   useEffect(() => {
@@ -570,6 +698,11 @@ export default function OrbitCallDashboard() {
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
+      }
+      // Close search WebSocket
+      if (searchWsRef.current) {
+        searchWsRef.current.close();
+        searchWsRef.current = null;
       }
     };
   }, []);
@@ -782,8 +915,8 @@ export default function OrbitCallDashboard() {
    * Handle search people request using current JD
    */
   const handleSearchPeople = async () => {
-    if (!jobDescriptionId || !orbitCallSession?.id) {
-      setSearchError("Missing job description or call session ID");
+    if (!orbitCallSession?.id) {
+      setSearchError("Missing call session ID");
       return;
     }
 
@@ -791,9 +924,22 @@ export default function OrbitCallDashboard() {
     setSearchError("");
 
     try {
-      const result = await createOrbitSearchRequest(
-        jobDescriptionId,
+      // Prepare job description snapshot
+      const jobDescriptionSnapshot = {
+        company_name: jobData.company_name,
+        role_name: jobData.role_name,
+        location: jobData.location,
+        salary_range: jobData.salary_range,
+        responsibility: jobData.responsibility,
+        minimum_requirement: jobData.minimum_requirement,
+        preferred_requirement: jobData.preferred_requirement,
+        perk: jobData.perk,
+        skill: jobData.skill
+      };
+
+      const result = await createOrbitCandidateSearchRequest(
         orbitCallSession.id,
+        jobDescriptionSnapshot,
         EXTERNAL.directus_url
       );
 
@@ -802,16 +948,23 @@ export default function OrbitCallDashboard() {
         return;
       }
 
-      console.log("Orbit search request created with ID:", result.id);
-      // You could add success feedback here if needed
-      // For now, just clear any existing error
+      console.log("Orbit candidate search request created with ID:", result.id);
+
+      // Store the request ID and keep searching state active
+      if (result.id) {
+        setSearchRequestId(result.id);
+        console.log("Search request ID stored:", result.id);
+        console.log("Waiting for status to become 'candidate_listed'...");
+        // Note: isSearching will be set to false by WebSocket when status becomes "candidate_listed"
+      }
+
+      // Clear any existing error
       setSearchError("");
 
     } catch (error) {
       console.error("Error in handleSearchPeople:", error);
       setSearchError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsSearching(false);
+      setIsSearching(false); // Only set to false on error
     }
   };
 
@@ -1296,18 +1449,17 @@ export default function OrbitCallDashboard() {
       {jdStage !== "not_linked" && orbitCallSession?.id && (
         <div className="mt-6 mb-6 space-y-4">
           {/* Search People Button */}
-          {jobDescriptionId && (
-            <div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-1">People Search</h4>
-                  <p className="text-sm text-gray-500">Search for candidates matching this job description</p>
-                </div>
-                <Button
-                  onClick={handleSearchPeople}
-                  disabled={isSearching || !jobDescriptionId || !orbitCallSession?.id}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                >
+          <div>
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-1">People Search</h4>
+                <p className="text-sm text-gray-500">Search for candidates matching this job description</p>
+              </div>
+              <Button
+                onClick={handleSearchPeople}
+                disabled={isSearching || !orbitCallSession?.id}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              >
                   {isSearching ? (
                     <>
                       <svg
