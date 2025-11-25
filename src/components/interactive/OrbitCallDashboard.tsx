@@ -527,7 +527,7 @@ export default function OrbitCallDashboard() {
   /**
    * Set up WebSocket subscription for search request status updates
    */
-  const setupSearchRequestWebSocket = async (requestId: string) => {
+  const setupCandidateSearchRequestWebSocket = async (requestId: string) => {
     try {
       // Clean up existing WebSocket connection
       if (searchWsRef.current) {
@@ -585,11 +585,16 @@ export default function OrbitCallDashboard() {
                 setSearchRequestStatus(rec.status);
               }
 
-              // Check if status is "candidate_listed"
-              if (rec.status === "candidate_listed") {
-                console.log("Candidates listed! Status reached: candidate_listed");
+              // Check if status is "listed"
+              if (rec.status === "listed") {
+                console.log("Candidates listed! Status reached:", rec.status);
                 setCandidatesListed(true);
                 setIsSearching(false);
+
+                // Fetch the candidate search results
+                if (searchRequestId) {
+                  fetchCandidateSearchResults(searchRequestId);
+                }
 
                 // Close the WebSocket since we've reached the target status
                 if (searchWsRef.current) {
@@ -613,12 +618,12 @@ export default function OrbitCallDashboard() {
         console.log("Search request WebSocket closed:", event.code, event.reason);
         clearTimeout(timeout);
 
-        // Attempt to reconnect after 5 seconds if not manually closed and not yet candidate_listed
+        // Attempt to reconnect after 5 seconds if not manually closed and not yet listed
         if (event.code !== 1000 && !candidatesListed) {
           setTimeout(() => {
             if (searchRequestId && !candidatesListed) {
               console.log("Attempting to reconnect WebSocket for search request updates");
-              setupSearchRequestWebSocket(searchRequestId);
+              setupCandidateSearchRequestWebSocket(searchRequestId);
             }
           }, 5000);
         }
@@ -672,7 +677,7 @@ export default function OrbitCallDashboard() {
   useEffect(() => {
     if (searchRequestId && !candidatesListed) {
       console.log("Setting up WebSocket subscription for search request:", searchRequestId);
-      setupSearchRequestWebSocket(searchRequestId);
+      setupCandidateSearchRequestWebSocket(searchRequestId);
     }
 
     // Cleanup when searchRequestId changes or component unmounts
@@ -908,6 +913,56 @@ export default function OrbitCallDashboard() {
       setSaveError("An unexpected error occurred while saving. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  /**
+   * Fetch candidate search results from Directus
+   */
+  const fetchCandidateSearchResults = async (searchRequestId: string) => {
+    try {
+      console.log("Fetching candidate search results for request ID:", searchRequestId);
+      
+      const user = await getUserProfile(EXTERNAL.directus_url);
+      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch candidate search results:', response.status, response.statusText);
+        return;
+      }
+
+      const result = await response.json();
+      const candidateResults = result.data;
+
+      console.log("Received candidate search results from API:", candidateResults);
+
+      if (candidateResults && candidateResults.length > 0) {
+        // Transform the results to match our Candidate interface
+        const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => ({
+          id: result.id || `candidate_${index}`,
+          name: result.candidate_name || `Candidate ${index + 1}`,
+          title: result.candidate_title || "Unknown Title",
+          experience: result.candidate_experience || "Experience not specified",
+          roleFitPercentage: result.role_fit_percentage || 0,
+          skills: result.candidate_skills ? (Array.isArray(result.candidate_skills) ? result.candidate_skills : JSON.parse(result.candidate_skills)) : []
+        }));
+
+        console.log("Transformed candidates:", transformedCandidates);
+        setCandidates(transformedCandidates);
+      } else {
+        console.log("No candidate search results found");
+        setCandidates([]);
+      }
+    } catch (error) {
+      console.error('Error fetching candidate search results:', error);
+      setSearchError("Failed to fetch candidate results. Please try again.");
     }
   };
 
