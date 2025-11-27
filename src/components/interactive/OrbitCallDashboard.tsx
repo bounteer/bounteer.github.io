@@ -508,7 +508,7 @@ export default function OrbitCallDashboard() {
       console.log("Fetching candidate search results for request ID:", searchRequestId);
       
       const user = await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.first_name,candidate_profile.last_name,candidate_profile.year_of_experience,candidate_profile.company_name`, {
+      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.name,candidate_profile.job_title,candidate_profile.year_of_experience,candidate_profile.skills,candidate_profile.location`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -531,18 +531,29 @@ export default function OrbitCallDashboard() {
         // Transform the results to match our Candidate interface
         const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => {
           const candidateProfile = result.candidate_profile;
-          const firstName = candidateProfile?.first_name || '';
-          const lastName = candidateProfile?.last_name || '';
-          const fullName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || `Candidate ${index + 1}`);
-          
+          const name = candidateProfile?.name || `Candidate ${index + 1}`;
+
+          // Parse skills from candidate profile
+          let skills: string[] = [];
+          if (candidateProfile?.skills) {
+            try {
+              skills = Array.isArray(candidateProfile.skills)
+                ? candidateProfile.skills
+                : JSON.parse(candidateProfile.skills);
+            } catch (e) {
+              console.warn('Failed to parse candidate skills:', e);
+              skills = [];
+            }
+          }
+
           return {
             id: candidateProfile?.id || result.id || `candidate_${index}`,
-            name: fullName,
-            title: result.candidate_title || "Unknown Title",
+            name: name,
+            title: candidateProfile?.job_title || "Unknown Title",
             experience: candidateProfile?.year_of_experience ? `${candidateProfile.year_of_experience} years experience` : "Experience not specified",
             roleFitPercentage: result.rfi_score || 0,
-            skills: result.candidate_skills ? (Array.isArray(result.candidate_skills) ? result.candidate_skills : JSON.parse(result.candidate_skills)) : [],
-            company: candidateProfile?.company_name || "Unknown Company"
+            skills: skills,
+            company: candidateProfile?.location || "Location not specified"
           };
         });
 
