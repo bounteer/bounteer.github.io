@@ -65,11 +65,6 @@ export default function OrbitCallDashboard() {
   const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
   const [candidatesListed, setCandidatesListed] = useState(false);
 
-  // State for webhook functionality
-  const [isSendingToWebhook, setIsSendingToWebhook] = useState(false);
-  const [webhookError, setWebhookError] = useState<string>("");
-  const [webhookSuccess, setWebhookSuccess] = useState(false);
-
   // WebSocket reference for search request monitoring
   const searchWsRef = useRef<WebSocket | null>(null);
 
@@ -620,69 +615,6 @@ export default function OrbitCallDashboard() {
     }
   };
 
-  /**
-   * Handle sending job description to webhook
-   */
-  const handleSendToWebhook = async () => {
-    if (!orbitCallSession?.id) {
-      setWebhookError("Missing session ID");
-      return;
-    }
-
-    setIsSendingToWebhook(true);
-    setWebhookError("");
-    setWebhookSuccess(false);
-
-    try {
-      // Prepare payload with job description and session ID
-      const payload = {
-        session_id: orbitCallSession.id,
-        job_description: {
-          company_name: jobData.company_name,
-          role_name: jobData.role_name,
-          location: jobData.location,
-          salary_range: jobData.salary_range,
-          responsibility: jobData.responsibility,
-          minimum_requirement: jobData.minimum_requirement,
-          preferred_requirement: jobData.preferred_requirement,
-          perk: jobData.perk,
-          skill: jobData.skill
-        },
-        job_description_id: jobDescriptionId,
-        timestamp: new Date().toISOString()
-      };
-
-      const webhookUrl = EXTERNAL.webhook_url;
-
-      console.log("Sending to webhook:", webhookUrl, payload);
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Webhook request failed: ${response.status} ${response.statusText}`);
-      }
-
-      console.log("Job description sent to webhook successfully");
-      setWebhookSuccess(true);
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setWebhookSuccess(false), 3000);
-
-    } catch (error) {
-      console.error("Error sending to webhook:", error);
-      setWebhookError("Failed to send to webhook. Please try again.");
-    } finally {
-      setIsSendingToWebhook(false);
-    }
-  };
-
-
   const renderNotLinkedStage = () => (
     <BackgroundGradientAnimation
       containerClassName="h-full w-full rounded-3xl"
@@ -879,88 +811,6 @@ export default function OrbitCallDashboard() {
             </div>
           </div>
         )}
-
-        {/* Action Buttons - Outside the orbit call JD enrichment card */}
-        {jdStage !== "not_linked" && orbitCallSession?.id && (
-          <div className="mt-6 mb-6 space-y-4">
-            {/* Send to Webhook Button */}
-          <div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-1">Send to Webhook</h4>
-                <p className="text-sm text-gray-500">Send current job description and session ID to webhook endpoint</p>
-              </div>
-              <Button
-                onClick={handleSendToWebhook}
-                disabled={isSendingToWebhook || !orbitCallSession?.id}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
-              >
-                {isSendingToWebhook ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Sending...
-                  </>
-                ) : webhookSuccess ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    Sent
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    Send to Webhook
-                  </>
-                )}
-              </Button>
-            </div>
-            {webhookError && (
-              <p className="text-sm text-red-500 mt-2 ml-4">{webhookError}</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Candidates Section - Only show when not in not_linked state */}
       {jdStage !== "not_linked" && (

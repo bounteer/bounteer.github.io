@@ -32,7 +32,7 @@ The main dashboard component for managing Bounteer Orbit calls, located at `src/
 - 3-stage workflow: `not_linked` → `ai_enrichment` → `manual_enrichment`
 - Real-time job description enrichment via WebSocket/polling
 - Candidate search integration with Directus CMS
-- Webhook integration for external systems
+- Database-driven request system for external integrations
 
 **State Management:**
 - Manages job description data as single source of truth
@@ -101,11 +101,11 @@ OrbitCallDashboard (Parent)
     │       ├─ Renders: form with current data
     │       └─ Updates: calls onJobDataChange()
     │
-    ├─→ Candidate Search
-    │       └─ Uses: jobData snapshot
-    │
-    └─→ Webhook Integration
-            └─ Sends: jobData payload
+    └─→ Candidate Search Request
+            │
+            ├─ Creates: orbit_candidate_search_request record
+            ├─ Snapshot: jobData at request time
+            └─ Monitors: request status via WebSocket
 ```
 
 ## 🧞 Commands
