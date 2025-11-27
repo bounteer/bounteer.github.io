@@ -22,6 +22,92 @@ This is the official website code of [Bounteer](https://bounteer.com).
 └── package.json        # Project dependencies
 ```
 
+## 🏗️ Component Architecture
+
+### OrbitCallDashboard Component
+
+The main dashboard component for managing Bounteer Orbit calls, located at `src/components/interactive/OrbitCallDashboard.tsx`.
+
+**Key Features:**
+- 3-stage workflow: `not_linked` → `ai_enrichment` → `manual_enrichment`
+- Real-time job description enrichment via WebSocket/polling
+- Candidate search integration with Directus CMS
+- Webhook integration for external systems
+
+**State Management:**
+- Manages job description data as single source of truth
+- Handles orbit call session lifecycle
+- Coordinates candidate search requests and results
+
+### JobDescriptionEnrichment Component
+
+A controlled component for job description form and AI enrichment, located at `src/components/interactive/JobDescriptionEnrichment.tsx`.
+
+**Design Pattern: Controlled Component**
+```tsx
+// Parent manages state and passes it down
+<JobDescriptionEnrichment
+  jobData={jobData}              // Props from parent (single source of truth)
+  onJobDataChange={handleChange} // Callback to update parent
+  stage={jdStage}
+  // ... other props
+/>
+```
+
+**Props Interface:**
+```typescript
+interface JobDescriptionEnrichmentProps {
+  jobDescriptionId: string | null;
+  callUrl: string;
+  inputMode: "meeting" | "testing";
+  stage: JDStage; // "not_linked" | "ai_enrichment" | "manual_enrichment"
+  jobData: JobDescriptionFormData; // Receives data from parent
+  onStageChange: (stage: JDStage) => void;
+  onJobDataChange: (jobData: JobDescriptionFormData) => void; // Notifies parent of changes
+}
+```
+
+**Data Flow:**
+1. **Parent → Child:** `jobData` prop provides current state
+2. **Child → Parent:** `onJobDataChange()` callback updates parent state
+3. **Real-time updates:** WebSocket/polling updates flow through parent
+4. **Candidate Search:** Uses parent's `jobData` (always in sync)
+
+**Features:**
+- AI/Manual enrichment toggle with conditional editing
+- Real-time updates via WebSocket or polling (configurable)
+- Form validation for all job description fields
+- Save functionality with change tracking
+- Skills management with drag-and-drop
+- Animated gradient background header
+
+**Why Controlled Component Pattern?**
+- ✅ Single source of truth (parent state)
+- ✅ No duplicate state between parent and child
+- ✅ Predictable data flow
+- ✅ Ensures candidate search gets correct data
+- ✅ Easier to debug and maintain
+
+### Data Flow Diagram
+
+```
+OrbitCallDashboard (Parent)
+    │
+    ├─── jobData state (source of truth)
+    │
+    ├─→ JobDescriptionEnrichment (Child)
+    │       │
+    │       ├─ Receives: jobData prop
+    │       ├─ Renders: form with current data
+    │       └─ Updates: calls onJobDataChange()
+    │
+    ├─→ Candidate Search
+    │       └─ Uses: jobData snapshot
+    │
+    └─→ Webhook Integration
+            └─ Sends: jobData payload
+```
+
 ## 🧞 Commands
 
 All commands are run from the root of the project, from a terminal:
