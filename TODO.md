@@ -529,3 +529,208 @@ className="bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blu
 **Last Updated**: 2025-11-27
 **Priority**: Medium
 **Blocked By**: Need candidate_profile schema from database
+
+---
+
+## Orbit Call - Schema Requirements for Bidirectional Support
+
+**See detailed analysis in**: `comment.md`
+
+### Critical Schema Changes Required (P0) ❌
+
+#### 1. Create Missing Collections
+
+- [ ] **Create `orbit_job_search_request` collection**
+  - Fields: `id`, `session` (FK), `candidate_profile_snapshot` (json), `status` (enum), timestamps
+  - Purpose: Enable candidates to search for matching jobs
+  - Pattern: Mirror `orbit_candidate_search_request` structure
+  - Reference: comment.md section 4
+
+- [ ] **Create `orbit_job_search_result` collection**
+  - Fields: `id`, `request` (FK), `jfi_score` (integer 0-100), `job_description` (FK), `rag_score`, `pros` (json), `cons` (json), timestamps
+  - Purpose: Store job matches with fit scores
+  - Pattern: Mirror `orbit_candidate_search_result` structure
+  - Reference: comment.md section 5
+
+#### 2. Extend Existing Collections
+
+- [ ] **Add `mode` field to `orbit_call_session`**
+  - Type: `enum("recruiter", "candidate")`
+  - Required: YES (after backfill)
+  - Purpose: Identify which mode the session is using
+  - Migration: Set existing records to "recruiter"
+
+- [ ] **Add `candidate_profile` FK to `orbit_call_session`**
+  - Type: `integer` (FK → candidate_profile)
+  - Nullable: YES (only used in candidate mode)
+  - Purpose: Link session to candidate profile for candidate mode
+
+#### 3. Fix Data Type Issues
+
+- [ ] **Fix `candidate_profile.year_of_experience`**
+  - Current: `string` ❌
+  - Should be: `integer` or `float`
+  - Impact: Enables numeric comparisons for job matching
+  - Migration: Parse existing string values to integers
+
+### High Priority Schema Improvements (P1) ⚠️
+
+#### 4. Enhance `candidate_profile` Collection
+
+Missing fields needed for job search:
+
+- [ ] Add `first_name: string`
+- [ ] Add `last_name: string`
+- [ ] Add `email: string`
+- [ ] Add `phone: string`
+- [ ] Add `linkedin_url: string`
+- [ ] Add `education: text`
+- [ ] Add `preferred_locations: json` (array of strings)
+- [ ] Add `remote_preference: enum("remote", "hybrid", "onsite", "flexible")`
+- [ ] Add `preferred_employment_types: json` (array: ["full-time", "contract"])
+- [ ] Add `availability: string` ("immediately", "2 weeks", etc.)
+- [ ] Add `work_authorization: string` ("US Citizen", "H1B", etc.)
+- [ ] Add `resume_file: uuid` (FK → directus_files)
+- [ ] Add `career_goals: text`
+- [ ] Add `salary_expectation_min: integer`
+- [ ] Add `salary_expectation_max: integer`
+
+#### 5. Enhance `job_description` Collection
+
+Missing fields for better matching:
+
+- [ ] Add `remote_policy: enum("remote", "hybrid", "onsite")`
+- [ ] Add `employment_type: enum("full-time", "part-time", "contract")`
+- [ ] Add `seniority_level: enum("entry", "junior", "mid", "senior", "lead")`
+- [ ] Add `visa_sponsorship: boolean`
+- [ ] Add `is_active: boolean`
+- [ ] Verify `skill: json` field exists (mentioned in code but not seen in schema)
+
+#### 6. Document Status Enums
+
+- [ ] Create enum type for `search_request_status`
+  - Values: "pending", "processing", "listed", "failed"
+  - Apply to: `orbit_candidate_search_request`, `orbit_job_search_request`
+
+- [ ] Document valid values for existing string fields:
+  - `orbit_call_session.mode`
+  - `candidate_profile.employment_type`
+  - `candidate_profile.remote_preference`
+  - `job_description.backfill_status`
+
+### Medium Priority - Schema Optimization (P2)
+
+#### 7. Database Constraints & Validation
+
+- [ ] Add NOT NULL constraints to critical FKs:
+  - `orbit_candidate_search_request.session`
+  - `orbit_candidate_search_result.request`
+  - `orbit_job_search_request.session`
+  - `orbit_job_search_result.request`
+
+- [ ] Add CHECK constraints for score ranges:
+  - `orbit_candidate_search_result.rfi_score` (0-100)
+  - `orbit_job_search_result.jfi_score` (0-100)
+
+- [ ] Add enum constraints where applicable (see P1 item 6)
+
+#### 8. Performance Indexes
+
+- [ ] Create index: `idx_orbit_call_session_mode` on `orbit_call_session(mode)`
+- [ ] Create index: `idx_orbit_call_session_host_user` on `orbit_call_session(host_user)`
+- [ ] Create index: `idx_candidate_search_request_status` on `orbit_candidate_search_request(status)`
+- [ ] Create index: `idx_candidate_search_result_rfi_score` on `orbit_candidate_search_result(rfi_score DESC)`
+- [ ] Create index: `idx_job_search_request_status` on `orbit_job_search_request(status)`
+- [ ] Create index: `idx_job_search_result_jfi_score` on `orbit_job_search_result(jfi_score DESC)`
+- [ ] Create composite index: `idx_candidate_profile_location_experience`
+- [ ] Create composite index: `idx_job_description_location_active`
+
+#### 9. Security & Privacy
+
+- [ ] Add to `candidate_profile`:
+  - `consent_given: boolean`
+  - `consent_date: timestamp`
+  - `data_retention_until: date`
+  - `is_public: boolean`
+
+- [ ] Review and configure Directus permissions:
+  - Candidate role: Can manage own profile, view matched jobs only
+  - Recruiter role: Can manage job descriptions, view matched candidates only
+  - Admin role: Full access
+
+- [ ] Implement row-level security for sensitive data
+
+### Low Priority - Cleanup & Documentation (P3)
+
+#### 10. Resolve Ambiguous Collections
+
+- [ ] **Investigate `orbit_search_request` collection**
+  - Document: What is this used for?
+  - Question: Is it deprecated?
+  - Action: Rename, consolidate, or remove
+
+- [ ] **Investigate `orbit_search_result` collection**
+  - Document: How does it differ from `orbit_candidate_search_result`?
+  - Question: Is it for job search or deprecated?
+  - Action: Clarify purpose or deprecate
+
+- [ ] **Document `role_fit_index_submission`**
+  - What is this array?
+  - How is it used in scoring?
+
+#### 11. Schema Documentation
+
+- [ ] Create `reference/schema-docs.md` with:
+  - Field descriptions for all collections
+  - Valid enum values
+  - Relationship cardinality
+  - Required vs optional fields
+  - JSON field structures
+  - Score calculation methods
+
+- [ ] Add inline comments to schema fields in Directus
+
+- [ ] Document status lifecycles (pending → processing → listed → failed)
+
+#### 12. Data Migration Plan
+
+- [ ] Document migration steps for:
+  - Adding `orbit_call_session.mode` field
+  - Backfilling mode = "recruiter" for existing sessions
+  - Converting `year_of_experience` from string to integer
+  - Adding new nullable fields
+
+- [ ] Create rollback plan for schema changes
+
+### Open Questions for Product/Backend Team
+
+1. **Job Source**: Are jobs stored in Directus `job_description` or fetched from external API?
+2. **Authentication**: Do candidates and recruiters have different Directus roles/permissions?
+3. **AI Scoring**: Where are RFI/RAG scores computed? (Backend service? Directus Flow?)
+4. **WebSocket**: Is status update WebSocket Directus built-in or custom implementation?
+5. **Deprecated Collections**: Can we safely remove `orbit_search_request/result`?
+6. **Data Retention**: What's the policy for cleaning up old search requests and snapshots?
+
+### Dependencies & Blockers
+
+**Blocked by Backend/DB Team:**
+- All P0 schema changes (critical path)
+- Understanding of deprecated collections
+- Confirmation of job source (Directus vs external)
+
+**Blocked by Product:**
+- Default mode decision (recruiter vs candidate)
+- Privacy/consent requirements
+- Data retention policies
+
+**Can proceed in parallel:**
+- Frontend UI development (with mock data)
+- Component creation (CandidateProfileEnrichment, JobSearchResults)
+- API utility functions (with TypeScript interfaces)
+
+---
+
+**Schema Review Status**: Complete - See comment.md
+**Last Updated**: 2025-11-27
+**Reviewer**: Claude Code
+**Priority**: P0 items are critical for bidirectional functionality
