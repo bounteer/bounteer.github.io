@@ -131,6 +131,13 @@ But I am transitioning to use ShadCN just to make my life easier. I am just a fr
 pnpm dlx shadcn@latest add badge
 ```
 
+## 📋 Development Roadmap
+
+See [TODO.md](./TODO.md) for:
+- Security issues and fixes
+- **Feature Development**: Upcoming features including Orbit Call Candidate Mode
+- Implementation checklists and architecture documentation
+
 ## 🚀 Getting Started
 
 1. Clone this repository

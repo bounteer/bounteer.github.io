@@ -324,3 +324,208 @@ const res = await fetch(`${EXTERNAL.directus_url}/items/message`, {
 
 **Last Updated**: 2025-11-24
 **Audited By**: Claude Code Security Audit
+
+---
+
+# FEATURE DEVELOPMENT TODOs
+
+## Orbit Call - Candidate Mode Feature
+
+### Overview
+Add candidate-focused mode to Orbit Call, enabling candidates to upload their profile and search for matching jobs. This complements the existing company mode (job description → candidate search) with the reverse flow (candidate profile → job search).
+
+### Architecture: Unified Dashboard with Mode Toggle
+
+**Implementation Approach**: Single page with mode toggle (not separate pages)
+- **Page**: `src/pages/orbit.astro` (existing, to be enhanced)
+- **Component**: `OrbitCallDashboard.tsx` (add mode toggle)
+- **Toggle Location**: Top of orange gradient card (not_linked stage)
+
+### Mode Types
+```typescript
+type OrbitMode = "company" | "candidate";
+```
+
+### UI Design
+
+#### Stage 1: not_linked (Gradient card with toggle)
+```
+┌─────────────────────────────────────────────────────────┐
+│  🔄 [Company Search] [Candidate Search]  ← Mode Toggle  │
+│                                                           │
+│  Set Up New Orbit Call                                   │
+│  [Meeting] [Testing]                                     │
+│  [URL Input ________________] [Deploy]                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Mode Comparison
+
+| Aspect | Company Mode (Current) | Candidate Mode (New) |
+|--------|----------------------|---------------------|
+| **Title** | "Job Description Enrichment" | "Candidate Profile Enrichment" |
+| **Component** | `JobDescriptionEnrichment.tsx` | `CandidateProfileEnrichment.tsx` (NEW) |
+| **Action Button** | "Search People" | "Search Jobs" |
+| **Results Section** | "Potential Candidates" | "Matching Jobs" |
+| **Gradient Color** | Orange (#ff6b35) | Green/Teal (#10b981) |
+| **Data Model** | `JobDescriptionFormData` | `CandidateProfileFormData` (NEW) |
+
+### Implementation Checklist
+
+#### Phase 1: Foundation
+- [ ] Get `candidate_profile` schema from Directus database
+- [ ] Create `src/schemas/directus.ts` for centralized schema definitions
+- [ ] Define `CandidateProfileSchema` interface
+- [ ] Define `CandidateProfileFormData` type
+- [ ] Define `JobSearchResult` interface
+- [ ] Migrate existing types from `src/types/models.ts` to use schemas
+
+#### Phase 2: Dashboard Enhancement
+- [ ] Add `orbitMode` state to `OrbitCallDashboard.tsx`
+- [ ] Add mode toggle buttons in `renderNotLinkedStage()` (line ~618)
+- [ ] Add candidate-specific state variables:
+  - [ ] `candidateData` state
+  - [ ] `candidateProfileId` state
+  - [ ] `jobSearchRequestId` state
+  - [ ] `jobs` state
+  - [ ] `jobSearchWsRef` WebSocket reference
+- [ ] Implement mode-aware gradient colors
+- [ ] Add conditional rendering based on `orbitMode`
+
+#### Phase 3: New Components
+- [ ] Create `CandidateProfileEnrichment.tsx`
+  - [ ] Mirror structure of `JobDescriptionEnrichment.tsx`
+  - [ ] 3-stage flow: not_linked → ai_enrichment → manual_enrichment
+  - [ ] AI/Manual toggle switch
+  - [ ] Form fields for candidate information
+  - [ ] WebSocket/polling for real-time updates
+  - [ ] Save functionality
+  - [ ] Green/Teal gradient theme
+- [ ] Create `JobSearchResults.tsx`
+  - [ ] Card-based layout for matched jobs
+  - [ ] Job fit percentage visualization
+  - [ ] Job details display
+  - [ ] Horizontal scrollable layout
+
+#### Phase 4: API Integration
+- [ ] Add candidate API functions to `src/lib/utils.ts`:
+  - [ ] `createOrbitCandidateCallRequest()`
+  - [ ] `createCandidateProfile()`
+  - [ ] `updateCandidateProfile()`
+  - [ ] `createJobSearchRequest()`
+  - [ ] `fetchJobSearchResults()`
+- [ ] Implement WebSocket subscription for job search status
+- [ ] Handle job search request lifecycle
+
+#### Phase 5: Testing & Polish
+- [ ] Test company mode (ensure no regressions)
+- [ ] Test candidate mode end-to-end
+- [ ] Test mode switching behavior
+- [ ] Test with both meeting and testing input modes
+- [ ] Verify WebSocket connections
+- [ ] Test form validation
+- [ ] Test save functionality
+
+### Data Models (To Be Defined)
+
+#### Candidate Profile Schema
+```typescript
+// Pending: Get actual schema from Directus database
+export interface CandidateProfileSchema {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  year_of_experience?: number;
+  current_title?: string;
+  company_name?: string;
+  education?: string;
+  summary?: string;
+  skills?: string[]; // JSON array
+  work_history?: string;
+  achievements?: string;
+  // ... other fields from database
+  date_created?: string;
+  date_updated?: string;
+}
+
+export type CandidateProfileFormData = Omit<
+  CandidateProfileSchema,
+  'id' | 'date_created' | 'date_updated'
+>;
+```
+
+#### Job Search Result
+```typescript
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  experience: string;
+  jobFitPercentage: number;
+  skills: string[];
+  salary?: string;
+}
+```
+
+### Expected Directus Collections
+
+Based on existing company flow pattern:
+- `orbit_candidate_call_request` (similar to `orbit_call_request`)
+- `orbit_candidate_call_session` (similar to `orbit_call_session`)
+- `candidate_profile` (EXISTING - need schema)
+- `job_search_request` (similar to `orbit_candidate_search_request`)
+- `job_search_result` (similar to `orbit_candidate_search_result`)
+
+### Design Specifications
+
+#### Color Schemes
+- **Company Mode**: rgb(255, 154, 0) → rgb(255, 87, 34) [Orange]
+- **Candidate Mode**: rgb(16, 185, 129) → rgb(5, 150, 105) [Green/Teal]
+
+#### Toggle Button States
+```typescript
+// Active state
+className="bg-white text-black hover:bg-gray-200"
+
+// Inactive state
+className="bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"
+```
+
+### Benefits
+✅ Unified interface (single page for both flows)
+✅ Consistent UX (same patterns and interactions)
+✅ Easy mode switching without navigation
+✅ Code reuse (shared URL validation, WebSocket logic)
+✅ Maintainability (parallel structures)
+
+### Open Questions
+1. What are the exact fields in the Directus `candidate_profile` collection?
+2. Are job postings stored in Directus or external API?
+3. Do candidates and companies use different authentication/roles?
+4. Should the page default to company or candidate mode?
+
+### Files to Create
+- `src/schemas/directus.ts` (centralized schema definitions)
+- `src/components/interactive/CandidateProfileEnrichment.tsx`
+- `src/components/interactive/JobSearchResults.tsx`
+
+### Files to Modify
+- `src/components/interactive/OrbitCallDashboard.tsx` (add mode toggle)
+- `src/types/models.ts` (migrate to use schemas)
+- `src/lib/utils.ts` (add candidate API functions)
+
+### References
+- Current implementation: `src/components/interactive/OrbitCallDashboard.tsx:31-844`
+- Enrichment pattern: `src/components/interactive/JobDescriptionEnrichment.tsx:1-773`
+- Form data types: `src/types/models.ts:65-118`
+
+---
+
+**Feature Status**: Planning / Documentation Phase
+**Last Updated**: 2025-11-27
+**Priority**: Medium
+**Blocked By**: Need candidate_profile schema from database
