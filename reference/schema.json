@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "35611495701c6dcda27ed8bc3650afca11179d7a"
+    "version": "d82ad50d4aab1e3d574fa18c33fc7476d26e5e19"
   },
   "servers": [
     {
@@ -18674,6 +18674,18 @@
             "nullable": true,
             "description": "for AI",
             "type": "string"
+          },
+          "skill_core": {
+            "nullable": true,
+            "description": "string array of must-have skills"
+          },
+          "skill_plus": {
+            "nullable": true,
+            "description": "string array of nice-to-have skills"
+          },
+          "skill_bonus": {
+            "nullable": true,
+            "description": "string array of extra skills"
           }
         },
         "x-collection": "job_description"

@@ -51,7 +51,10 @@ export default function OrbitCallDashboard() {
     minimum_requirement: "",
     preferred_requirement: "",
     perk: "",
-    skill: []
+    skill: [],
+    skill_core: [],
+    skill_plus: [],
+    skill_bonus: []
   });
 
   // State for orbit call request and session

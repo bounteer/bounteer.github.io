@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { GlowCard } from "./GlowCard";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
-import { DraggableSkillsTags } from "./DraggableSkillsTags";
+import { DraggableThreeTierSkills, type ThreeTierSkills } from "./DraggableThreeTierSkills";
 import type { JobDescriptionFormData, JobDescriptionFormErrors } from "@/types/models";
 import { getUserProfile } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
@@ -87,8 +87,20 @@ export default function JobDescriptionEnrichment({
     }
   };
 
-  const handleJobDataChange = (name: keyof JobDescriptionFormData, value: string | string[]) => {
-    const newData = { ...jobData, [name]: value };
+  const handleJobDataChange = (name: keyof JobDescriptionFormData, value: string | string[] | ThreeTierSkills) => {
+    let newData;
+    
+    if (name === 'skills' && typeof value === 'object' && !Array.isArray(value)) {
+      // Handle 3-tier skills update
+      newData = { 
+        ...jobData, 
+        skill_core: value.skill_core,
+        skill_plus: value.skill_plus,
+        skill_bonus: value.skill_bonus
+      };
+    } else {
+      newData = { ...jobData, [name]: value };
+    }
 
     // Notify parent of changes (parent manages the state)
     onJobDataChange(newData);
@@ -130,7 +142,7 @@ export default function JobDescriptionEnrichment({
   const fetchJobDescription = async (jdId: string) => {
     try {
       const user = await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jdId}?fields=id,company_name,role_name,location,salary_range,responsibility,minimum_requirement,preferred_requirement,perk,skill`, {
+      const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jdId}?fields=id,company_name,role_name,location,salary_range,responsibility,minimum_requirement,preferred_requirement,perk,skill,skill_core,skill_plus,skill_bonus`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -159,7 +171,10 @@ export default function JobDescriptionEnrichment({
           minimum_requirement: jd.minimum_requirement || "",
           preferred_requirement: jd.preferred_requirement || "",
           perk: jd.perk || "",
-          skill: Array.isArray(jd.skill) ? jd.skill : (jd.skill ? JSON.parse(jd.skill) : [])
+          skill: Array.isArray(jd.skill) ? jd.skill : (jd.skill ? JSON.parse(jd.skill) : []),
+          skill_core: Array.isArray(jd.skill_core) ? jd.skill_core : (jd.skill_core ? JSON.parse(jd.skill_core) : []),
+          skill_plus: Array.isArray(jd.skill_plus) ? jd.skill_plus : (jd.skill_plus ? JSON.parse(jd.skill_plus) : []),
+          skill_bonus: Array.isArray(jd.skill_bonus) ? jd.skill_bonus : (jd.skill_bonus ? JSON.parse(jd.skill_bonus) : [])
         };
 
         // Only update if data has changed
@@ -234,7 +249,7 @@ export default function JobDescriptionEnrichment({
               type: "subscribe",
               collection: "job_description",
               query: {
-                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk", "skill"]
+                fields: ["id", "company_name", "role_name", "location", "salary_range", "responsibility", "minimum_requirement", "preferred_requirement", "perk", "skill", "skill_core", "skill_plus", "skill_bonus"]
               },
             });
             ws.send(subscriptionPayload);
@@ -254,7 +269,10 @@ export default function JobDescriptionEnrichment({
                 minimum_requirement: rec.minimum_requirement || "",
                 preferred_requirement: rec.preferred_requirement || "",
                 perk: rec.perk || "",
-                skill: Array.isArray(rec.skill) ? rec.skill : (rec.skill ? JSON.parse(rec.skill) : [])
+                skill: Array.isArray(rec.skill) ? rec.skill : (rec.skill ? JSON.parse(rec.skill) : []),
+                skill_core: Array.isArray(rec.skill_core) ? rec.skill_core : (rec.skill_core ? JSON.parse(rec.skill_core) : []),
+                skill_plus: Array.isArray(rec.skill_plus) ? rec.skill_plus : (rec.skill_plus ? JSON.parse(rec.skill_plus) : []),
+                skill_bonus: Array.isArray(rec.skill_bonus) ? rec.skill_bonus : (rec.skill_bonus ? JSON.parse(rec.skill_bonus) : [])
               };
 
               // console.log("Job description form updated with real-time data:", updatedJobData);
@@ -377,7 +395,7 @@ export default function JobDescriptionEnrichment({
   const hasJobDataChanges = (): boolean => {
     if (!originalJobData) return false;
 
-    // Compare each field including skills array
+    // Compare each field including skills arrays
     const fieldsToCompare: (keyof JobDescriptionFormData)[] = [
       'company_name', 'role_name', 'location', 'salary_range',
       'responsibility', 'minimum_requirement', 'preferred_requirement', 'perk'
@@ -390,17 +408,21 @@ export default function JobDescriptionEnrichment({
       }
     }
 
-    // Check skills array separately
-    const originalSkills = originalJobData.skill || [];
-    const currentSkills = jobData.skill || [];
+    // Check skills arrays separately
+    const skillArraysToCompare: (keyof JobDescriptionFormData)[] = ['skill', 'skill_core', 'skill_plus', 'skill_bonus'];
+    
+    for (const skillField of skillArraysToCompare) {
+      const originalSkills = (originalJobData[skillField] as string[]) || [];
+      const currentSkills = (jobData[skillField] as string[]) || [];
 
-    if (originalSkills.length !== currentSkills.length) {
-      return true;
-    }
-
-    for (let i = 0; i < originalSkills.length; i++) {
-      if (originalSkills[i] !== currentSkills[i]) {
+      if (originalSkills.length !== currentSkills.length) {
         return true;
+      }
+
+      for (let i = 0; i < originalSkills.length; i++) {
+        if (originalSkills[i] !== currentSkills[i]) {
+          return true;
+        }
       }
     }
 
@@ -433,7 +455,10 @@ export default function JobDescriptionEnrichment({
         minimum_requirement: jobData.minimum_requirement,
         preferred_requirement: jobData.preferred_requirement,
         perk: jobData.perk,
-        skill: JSON.stringify(jobData.skill) // Convert array to JSON string for Directus
+        skill: JSON.stringify(jobData.skill), // Convert array to JSON string for Directus
+        skill_core: JSON.stringify(jobData.skill_core),
+        skill_plus: JSON.stringify(jobData.skill_plus),
+        skill_bonus: JSON.stringify(jobData.skill_bonus)
       };
 
       const response = await fetch(`${EXTERNAL.directus_url}/items/job_description/${jobDescriptionId}`, {
@@ -733,12 +758,14 @@ export default function JobDescriptionEnrichment({
 
           {/* Skills Section */}
           <div>
-            <DraggableSkillsTags
-              skills={jobData.skill}
-              onChange={(skills) => handleJobDataChange('skill', skills)}
+            <DraggableThreeTierSkills
+              skills={{
+                skill_core: jobData.skill_core,
+                skill_plus: jobData.skill_plus,
+                skill_bonus: jobData.skill_bonus
+              }}
+              onChange={(skills) => handleJobDataChange('skills', skills)}
               disabled={stage === "ai_enrichment"}
-              label="Skills"
-              placeholder="Add a skill and press Enter"
             />
           </div>
 

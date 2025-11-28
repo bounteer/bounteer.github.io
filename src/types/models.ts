@@ -72,6 +72,9 @@ export interface JobDescriptionFormData {
   perk: string;
   salary_range: string;
   skill: string[];
+  skill_core: string[];
+  skill_plus: string[];
+  skill_bonus: string[];
 }
 
 export interface CallSetupFormData {
@@ -114,7 +117,10 @@ export const DEFAULT_JOB_DESCRIPTION: JobDescriptionFormData = {
 • Flexible PTO and sabbatical opportunities
 • Collaborative and innovative work environment`,
   salary_range: '$120,000 - $180,000 USD annually, plus equity and benefits',
-  skill: ['React', 'TypeScript', 'Node.js', 'AWS', 'Microservices', 'CI/CD']
+  skill: ['React', 'TypeScript', 'Node.js', 'AWS', 'Microservices', 'CI/CD'],
+  skill_core: ['React', 'TypeScript', 'Node.js'],
+  skill_plus: ['AWS', 'Microservices'],
+  skill_bonus: ['CI/CD']
 };
 
 // Validation utilities
