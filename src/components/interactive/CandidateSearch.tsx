@@ -29,9 +29,10 @@ interface CandidateSearchProps {
   onResults: (candidates: Candidate[]) => void;
   onError: (error: string) => void;
   onSearchingChange?: (isSearching: boolean) => void;
+  onRequestCreated?: (requestId: string) => void;
 }
 
-export default function CandidateSearch({ request, onResults, onError, onSearchingChange }: CandidateSearchProps) {
+export default function CandidateSearch({ request, onResults, onError, onSearchingChange, onRequestCreated }: CandidateSearchProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchRequestId, setSearchRequestId] = useState<string>("");
   const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
@@ -254,6 +255,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         setSearchRequestId(result.id);
         console.log("Search request ID stored:", result.id);
         console.log("Waiting for status to become 'listed'...");
+        onRequestCreated?.(result.id);
       }
 
       onError("");

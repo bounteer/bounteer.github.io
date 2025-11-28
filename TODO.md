@@ -91,7 +91,6 @@ tempDiv.innerHTML = `
 - [ ] Implement Content Security Policy (CSP) headers
 - [ ] Review other uses of `innerHTML` in codebase:
   - `src/components/interactive/MagicGlowEffect.tsx`
-  - `src/components/interactive/RainbowGlowWrapper.tsx`
   - `src/pages/unsubscribe.astro`
 
 ---

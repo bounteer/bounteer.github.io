@@ -326,8 +326,6 @@ export type OrbitCallRequest = {
   meeting_url?: string;
   testing_filename?: string;
   status?: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at?: string;
-  user?: string;
 }
 
 // Create orbit call request in Directus
@@ -341,9 +339,7 @@ export async function createOrbitCallRequest(
     
     const requestData: OrbitCallRequest = {
       ...data,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      ...(user && { user: user.id })
+      status: 'pending'
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_call_request`, {
@@ -384,8 +380,6 @@ export type OrbitSearchRequest = {
   jd: string;
   call: string;
   status?: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at?: string;
-  user?: string;
 }
 
 // Create orbit search request in Directus
@@ -401,9 +395,7 @@ export async function createOrbitSearchRequest(
     const requestData: OrbitSearchRequest = {
       jd: jdId,
       call: callId,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      ...(user && { user: user.id })
+      status: 'pending'
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_search_request`, {
@@ -440,11 +432,10 @@ export async function createOrbitSearchRequest(
 
 // Orbit Candidate Search Request types
 export type OrbitCandidateSearchRequest = {
+  id?: string;
   session: string;
   job_description_snapshot: any;
-  status?: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at?: string;
-  user?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed' | 'listed';
 }
 
 // Create orbit candidate search request in Directus
@@ -460,9 +451,7 @@ export async function createOrbitCandidateSearchRequest(
     const requestData: OrbitCandidateSearchRequest = {
       session: sessionId,
       job_description_snapshot: jobDescriptionSnapshot,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      ...(user && { user: user.id })
+      status: 'pending'
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_candidate_search_request`, {
@@ -490,6 +479,50 @@ export async function createOrbitCandidateSearchRequest(
     };
   } catch (error) {
     console.error('Error creating orbit candidate search request:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Fetch all candidate search requests for a session (stateless approach)
+export async function fetchOrbitCandidateSearchRequests(
+  sessionId: string,
+  directusUrl: string
+): Promise<{ success: boolean; requests?: OrbitCandidateSearchRequest[]; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    const authHeaders = getAuthHeaders(user);
+
+    const response = await fetch(
+      `${directusUrl}/items/orbit_candidate_search_request?filter[session][_eq]=${sessionId}&limit=50&fields=id,session,job_description_snapshot,status`,
+      {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('Failed to fetch orbit candidate search requests:', response.status, errorText);
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      requests: result.data || []
+    };
+  } catch (error) {
+    console.error('Error fetching orbit candidate search requests:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

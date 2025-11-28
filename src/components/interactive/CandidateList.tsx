@@ -30,12 +30,15 @@ interface CandidateListProps {
 export default function CandidateList({ candidates, searchComponent, isSearching = false }: CandidateListProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
+  // Sort candidates by RAG score in descending order (highest first)
+  const sortedCandidates = [...candidates].sort((a, b) => b.ragScore - a.ragScore);
+
   // Auto-select first candidate when candidates change
   useEffect(() => {
-    if (candidates.length > 0 && !selectedCandidate) {
-      setSelectedCandidate(candidates[0]);
+    if (sortedCandidates.length > 0 && !selectedCandidate) {
+      setSelectedCandidate(sortedCandidates[0]);
     }
-  }, [candidates, selectedCandidate]);
+  }, [sortedCandidates, selectedCandidate]);
 
   const getSkillColorClasses = (color: CandidateSkill['color']) => {
     const colorMap = {
@@ -52,7 +55,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
   };
 
   const getRagScoreColor = (score: number) => {
-    if (score >= 90) return { text: 'text-green-600', bg: 'bg-green-500' };
+    if (score >= 85) return { text: 'text-green-600', bg: 'bg-green-500' };
     if (score >= 75) return { text: 'text-yellow-600', bg: 'bg-yellow-500' };
     if (score >= 60) return { text: 'text-orange-600', bg: 'bg-orange-500' };
     return { text: 'text-red-600', bg: 'bg-red-500' };
@@ -67,17 +70,17 @@ export default function CandidateList({ candidates, searchComponent, isSearching
         key={candidate.id}
         onClick={() => setSelectedCandidate(candidate)}
         className={`p-3 border rounded-lg cursor-pointer transition-all ${isSelected
-            ? 'border-blue-500 bg-blue-50'
+          ? 'border-primary-500 bg-primary-50'
             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
           }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className={`font-medium text-sm truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'
+            <h3 className={`font-medium text-sm truncate ${isSelected ? 'text-primary-900' : 'text-gray-900'
               }`}>
               {candidate.name}
             </h3>
-            <p className={`text-xs truncate ${isSelected ? 'text-blue-700' : 'text-gray-600'
+            <p className={`text-xs truncate ${isSelected ? 'text-primary-700' : 'text-gray-600'
               }`}>
               {candidate.title}
             </p>
@@ -96,10 +99,10 @@ export default function CandidateList({ candidates, searchComponent, isSearching
   const renderCandidateDetail = () => {
     if (!selectedCandidate) {
       return (
-        <div className="flex items-center justify-center h-64 text-gray-500">
+        <div className="flex items-center justify-center h-48 text-gray-500">
           <div className="text-center">
             <div className="mb-3">
-              <svg className="w-12 h-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-10 h-10 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
@@ -114,10 +117,10 @@ export default function CandidateList({ candidates, searchComponent, isSearching
     return (
       <div className="space-y-4">
         {/* Header */}
-        <div className="pb-4 border-b">
-          <div className="flex items-start justify-between mb-2">
+        <div className="pb-3 border-b border-gray-200">
+          <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-gray-900">{selectedCandidate.name}</h2>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">{selectedCandidate.name}</h3>
               <p className="text-sm text-gray-600">{selectedCandidate.title}</p>
               {selectedCandidate.company && (
                 <p className="text-sm text-gray-500 mt-1">{selectedCandidate.company}</p>
@@ -126,7 +129,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
             </div>
             <div className="text-right">
               <div className="text-xs text-gray-500 mb-1">RAG Score</div>
-              <div className={`text-2xl font-bold ${scoreColors.text}`}>
+              <div className={`text-xl font-bold ${scoreColors.text}`}>
                 {selectedCandidate.ragScore}
               </div>
             </div>
@@ -135,7 +138,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
 
         {/* Skills */}
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-2">Skills</h3>
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Skills</h4>
           <div className="flex flex-wrap gap-2">
             {selectedCandidate.skills.map((skill, index) => {
               const skillColor = index % 2 === 0 ? 'blue' : index % 3 === 0 ? 'purple' : 'green';
@@ -156,12 +159,12 @@ export default function CandidateList({ candidates, searchComponent, isSearching
             {/* Pros */}
             {selectedCandidate.pros && selectedCandidate.pros.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-green-700 mb-3 flex items-center gap-2">
+                  <h4 className="text-sm font-medium text-green-700 mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Strengths
-                </h3>
+                  </h4>
                 <ul className="space-y-2">
                   {selectedCandidate.pros.map((pro, index) => (
                     <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
@@ -176,12 +179,12 @@ export default function CandidateList({ candidates, searchComponent, isSearching
             {/* Cons */}
             {selectedCandidate.cons && selectedCandidate.cons.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-red-700 mb-3 flex items-center gap-2">
+                  <h4 className="text-sm font-medium text-red-700 mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Areas of Concern
-                </h3>
+                  </h4>
                 <ul className="space-y-2">
                   {selectedCandidate.cons.map((con, index) => (
                     <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
@@ -214,7 +217,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
 
   return (
     <GlowCard
-      glowState={isSearching ? "processing" : "idle"}
+      glowState={isSearching ? "listening" : "idle"}
       color="#ff6b35"
       className="w-full shadow-lg overflow-hidden rounded-3xl"
       padding={false}
@@ -224,7 +227,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
-              Potential Candidates ({candidates.length})
+              Potential Candidates ({sortedCandidates.length})
             </h2>
             {searchComponent && (
               <div className="flex items-center">
@@ -236,26 +239,21 @@ export default function CandidateList({ candidates, searchComponent, isSearching
 
         {/* Card Content */}
         <div className="p-6">
-          {candidates.length === 0 ? (
+          {sortedCandidates.length === 0 ? (
             renderEmptyState()
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[500px]">
               {/* Left panel - Candidate list */}
               <div className="lg:col-span-1">
                 <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                  {candidates.map(renderCandidateListItem)}
+                    {sortedCandidates.map(renderCandidateListItem)}
                 </div>
               </div>
 
               {/* Right panel - Candidate details */}
               <div className="lg:col-span-2">
-                <Card className="h-full max-h-[500px]">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      {selectedCandidate ? "Candidate Details" : "Candidate Information"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 max-h-[430px] overflow-y-auto">
+                  <Card className="h-full max-h-[700px]">
+                    <CardContent className="pt-0 max-h-[630px] overflow-y-auto">
                     {renderCandidateDetail()}
                   </CardContent>
                 </Card>

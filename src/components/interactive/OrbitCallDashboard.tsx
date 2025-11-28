@@ -63,6 +63,7 @@ export default function OrbitCallDashboard() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searchError, setSearchError] = useState<string>("");
   const [isSearchingCandidates, setIsSearchingCandidates] = useState(false);
+  const [currentSearchRequestId, setCurrentSearchRequestId] = useState<string>("");
 
   /**
    * Handle job data changes from JobDescriptionEnrichment component
@@ -405,6 +406,7 @@ export default function OrbitCallDashboard() {
                 onResults={handleCandidateResults}
                 onError={handleCandidateError}
                 onSearchingChange={setIsSearchingCandidates}
+                onRequestCreated={setCurrentSearchRequestId}
               />
             ) : null}
           />
@@ -413,6 +415,7 @@ export default function OrbitCallDashboard() {
           )}
         </div>
       )}
+
     </div>
   );
 }

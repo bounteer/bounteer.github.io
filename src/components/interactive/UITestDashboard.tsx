@@ -28,7 +28,6 @@ import {
 } from '../ui/table';
 import { BackgroundGradientAnimation } from '../ui/background-gradient-animation';
 import { GradientCard } from '../ui/gradient-card';
-import RainbowGlowWrapper from './RainbowGlowWrapper';
 import MagicGlowEffect from './MagicGlowEffect';
 import { GlowCard, CardHeader as GlowCardHeader, CardFooter, CardTitle as GlowCardTitle, CardDescription, CardContent as GlowCardContent } from './GlowCard';
 import CandidateList from './CandidateList';
@@ -38,7 +37,6 @@ export function UITestDashboard() {
   const [switchState, setSwitchState] = useState(false);
   const [checkboxState, setCheckboxState] = useState(false);
   const [radioValue, setRadioValue] = useState("option1");
-  const [rainbowGlowState, setRainbowGlowState] = useState("idle");
   const [magicGlowState, setMagicGlowState] = useState("idle");
   const [glowCardState, setGlowCardState] = useState("idle");
 
@@ -221,73 +219,6 @@ export function UITestDashboard() {
                   <p className="text-sm text-white/80">Static animation</p>
                 </div>
               </GradientCard>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Rainbow Glow Wrapper Component */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Rainbow Glow Wrapper</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="flex gap-4 flex-wrap">
-              <Button 
-                size="sm" 
-                variant={rainbowGlowState === "idle" ? "default" : "outline"}
-                onClick={() => setRainbowGlowState("idle")}
-              >
-                Idle
-              </Button>
-              <Button 
-                size="sm"
-                variant={rainbowGlowState === "listening" ? "default" : "outline"}
-                onClick={() => setRainbowGlowState("listening")}
-              >
-                Listening
-              </Button>
-              <Button 
-                size="sm"
-                variant={rainbowGlowState === "processing" ? "default" : "outline"}
-                onClick={() => setRainbowGlowState("processing")}
-              >
-                Processing
-              </Button>
-              <Button 
-                size="sm"
-                variant={rainbowGlowState === "done" ? "default" : "outline"}
-                onClick={() => setRainbowGlowState("done")}
-              >
-                Done
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <RainbowGlowWrapper 
-                glowState={rainbowGlowState}
-                className="h-48 p-6 flex items-center justify-center"
-              >
-                <div className="text-center text-white">
-                  <h3 className="text-xl font-bold mb-2">Rainbow Glow Wrapper</h3>
-                  <p className="text-white/80 text-sm">State: {rainbowGlowState}</p>
-                  <p className="text-white/60 text-xs mt-1">Multi-colored animated glow effects</p>
-                </div>
-              </RainbowGlowWrapper>
-              
-              <RainbowGlowWrapper 
-                glowState="idle"
-                className="h-48 p-6 flex items-center justify-center"
-                borderRadius="rounded-lg"
-                ambient={false}
-              >
-                <div className="text-center text-white">
-                  <h4 className="font-semibold mb-1">Customized</h4>
-                  <p className="text-white/80 text-sm">Rounded corners</p>
-                  <p className="text-white/60 text-xs">No ambient glow</p>
-                </div>
-              </RainbowGlowWrapper>
             </div>
           </div>
         </CardContent>
