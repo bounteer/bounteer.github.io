@@ -242,7 +242,7 @@ export default function JobDescriptionEnrichment({
             const rec = Array.isArray(msg.data) ? msg.data[0] : msg.data?.payload ?? msg.data?.item ?? msg.data;
 
             if (msg.event === "update" && rec && String(rec.id) === String(jdId)) {
-              console.log("Job description updated via WebSocket:", rec);
+              // console.log("Job description updated via WebSocket:", rec);
 
               // Update the job description form data with the new values
               const updatedJobData: JobDescriptionFormData = {
@@ -257,7 +257,7 @@ export default function JobDescriptionEnrichment({
                 skill: Array.isArray(rec.skill) ? rec.skill : (rec.skill ? JSON.parse(rec.skill) : [])
               };
 
-              console.log("Job description form updated with real-time data:", updatedJobData);
+              // console.log("Job description form updated with real-time data:", updatedJobData);
               // Notify parent of changes (parent manages the state)
               onJobDataChange(updatedJobData);
               // Update original data when data comes from API (not user edits)

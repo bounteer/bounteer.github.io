@@ -31,6 +31,7 @@ import { GradientCard } from '../ui/gradient-card';
 import RainbowGlowWrapper from './RainbowGlowWrapper';
 import MagicGlowEffect from './MagicGlowEffect';
 import { GlowCard, CardHeader as GlowCardHeader, CardFooter, CardTitle as GlowCardTitle, CardDescription, CardContent as GlowCardContent } from './GlowCard';
+import CandidateList from './CandidateList';
 
 export function UITestDashboard() {
   const [progress, setProgress] = useState(33);
@@ -40,6 +41,65 @@ export function UITestDashboard() {
   const [rainbowGlowState, setRainbowGlowState] = useState("idle");
   const [magicGlowState, setMagicGlowState] = useState("idle");
   const [glowCardState, setGlowCardState] = useState("idle");
+
+  // Mock candidate data
+  const mockCandidates = [
+    {
+      id: '1',
+      name: 'Sarah Chen',
+      title: 'Senior Software Engineer',
+      experience: '5 years experience',
+      ragScore: 92,
+      skills: ['React', 'TypeScript', 'Node.js', 'GraphQL', 'AWS'],
+      company: 'TechCorp Inc.',
+      pros: ['Strong technical leadership skills', 'Extensive experience with modern React patterns', 'Proven track record with scalable architectures'],
+      cons: ['Limited mobile development experience', 'No direct experience with our specific industry domain']
+    },
+    {
+      id: '2',
+      name: 'Marcus Johnson',
+      title: 'Full Stack Developer',
+      experience: '3 years experience',
+      ragScore: 78,
+      skills: ['Python', 'Django', 'PostgreSQL', 'Docker', 'Redis'],
+      company: 'DataSoft Solutions',
+      pros: ['Solid backend development skills', 'Good understanding of database optimization'],
+      cons: ['Limited frontend framework experience', 'Relatively junior level', 'No cloud infrastructure experience']
+    },
+    {
+      id: '3',
+      name: 'Emily Rodriguez',
+      title: 'Frontend Developer',
+      experience: '4 years experience',
+      ragScore: 85,
+      skills: ['Vue.js', 'JavaScript', 'CSS', 'Figma', 'Webpack'],
+      company: 'Creative Studios',
+      pros: ['Excellent UI/UX sensibilities', 'Strong collaboration with design teams', 'Performance optimization expertise'],
+      cons: ['Limited backend integration experience', 'No experience with React ecosystem']
+    },
+    {
+      id: '4',
+      name: 'David Kim',
+      title: 'DevOps Engineer',
+      experience: '6 years experience',
+      ragScore: 95,
+      skills: ['Kubernetes', 'AWS', 'Terraform', 'Jenkins', 'Monitoring'],
+      company: 'CloudTech Ltd',
+      pros: ['Expert-level cloud infrastructure knowledge', 'Strong automation and CI/CD experience', 'Excellent problem-solving skills', 'Security-first mindset'],
+      cons: ['Limited application development background']
+    },
+    {
+      id: '5',
+      name: 'Lisa Wang',
+      title: 'UI/UX Designer',
+      experience: '3 years experience',
+      ragScore: 72,
+      skills: ['Figma', 'Adobe XD', 'User Research', 'Prototyping', 'Design Systems'],
+      company: 'Design Co',
+      pros: ['Strong user research methodology', 'Great design system thinking'],
+      cons: ['Limited technical implementation knowledge', 'No experience with complex enterprise applications', 'Junior level for senior role requirements']
+    }
+  ];
 
   return (
     <div className="space-y-8">
@@ -72,6 +132,17 @@ export function UITestDashboard() {
           </div>
         </div>
       </GradientCard>
+      
+      {/* Candidate List Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vertical Candidate List</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CandidateList candidates={mockCandidates} />
+        </CardContent>
+      </Card>
+      
       {/* Gradient Animation Card */}
       <Card>
         <CardHeader>

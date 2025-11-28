@@ -7,9 +7,11 @@ import { BackgroundGradientAnimation } from "@/components/ui/background-gradient
 import type { JobDescriptionFormData } from "@/types/models";
 import JobDescriptionEnrichment, { type JDStage } from "./JobDescriptionEnrichment";
 import { enrichAndValidateCallUrl } from "@/types/models";
-import { createOrbitCallRequest, createOrbitCandidateSearchRequest, getUserProfile } from "@/lib/utils";
+import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
+import CandidateSearch from "./CandidateSearch";
+import CandidateList from "./CandidateList";
 
 type InputMode = "meeting" | "testing";
 
@@ -18,9 +20,11 @@ interface Candidate {
   name: string;
   title: string;
   experience: string;
-  roleFitPercentage: number;
+  ragScore: number;
   skills: string[];
   company?: string;
+  pros?: string[];
+  cons?: string[];
 }
 
 interface CandidateSkill {
@@ -57,22 +61,28 @@ export default function OrbitCallDashboard() {
 
   // State for candidates data
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-
-  // State for search functionality
-  const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string>("");
-  const [searchRequestId, setSearchRequestId] = useState<string>("");
-  const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
-  const [candidatesListed, setCandidatesListed] = useState(false);
-
-  // WebSocket reference for search request monitoring
-  const searchWsRef = useRef<WebSocket | null>(null);
+  const [isSearchingCandidates, setIsSearchingCandidates] = useState(false);
 
   /**
    * Handle job data changes from JobDescriptionEnrichment component
    */
   const handleJobDataChange = (newJobData: JobDescriptionFormData) => {
     setJobData(newJobData);
+  };
+
+  /**
+   * Handle candidate search results
+   */
+  const handleCandidateResults = (candidateResults: Candidate[]) => {
+    setCandidates(candidateResults);
+  };
+
+  /**
+   * Handle candidate search errors
+   */
+  const handleCandidateError = (error: string) => {
+    setSearchError(error);
   };
 
   /**
@@ -247,384 +257,6 @@ export default function OrbitCallDashboard() {
   }, [requestId, orbitCallSession]);
 
 
-  /**
-   * Set up WebSocket subscription for search request status updates
-   */
-  const setupCandidateSearchRequestWebSocket = async (requestId: string) => {
-    try {
-      // Clean up existing WebSocket connection
-      if (searchWsRef.current) {
-        searchWsRef.current.close();
-        searchWsRef.current = null;
-      }
-
-      await getUserProfile(EXTERNAL.directus_url);
-      const u = new URL(EXTERNAL.directus_url);
-      u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
-      u.pathname = "/websocket";
-      u.search = "";
-
-      const ws = new WebSocket(u.toString());
-      searchWsRef.current = ws;
-
-      const timeout = setTimeout(() => {
-        try { ws.close(); } catch { }
-        console.log("WebSocket timeout for search request subscription");
-      }, 300_000); // 5 minute timeout
-
-      ws.onopen = () => {
-        console.log("WebSocket connected for search request updates");
-        const authPayload = JSON.stringify({
-          type: "auth",
-          access_token: EXTERNAL.directus_key
-        });
-        ws.send(authPayload);
-      };
-
-      ws.onmessage = async (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-
-          if (msg.type === "auth" && msg.status === "ok") {
-            console.log("WebSocket authenticated, subscribing to orbit_candidate_search_request updates");
-            const subscriptionPayload = JSON.stringify({
-              type: "subscribe",
-              collection: "orbit_candidate_search_request",
-              query: {
-                fields: ["id", "status", "session", "job_description_snapshot"]
-              },
-            });
-            ws.send(subscriptionPayload);
-          } else if (msg.type === "subscription") {
-            const rec = Array.isArray(msg.data) ? msg.data[0] : msg.data?.payload ?? msg.data?.item ?? msg.data;
-
-            // Filter for updates to our specific search request
-            if (msg.event === "update" && rec && String(rec.id) === String(requestId)) {
-              console.log("Search request updated via WebSocket:", rec);
-              console.log("Current status:", rec.status);
-
-              // Update the status state
-              if (rec.status) {
-                setSearchRequestStatus(rec.status);
-              }
-
-              // Check if status is "listed"
-              if (rec.status === "listed") {
-                console.log("Candidates listed! Status reached:", rec.status);
-                setCandidatesListed(true);
-                setIsSearching(false);
-
-                // Fetch the candidate search results
-                if (searchRequestId) {
-                  fetchCandidateSearchResults(searchRequestId);
-                }
-
-                // Close the WebSocket since we've reached the target status
-                if (searchWsRef.current) {
-                  searchWsRef.current.close();
-                  searchWsRef.current = null;
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error processing search request WebSocket message:", error);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("Search request WebSocket error:", error);
-        clearTimeout(timeout);
-      };
-
-      ws.onclose = (event) => {
-        console.log("Search request WebSocket closed:", event.code, event.reason);
-        clearTimeout(timeout);
-
-        // Attempt to reconnect after 5 seconds if not manually closed and not yet listed
-        if (event.code !== 1000 && !candidatesListed) {
-          setTimeout(() => {
-            if (searchRequestId && !candidatesListed) {
-              console.log("Attempting to reconnect WebSocket for search request updates");
-              setupCandidateSearchRequestWebSocket(searchRequestId);
-            }
-          }, 5000);
-        }
-      };
-    } catch (error) {
-      console.error("Error setting up search request WebSocket:", error);
-    }
-  };
-
-
-  /**
-   * Effect to set up WebSocket subscription for search request when searchRequestId is available
-   */
-  useEffect(() => {
-    if (searchRequestId && !candidatesListed) {
-      console.log("Setting up WebSocket subscription for search request:", searchRequestId);
-      setupCandidateSearchRequestWebSocket(searchRequestId);
-    }
-
-    // Cleanup when searchRequestId changes or component unmounts
-    return () => {
-      if (searchWsRef.current) {
-        searchWsRef.current.close();
-        searchWsRef.current = null;
-      }
-    };
-  }, [searchRequestId, candidatesListed]);
-
-  /**
-   * Cleanup search WebSocket on component unmount
-   */
-  useEffect(() => {
-    return () => {
-      // Close search WebSocket
-      if (searchWsRef.current) {
-        searchWsRef.current.close();
-        searchWsRef.current = null;
-      }
-    };
-  }, []);
-
-  const getSkillColorClasses = (color: CandidateSkill['color']) => {
-    const colorMap = {
-      blue: 'bg-blue-100 text-blue-700',
-      purple: 'bg-purple-100 text-purple-700',
-      green: 'bg-green-100 text-green-700',
-      yellow: 'bg-yellow-100 text-yellow-700',
-      red: 'bg-red-100 text-red-700',
-      indigo: 'bg-indigo-100 text-indigo-700',
-      pink: 'bg-pink-100 text-pink-700',
-      gray: 'bg-gray-100 text-gray-700'
-    };
-    return colorMap[color];
-  };
-
-  const getRoleFitColor = (percentage: number) => {
-    if (percentage >= 90) return { text: 'text-green-600', bg: 'bg-green-500' };
-    if (percentage >= 75) return { text: 'text-yellow-600', bg: 'bg-yellow-500' };
-    if (percentage >= 60) return { text: 'text-orange-600', bg: 'bg-orange-500' };
-    return { text: 'text-red-600', bg: 'bg-red-500' };
-  };
-
-  const renderCandidateCard = (candidate: Candidate) => {
-    const fitColors = getRoleFitColor(candidate.roleFitPercentage);
-
-    return (
-      <div key={candidate.id} className="bg-gray-50 rounded-3xl p-4 border hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
-            <h3 className="font-medium text-sm text-gray-900">{candidate.name}</h3>
-            <p className="text-xs text-gray-600">{candidate.title}</p>
-            {candidate.company && (
-              <p className="text-xs text-gray-500 mt-0.5">{candidate.company}</p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">{candidate.experience}</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="text-right">
-              <div className="text-xs text-gray-500">Role Fit</div>
-              <div className={`text-sm font-bold ${fitColors.text}`}>{candidate.roleFitPercentage}%</div>
-            </div>
-            <div className={`w-2 h-8 ${fitColors.bg} rounded-full`}></div>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {candidate.skills.map((skill, index) => {
-            const skillColor = index % 2 === 0 ? 'blue' : index % 3 === 0 ? 'purple' : 'green';
-            const colorClasses = getSkillColorClasses(skillColor);
-            return (
-              <span key={skill} className={`px-2 py-1 ${colorClasses} text-xs rounded-full`}>
-                {skill}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderCandidatesSection = () => {
-    if (candidates.length === 0) {
-      return (
-        <div className="text-center py-8 text-gray-500">
-          <p className="text-sm">No candidates found. Load candidate data to see potential matches.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex space-x-4 overflow-x-auto">
-        {candidates.map(renderCandidateCard)}
-      </div>
-    );
-  };
-
-  const loadMockCandidates = () => {
-    const mockCandidates: Candidate[] = [
-      {
-        id: '1',
-        name: 'Sarah Chen',
-        title: 'Senior Software Engineer',
-        experience: '5 years experience',
-        roleFitPercentage: 92,
-        skills: ['React', 'TypeScript', 'Node.js'],
-        company: 'TechCorp Inc.'
-      },
-      {
-        id: '2',
-        name: 'Marcus Johnson',
-        title: 'Full Stack Developer',
-        experience: '3 years experience',
-        roleFitPercentage: 78,
-        skills: ['Python', 'Django', 'PostgreSQL'],
-        company: 'DataSoft Solutions'
-      },
-      {
-        id: '3',
-        name: 'Emily Rodriguez',
-        title: 'Frontend Developer',
-        experience: '4 years experience',
-        roleFitPercentage: 65,
-        skills: ['Vue.js', 'JavaScript', 'CSS'],
-        company: 'Creative Studios'
-      }
-    ];
-    setCandidates(mockCandidates);
-  };
-
-  const clearCandidates = () => {
-    setCandidates([]);
-  };
-
-
-  /**
-   * Fetch candidate search results from Directus
-   */
-  const fetchCandidateSearchResults = async (searchRequestId: string) => {
-    try {
-      console.log("Fetching candidate search results for request ID:", searchRequestId);
-      
-      const user = await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.name,candidate_profile.job_title,candidate_profile.year_of_experience,candidate_profile.skills,candidate_profile.location`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${EXTERNAL.directus_key}`
-        }
-      });
-
-      if (!response.ok) {
-        console.error('Failed to fetch candidate search results:', response.status, response.statusText);
-        return;
-      }
-
-      const result = await response.json();
-      const candidateResults = result.data;
-
-      console.log("Received candidate search results from API:", candidateResults);
-
-      if (candidateResults && candidateResults.length > 0) {
-        // Transform the results to match our Candidate interface
-        const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => {
-          const candidateProfile = result.candidate_profile;
-          const name = candidateProfile?.name || `Candidate ${index + 1}`;
-
-          // Parse skills from candidate profile
-          let skills: string[] = [];
-          if (candidateProfile?.skills) {
-            try {
-              skills = Array.isArray(candidateProfile.skills)
-                ? candidateProfile.skills
-                : JSON.parse(candidateProfile.skills);
-            } catch (e) {
-              console.warn('Failed to parse candidate skills:', e);
-              skills = [];
-            }
-          }
-
-          return {
-            id: candidateProfile?.id || result.id || `candidate_${index}`,
-            name: name,
-            title: candidateProfile?.job_title || "Unknown Title",
-            experience: candidateProfile?.year_of_experience ? `${candidateProfile.year_of_experience} years experience` : "Experience not specified",
-            roleFitPercentage: result.rfi_score || 0,
-            skills: skills,
-            company: candidateProfile?.location || "Location not specified"
-          };
-        });
-
-        console.log("Transformed candidates:", transformedCandidates);
-        setCandidates(transformedCandidates);
-      } else {
-        console.log("No candidate search results found");
-        setCandidates([]);
-      }
-    } catch (error) {
-      console.error('Error fetching candidate search results:', error);
-      setSearchError("Failed to fetch candidate results. Please try again.");
-    }
-  };
-
-  /**
-   * Handle search people request using current JD
-   */
-  const handleSearchPeople = async () => {
-    if (!orbitCallSession?.id) {
-      setSearchError("Missing call session ID");
-      return;
-    }
-
-    setIsSearching(true);
-    setSearchError("");
-
-    try {
-      // Prepare job description snapshot
-      const jobDescriptionSnapshot = {
-        company_name: jobData.company_name,
-        role_name: jobData.role_name,
-        location: jobData.location,
-        salary_range: jobData.salary_range,
-        responsibility: jobData.responsibility,
-        minimum_requirement: jobData.minimum_requirement,
-        preferred_requirement: jobData.preferred_requirement,
-        perk: jobData.perk,
-        skill: jobData.skill
-      };
-
-      const result = await createOrbitCandidateSearchRequest(
-        orbitCallSession.id,
-        jobDescriptionSnapshot,
-        EXTERNAL.directus_url
-      );
-
-      if (!result.success) {
-        setSearchError(result.error || "Failed to create search request");
-        return;
-      }
-
-      console.log("Orbit candidate search request created with ID:", result.id);
-
-      // Store the request ID and keep searching state active
-      if (result.id) {
-        setSearchRequestId(result.id);
-        console.log("Search request ID stored:", result.id);
-        console.log("Waiting for status to become 'candidate_listed'...");
-        // Note: isSearching will be set to false by WebSocket when status becomes "candidate_listed"
-      }
-
-      // Clear any existing error
-      setSearchError("");
-
-    } catch (error) {
-      console.error("Error in handleSearchPeople:", error);
-      setSearchError("An unexpected error occurred. Please try again.");
-      setIsSearching(false); // Only set to false on error
-    }
-  };
 
   const renderNotLinkedStage = () => (
     <BackgroundGradientAnimation
@@ -758,96 +390,27 @@ export default function OrbitCallDashboard() {
         />
       )}
 
-      {/* Action Buttons - Outside the orbit call JD enrichment card */}
-      {jdStage !== "not_linked" && orbitCallSession?.id && (
-        <div className="mt-6 mb-6 space-y-4">
-          {/* Search People Button */}
-          <div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-1">People Search</h4>
-                <p className="text-sm text-gray-500">Search for candidates matching this job description</p>
-              </div>
-              <Button
-                onClick={handleSearchPeople}
-                disabled={isSearching || !orbitCallSession?.id}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-              >
-                  {isSearching ? (
-                    <>
-                      <svg
-                        className="w-4 h-4 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
-                      Search People
-                    </>
-                  )}
-                </Button>
-              </div>
-              {searchError && (
-                <p className="text-sm text-red-500 mt-2 ml-4">{searchError}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-      {/* Candidates Section - Only show when not in not_linked state */}
-      {jdStage !== "not_linked" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Potential Candidates</h2>
-            <div className="flex gap-2">
-              <Button
-                onClick={loadMockCandidates}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
-                Load Mock Data
-              </Button>
-              <Button
-                onClick={clearCandidates}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-          {renderCandidatesSection()}
+      {/* Candidates List Section - Show when JD enrichment is active */}
+      {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
+        <div className="mt-6">
+          <CandidateList 
+            candidates={candidates}
+            isSearching={isSearchingCandidates}
+            searchComponent={orbitCallSession?.id ? (
+              <CandidateSearch
+                request={{
+                  sessionId: orbitCallSession.id,
+                  jobDescription: jobData
+                }}
+                onResults={handleCandidateResults}
+                onError={handleCandidateError}
+                onSearchingChange={setIsSearchingCandidates}
+              />
+            ) : null}
+          />
+          {searchError && (
+            <p className="text-sm text-red-500 mt-2 ml-6">{searchError}</p>
+          )}
         </div>
       )}
     </div>

@@ -99,7 +99,7 @@ export function DraggableSkillsTags({
 
       <div className="space-y-3">
         {/* Skills List */}
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <AnimatePresence>
             {skills.map((skill, index) => (
               <motion.div
