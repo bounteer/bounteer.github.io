@@ -126,7 +126,10 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
       console.log("Fetching candidate search results for request ID:", searchRequestId);
 
       await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.name,candidate_profile.job_title,candidate_profile.year_of_experience,candidate_profile.location,candidate_profile.skills,pros,cons`, {
+      const fetchUrl = `${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.name,candidate_profile.job_title,candidate_profile.year_of_experience,candidate_profile.location,candidate_profile.skills,pros,cons`;
+      console.log("Fetch URL:", fetchUrl);
+      
+      const response = await fetch(fetchUrl, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -137,13 +140,16 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
 
       if (!response.ok) {
         console.error('Failed to fetch candidate search results:', response.status, response.statusText);
+        console.error('Response body:', await response.text());
         return;
       }
 
       const result = await response.json();
       const candidateResults = result.data;
 
-      console.log("Received candidate search results from API:", candidateResults);
+      console.log("Full API response:", result);
+      console.log("Candidate results array:", candidateResults);
+      console.log("Number of candidates found:", candidateResults?.length || 0);
 
       if (candidateResults && candidateResults.length > 0) {
         const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => {
@@ -199,9 +205,11 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         });
 
         console.log("Transformed candidates:", transformedCandidates);
+        console.log("Calling onResults with candidates:", transformedCandidates);
         onResults(transformedCandidates);
       } else {
-        console.log("No candidate search results found");
+        console.log("No candidate search results found - empty or null array");
+        console.log("Calling onResults with empty array");
         onResults([]);
       }
     } catch (error) {

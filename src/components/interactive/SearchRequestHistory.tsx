@@ -8,13 +8,13 @@ import { fetchOrbitCandidateSearchRequests, type OrbitCandidateSearchRequest } f
 import { EXTERNAL } from "@/constant";
 
 interface SearchRequestHistoryProps {
-  sessionId: string | null;
+  job_description_enrichment_session: string | null;
   onRequestSelect?: (request: OrbitCandidateSearchRequest) => void;
   currentRequestId?: string;
 }
 
 export default function SearchRequestHistory({ 
-  sessionId, 
+  job_description_enrichment_session, 
   onRequestSelect,
   currentRequestId 
 }: SearchRequestHistoryProps) {
@@ -22,23 +22,23 @@ export default function SearchRequestHistory({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
-  // Load search request history when sessionId changes
+  // Load search request history when job_description_enrichment_session changes
   useEffect(() => {
-    if (sessionId) {
+    if (job_description_enrichment_session) {
       loadSearchRequests();
     } else {
       setRequests([]);
     }
-  }, [sessionId]);
+  }, [job_description_enrichment_session]);
 
   const loadSearchRequests = async () => {
-    if (!sessionId) return;
+    if (!job_description_enrichment_session) return;
 
     setIsLoading(true);
     setError("");
 
     try {
-      const result = await fetchOrbitCandidateSearchRequests(sessionId, EXTERNAL.directus_url);
+      const result = await fetchOrbitCandidateSearchRequests(job_description_enrichment_session, EXTERNAL.directus_url);
       
       if (result.success && result.requests) {
         // Store in deque-like structure (most recent first, limit to 10)
@@ -112,7 +112,7 @@ export default function SearchRequestHistory({
     };
   }, []);
 
-  if (!sessionId) {
+  if (!job_description_enrichment_session) {
     return null;
   }
 

@@ -485,7 +485,7 @@ export default function OrbitCallDashboard() {
                 searchComponent={orbitJobDescriptionEnrichmentSession?.id ? (
                   <CandidateSearch
                     request={{
-                      sessionId: orbitJobDescriptionEnrichmentSession.id,
+                      job_description_enrichment_session: orbitJobDescriptionEnrichmentSession.id,
                       jobDescription: jobData
                     }}
                     onResults={handleCandidateResults}
