@@ -434,14 +434,14 @@ export async function createOrbitSearchRequest(
 // Orbit Candidate Search Request types
 export type OrbitCandidateSearchRequest = {
   id?: string;
-  session: string;
+  job_enrichment_session: string; // Renamed from 'session' - references orbit_job_description_enrichment_session
   job_description_snapshot: any;
   status?: 'pending' | 'processing' | 'completed' | 'failed' | 'listed';
 }
 
 // Create orbit candidate search request in Directus
 export async function createOrbitCandidateSearchRequest(
-  sessionId: string,
+  jobEnrichmentSessionId: string,
   jobDescriptionSnapshot: any,
   directusUrl: string
 ): Promise<{ success: boolean; id?: string; error?: string }> {
@@ -450,7 +450,7 @@ export async function createOrbitCandidateSearchRequest(
     const authHeaders = getAuthHeaders(user);
 
     const requestData: OrbitCandidateSearchRequest = {
-      session: sessionId,
+      job_enrichment_session: jobEnrichmentSessionId,
       job_description_snapshot: jobDescriptionSnapshot,
       status: 'pending'
     };

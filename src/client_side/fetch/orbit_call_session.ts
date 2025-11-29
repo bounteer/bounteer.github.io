@@ -1,7 +1,7 @@
 import { getUserProfile, getAuthHeaders } from "@/lib/utils";
 
-// Orbit Call Session types
-export type OrbitCallSession = {
+// Orbit Job Description Enrichment Session types
+export type OrbitJobDescriptionEnrichmentSession = {
   id: string;
   request: string;
   job_description?: string;
@@ -10,16 +10,19 @@ export type OrbitCallSession = {
   updated_at?: string;
 }
 
-// Get orbit call session by request ID
-export async function get_orbit_call_session_by_request_id(
+// Deprecated: Use OrbitJobDescriptionEnrichmentSession instead
+export type OrbitCallSession = OrbitJobDescriptionEnrichmentSession;
+
+// Get orbit job description enrichment session by request ID
+export async function get_orbit_job_description_enrichment_session_by_request_id(
   requestId: string,
   directusUrl: string
-): Promise<{ success: boolean; session?: OrbitCallSession; error?: string }> {
+): Promise<{ success: boolean; session?: OrbitJobDescriptionEnrichmentSession; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
     const authHeaders = getAuthHeaders(user);
 
-    const response = await fetch(`${directusUrl}/items/orbit_call_session?filter[request][_eq]=${encodeURIComponent(requestId)}&limit=1`, {
+    const response = await fetch(`${directusUrl}/items/orbit_job_description_enrichment_session?filter[request][_eq]=${encodeURIComponent(requestId)}&limit=1`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -42,7 +45,7 @@ export async function get_orbit_call_session_by_request_id(
     if (!session) {
       return {
         success: false,
-        error: 'No orbit call session found for this request ID'
+        error: 'No orbit job description enrichment session found for this request ID'
       };
     }
 
@@ -51,10 +54,13 @@ export async function get_orbit_call_session_by_request_id(
       session
     };
   } catch (error) {
-    console.error('Error fetching orbit call session:', error);
+    console.error('Error fetching orbit job description enrichment session:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
 }
+
+// Deprecated: Use get_orbit_job_description_enrichment_session_by_request_id instead
+export const get_orbit_call_session_by_request_id = get_orbit_job_description_enrichment_session_by_request_id;

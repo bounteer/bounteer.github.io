@@ -550,11 +550,30 @@ className="bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blu
 
 **IMPORTANT**: Rename generic `session` field to specific enrichment session type
 
-- [ ] **Rename field in `orbit_candidate_search_request`**
+- [x] **Frontend code updated to use `job_enrichment_session`** (2025-11-29)
+  - Updated `OrbitCandidateSearchRequest` type in `src/lib/utils.ts`
+  - Updated `createOrbitCandidateSearchRequest` to use `job_enrichment_session` field
+  - Updated all components to use `orbit_job_description_enrichment_session`
+
+- [ ] **⚠️ DATABASE MIGRATION REQUIRED: Rename field in `orbit_candidate_search_request`**
   - Current: `session` (FK → orbit_call_session) ❌ Generic, ambiguous
   - New: `job_enrichment_session` (FK → orbit_job_description_enrichment_session) ✅
   - Reason: Recruiters enrich a job, then search for candidates
-  - SQL: `ALTER TABLE orbit_candidate_search_request RENAME COLUMN session TO job_enrichment_session;`
+  - SQL:
+    ```sql
+    -- Step 1: Add new column
+    ALTER TABLE orbit_candidate_search_request
+      ADD COLUMN job_enrichment_session INTEGER
+      REFERENCES orbit_job_description_enrichment_session(id);
+
+    -- Step 2: Migrate data from old session field
+    UPDATE orbit_candidate_search_request
+    SET job_enrichment_session = session;
+
+    -- Step 3: Drop old column (after verifying migration)
+    ALTER TABLE orbit_candidate_search_request
+      DROP COLUMN session;
+    ```
 
 - [ ] **Create `orbit_job_search_request` with correct field name**
   - Field: `candidate_enrichment_session` (FK → orbit_candidate_profile_enrichment_session)

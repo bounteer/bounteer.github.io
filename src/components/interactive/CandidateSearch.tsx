@@ -20,7 +20,7 @@ interface Candidate {
 
 
 interface SearchRequest {
-  sessionId: string;
+  sessionId: string; // orbit_job_description_enrichment_session ID
   jobDescription: JobDescriptionFormData;
 }
 
@@ -215,7 +215,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
    */
   const handleSearchCandidate = async () => {
     if (!request?.sessionId) {
-      onError("Missing call session ID");
+      onError("Missing job description enrichment session ID");
       return;
     }
 

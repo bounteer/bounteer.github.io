@@ -8,7 +8,7 @@ import type { JobDescriptionFormData } from "@/types/models";
 import JobDescriptionEnrichment, { type JDStage } from "./JobDescriptionEnrichment";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
-import { get_orbit_call_session_by_request_id, type OrbitCallSession } from "@/client_side/fetch/orbit_call_session";
+import { get_orbit_job_description_enrichment_session_by_request_id, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import CandidateSearch from "./CandidateSearch";
 import CandidateList from "./CandidateList";
@@ -59,9 +59,9 @@ export default function OrbitCallDashboard() {
     skill_bonus: []
   });
 
-  // State for orbit call request and session
+  // State for orbit call request and job description enrichment session
   const [requestId, setRequestId] = useState<string>("");
-  const [orbitCallSession, setOrbitCallSession] = useState<OrbitCallSession | null>(null);
+  const [orbitJobDescriptionEnrichmentSession, setOrbitJobDescriptionEnrichmentSession] = useState<OrbitJobDescriptionEnrichmentSession | null>(null);
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
 
   // State for candidates data
@@ -192,12 +192,12 @@ export default function OrbitCallDashboard() {
       if (result.id) {
         setRequestId(result.id);
 
-        // Attempt to fetch the orbit call session (may not exist yet)
+        // Attempt to fetch the orbit job description enrichment session (may not exist yet)
         try {
-          const sessionResult = await get_orbit_call_session_by_request_id(result.id, EXTERNAL.directus_url);
+          const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
           if (sessionResult.success && sessionResult.session) {
-            setOrbitCallSession(sessionResult.session);
-            console.log("Orbit call session found:", sessionResult.session);
+            setOrbitJobDescriptionEnrichmentSession(sessionResult.session);
+            console.log("Orbit job description enrichment session found:", sessionResult.session);
             console.log("Session job_description field:", sessionResult.session.job_description);
             if (sessionResult.session.job_description) {
               console.log("Job description ID found, setting:", sessionResult.session.job_description);
@@ -206,10 +206,10 @@ export default function OrbitCallDashboard() {
               console.log("No job_description field in session yet");
             }
           } else {
-            console.log("Orbit call session not yet created:", sessionResult.error);
+            console.log("Orbit job description enrichment session not yet created:", sessionResult.error);
           }
         } catch (sessionError) {
-          console.log("Error fetching orbit call session:", sessionError);
+          console.log("Error fetching orbit job description enrichment session:", sessionError);
         }
       }
 
@@ -228,17 +228,17 @@ export default function OrbitCallDashboard() {
 
 
   /**
-   * Periodically check for orbit call session if we have a request ID but no session yet
+   * Periodically check for orbit job description enrichment session if we have a request ID but no session yet
    */
   useEffect(() => {
-    if (!requestId || orbitCallSession) return;
+    if (!requestId || orbitJobDescriptionEnrichmentSession) return;
 
     const pollForSession = async () => {
       try {
-        const sessionResult = await get_orbit_call_session_by_request_id(requestId, EXTERNAL.directus_url);
+        const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(requestId, EXTERNAL.directus_url);
         if (sessionResult.success && sessionResult.session) {
-          setOrbitCallSession(sessionResult.session);
-          console.log("Orbit call session found via polling:", sessionResult.session);
+          setOrbitJobDescriptionEnrichmentSession(sessionResult.session);
+          console.log("Orbit job description enrichment session found via polling:", sessionResult.session);
           console.log("Polling - Session job_description field:", sessionResult.session.job_description);
           if (sessionResult.session.job_description) {
             console.log("Polling - Job description ID found, setting:", sessionResult.session.job_description);
@@ -248,7 +248,7 @@ export default function OrbitCallDashboard() {
           }
         }
       } catch (error) {
-        console.log("Error polling for orbit call session:", error);
+        console.log("Error polling for orbit job description enrichment session:", error);
       }
     };
 
@@ -256,14 +256,14 @@ export default function OrbitCallDashboard() {
     const pollInterval = setInterval(pollForSession, 5000);
     const timeout = setTimeout(() => {
       clearInterval(pollInterval);
-      console.log("Stopped polling for orbit call session after 2 minutes");
+      console.log("Stopped polling for orbit job description enrichment session after 2 minutes");
     }, 120000);
 
     return () => {
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [requestId, orbitCallSession]);
+  }, [requestId, orbitJobDescriptionEnrichmentSession]);
 
 
 
@@ -432,13 +432,13 @@ export default function OrbitCallDashboard() {
       {/* Candidates List Section - Show when JD enrichment is active */}
       {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
         <div className="mt-6">
-          <CandidateList 
+          <CandidateList
             candidates={candidates}
             isSearching={isSearchingCandidates}
-            searchComponent={orbitCallSession?.id ? (
+            searchComponent={orbitJobDescriptionEnrichmentSession?.id ? (
               <CandidateSearch
                 request={{
-                  sessionId: orbitCallSession.id,
+                  sessionId: orbitJobDescriptionEnrichmentSession.id,
                   jobDescription: jobData
                 }}
                 onResults={handleCandidateResults}
