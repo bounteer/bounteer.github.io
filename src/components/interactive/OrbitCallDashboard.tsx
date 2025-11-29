@@ -4,14 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
-import type { JobDescriptionFormData } from "@/types/models";
+import type { JobDescriptionFormData, CandidateProfileFormData, Job } from "@/types/models";
+import { DEFAULT_CANDIDATE_PROFILE } from "@/types/models";
 import JobDescriptionEnrichment, { type JDStage } from "./JobDescriptionEnrichment";
+import CandidateProfileEnrichment, { type CPStage } from "./CandidateProfileEnrichment";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_job_description_enrichment_session_by_request_id, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import CandidateSearch from "./CandidateSearch";
 import CandidateList from "./CandidateList";
+import JobList from "./JobList";
 
 type InputMode = "meeting" | "testing";
 type CallType = "company" | "candidate";
@@ -64,11 +67,25 @@ export default function OrbitCallDashboard() {
   const [orbitJobDescriptionEnrichmentSession, setOrbitJobDescriptionEnrichmentSession] = useState<OrbitJobDescriptionEnrichmentSession | null>(null);
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
 
-  // State for candidates data
+  // State for candidates data (Company call flow)
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searchError, setSearchError] = useState<string>("");
   const [isSearchingCandidates, setIsSearchingCandidates] = useState(false);
   const [currentSearchRequestId, setCurrentSearchRequestId] = useState<string>("");
+
+  // State management for candidate call flow
+  const [cpStage, setCpStage] = useState<CPStage>("not_linked");
+
+  // Candidate profile data state
+  const [candidateData, setCandidateData] = useState<CandidateProfileFormData>(DEFAULT_CANDIDATE_PROFILE);
+
+  // State for candidate profile enrichment session
+  const [candidateProfileId, setCandidateProfileId] = useState<string | null>(null);
+
+  // State for jobs data (Candidate call flow)
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobSearchError, setJobSearchError] = useState<string>("");
+  const [isSearchingJobs, setIsSearchingJobs] = useState(false);
 
   /**
    * Handle job data changes from JobDescriptionEnrichment component
@@ -89,6 +106,27 @@ export default function OrbitCallDashboard() {
    */
   const handleCandidateError = (error: string) => {
     setSearchError(error);
+  };
+
+  /**
+   * Handle candidate data changes from CandidateProfileEnrichment component
+   */
+  const handleCandidateDataChange = (newCandidateData: CandidateProfileFormData) => {
+    setCandidateData(newCandidateData);
+  };
+
+  /**
+   * Handle job search results
+   */
+  const handleJobResults = (jobResults: Job[]) => {
+    setJobs(jobResults);
+  };
+
+  /**
+   * Handle job search errors
+   */
+  const handleJobError = (error: string) => {
+    setJobSearchError(error);
   };
 
   /**
@@ -213,10 +251,16 @@ export default function OrbitCallDashboard() {
         }
       }
 
-      // Transition to AI enrichment stage
-      console.log("Transitioning from", jdStage, "to ai_enrichment");
-      setJdStage("ai_enrichment");
-      console.log("Job data:", jobData);
+      // Transition to AI enrichment stage based on call type
+      if (callType === "company") {
+        console.log("Transitioning from", jdStage, "to ai_enrichment");
+        setJdStage("ai_enrichment");
+        console.log("Job data:", jobData);
+      } else {
+        console.log("Transitioning from", cpStage, "to ai_enrichment");
+        setCpStage("ai_enrichment");
+        console.log("Candidate data:", candidateData);
+      }
 
     } catch (error) {
       console.error("Error in handleSendBot:", error);
@@ -409,49 +453,92 @@ export default function OrbitCallDashboard() {
 
   return (
     <div>
-      {/* Stage 1: not_linked - Only shows URL input (no GlowCard) */}
-      {jdStage === "not_linked" && (
-        <div className="rounded-3xl overflow-hidden w-full">
-          {renderNotLinkedStage()}
-        </div>
-      )}
-
-      {/* Stage 2 & 3: ai_enrichment / manual_enrichment - JobDescriptionEnrichment Component */}
-      {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
-        <JobDescriptionEnrichment
-          jobDescriptionId={jobDescriptionId}
-          callUrl={callUrl}
-          inputMode={inputMode}
-          stage={jdStage}
-          jobData={jobData}
-          onStageChange={setJdStage}
-          onJobDataChange={handleJobDataChange}
-        />
-      )}
-
-      {/* Candidates List Section - Show when JD enrichment is active */}
-      {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
-        <div className="mt-6">
-          <CandidateList
-            candidates={candidates}
-            isSearching={isSearchingCandidates}
-            searchComponent={orbitJobDescriptionEnrichmentSession?.id ? (
-              <CandidateSearch
-                request={{
-                  sessionId: orbitJobDescriptionEnrichmentSession.id,
-                  jobDescription: jobData
-                }}
-                onResults={handleCandidateResults}
-                onError={handleCandidateError}
-                onSearchingChange={setIsSearchingCandidates}
-                onRequestCreated={setCurrentSearchRequestId}
-              />
-            ) : null}
-          />
-          {searchError && (
-            <p className="text-sm text-red-500 mt-2 ml-6">{searchError}</p>
+      {/* COMPANY CALL FLOW */}
+      {callType === "company" && (
+        <>
+          {/* Stage 1: not_linked - Only shows URL input (no GlowCard) */}
+          {jdStage === "not_linked" && (
+            <div className="rounded-3xl overflow-hidden w-full">
+              {renderNotLinkedStage()}
+            </div>
           )}
-        </div>
+
+          {/* Stage 2 & 3: ai_enrichment / manual_enrichment - JobDescriptionEnrichment Component */}
+          {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
+            <JobDescriptionEnrichment
+              jobDescriptionId={jobDescriptionId}
+              callUrl={callUrl}
+              inputMode={inputMode}
+              stage={jdStage}
+              jobData={jobData}
+              onStageChange={setJdStage}
+              onJobDataChange={handleJobDataChange}
+            />
+          )}
+
+          {/* Candidates List Section - Show when JD enrichment is active */}
+          {(jdStage === "ai_enrichment" || jdStage === "manual_enrichment") && (
+            <div className="mt-6">
+              <CandidateList
+                candidates={candidates}
+                isSearching={isSearchingCandidates}
+                searchComponent={orbitJobDescriptionEnrichmentSession?.id ? (
+                  <CandidateSearch
+                    request={{
+                      sessionId: orbitJobDescriptionEnrichmentSession.id,
+                      jobDescription: jobData
+                    }}
+                    onResults={handleCandidateResults}
+                    onError={handleCandidateError}
+                    onSearchingChange={setIsSearchingCandidates}
+                    onRequestCreated={setCurrentSearchRequestId}
+                  />
+                ) : null}
+              />
+              {searchError && (
+                <p className="text-sm text-red-500 mt-2 ml-6">{searchError}</p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* CANDIDATE CALL FLOW */}
+      {callType === "candidate" && (
+        <>
+          {/* Stage 1: not_linked - Only shows URL input (no GlowCard) */}
+          {cpStage === "not_linked" && (
+            <div className="rounded-3xl overflow-hidden w-full">
+              {renderNotLinkedStage()}
+            </div>
+          )}
+
+          {/* Stage 2 & 3: ai_enrichment / manual_enrichment - CandidateProfileEnrichment Component */}
+          {(cpStage === "ai_enrichment" || cpStage === "manual_enrichment") && (
+            <CandidateProfileEnrichment
+              candidateProfileId={candidateProfileId}
+              callUrl={callUrl}
+              inputMode={inputMode}
+              stage={cpStage}
+              candidateData={candidateData}
+              onStageChange={setCpStage}
+              onCandidateDataChange={handleCandidateDataChange}
+            />
+          )}
+
+          {/* Jobs List Section - Show when candidate profile enrichment is active */}
+          {(cpStage === "ai_enrichment" || cpStage === "manual_enrichment") && (
+            <div className="mt-6">
+              <JobList
+                jobs={jobs}
+                isSearching={isSearchingJobs}
+              />
+              {jobSearchError && (
+                <p className="text-sm text-red-500 mt-2 ml-6">{jobSearchError}</p>
+              )}
+            </div>
+          )}
+        </>
       )}
 
     </div>

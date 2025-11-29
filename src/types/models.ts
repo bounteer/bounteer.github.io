@@ -77,12 +77,41 @@ export interface JobDescriptionFormData {
   skill_bonus: string[];
 }
 
+// Candidate Profile Models (based on schema.json ItemsCandidateProfile)
+export interface CandidateProfileFormData {
+  name: string;
+  year_of_experience: string;
+  job_title: string;
+  employment_type: string;
+  company_size: string;
+  location: string;
+  salary_range: string;
+  skills: string[];
+  raw?: string;
+  context?: string;
+}
+
 export interface CallSetupFormData {
   url: string;
 }
 
+// Job Search Result Model
+export interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  salary_range?: string;
+  jobFitScore: number;
+  skills: string[];
+  experience?: string;
+  pros?: string[];
+  cons?: string[];
+}
+
 // Utility types for form validation
 export type JobDescriptionFormErrors = Partial<Record<keyof JobDescriptionFormData, string>>;
+export type CandidateProfileFormErrors = Partial<Record<keyof CandidateProfileFormData, string>>;
 export type CallSetupFormErrors = Partial<Record<keyof CallSetupFormData, string>>;
 
 // Default values
@@ -121,6 +150,19 @@ export const DEFAULT_JOB_DESCRIPTION: JobDescriptionFormData = {
   skill_core: ['React', 'TypeScript', 'Node.js'],
   skill_plus: ['AWS', 'Microservices'],
   skill_bonus: ['CI/CD']
+};
+
+export const DEFAULT_CANDIDATE_PROFILE: CandidateProfileFormData = {
+  name: '',
+  year_of_experience: '',
+  job_title: '',
+  employment_type: '',
+  company_size: '',
+  location: '',
+  salary_range: '',
+  skills: [],
+  raw: '',
+  context: ''
 };
 
 // Validation utilities
