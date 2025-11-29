@@ -1,7 +1,54 @@
 # Orbit Call Schema Analysis & Comments
 
-**Date**: 2025-11-27
+**Date**: 2025-11-27 (Initial Review)
+**Updated**: 2025-11-29 (Deprecation Decision)
 **Purpose**: Schema review for bidirectional Orbit Call tool (recruiter ↔ candidate matching)
+
+---
+
+## 🔄 DEPRECATION DECISION (2025-11-29)
+
+**Status**: ✅ Approved
+
+### Decision: Deprecate `orbit_call_session`
+
+Replace with specific enrichment sessions:
+- `orbit_job_description_enrichment_session` (recruiter mode)
+- `orbit_candidate_profile_enrichment_session` (candidate mode)
+
+**Rationale**:
+1. ✅ **Clarity**: Specific collection names eliminate ambiguity
+2. ✅ **Separation of Concerns**: Each collection has a clear purpose
+3. ✅ **Symmetry**: Parallel structure for bidirectional architecture
+4. ✅ **Type Safety**: No polymorphic mode field needed
+
+### Field Naming Standard: `{entity}_enrichment_session`
+
+**Decision**: Use specific, descriptive foreign key names
+
+```typescript
+// ❌ BAD: Generic "session" field (ambiguous)
+orbit_candidate_search_request {
+  session → orbit_call_session  // Which type of session?
+}
+
+// ✅ GOOD: Specific enrichment session type (self-documenting)
+orbit_candidate_search_request {
+  job_enrichment_session → orbit_job_description_enrichment_session
+}
+
+orbit_job_search_request {
+  candidate_enrichment_session → orbit_candidate_profile_enrichment_session
+}
+```
+
+**Benefits**:
+- Self-documenting: Field name indicates what it references
+- Prevents confusion: No ambiguity about session type
+- IDE autocomplete: Clearer suggestions
+- Database queries: Easier to understand relationships
+
+See TODO.md for detailed migration plan.
 
 ---
 
@@ -32,7 +79,9 @@ The Directus schema at `reference/schema.json` is **well-designed** for one-way 
 
 ## Detailed Collection Analysis
 
-### 1. `orbit_call_session` ✅ Good foundation, needs extension
+### 1. `orbit_call_session` ⚠️ DEPRECATED - Use enrichment sessions instead
+
+**Status**: 🔴 **MARKED FOR DEPRECATION** (2025-11-29)
 
 **Current Schema:**
 ```typescript
@@ -48,38 +97,32 @@ The Directus schema at `reference/schema.json` is **well-designed** for one-way 
 }
 ```
 
-**Strengths:**
-- ✅ Links to request and user properly
-- ✅ Tracks job description for recruiter mode
-- ✅ Standard audit fields
+**Deprecation Reason:**
+This collection is ambiguous - it doesn't clearly indicate whether it's for job enrichment or candidate enrichment.
 
-**Issues:**
-- ❌ No field to store candidate profile (for candidate mode)
-- ❌ No way to identify which mode the session is in
-- ❌ Cannot distinguish between job search vs candidate search sessions
+**Replacement Strategy:**
+- For recruiter mode: Use `orbit_job_description_enrichment_session`
+- For candidate mode: Use `orbit_candidate_profile_enrichment_session`
+- Move `host_user` field to `orbit_call_request` (parent level)
 
-**Recommended Additions:**
-```typescript
-{
-  mode: string // "recruiter" | "candidate" - which mode is active
-  candidate_profile: integer (FK → candidate_profile) // for candidate mode
-  session_type: string // "job_search" | "candidate_search"
-  ended_at: timestamp // when session ended
-  meeting_platform: string // "google_meet" | "teams" | "zoom"
-}
-```
+**Migration Path:**
+1. Update `orbit_search_request` to reference `orbit_job_description_enrichment_session`
+2. Migrate `host_user` to `orbit_call_request`
+3. Update all frontend code to use enrichment sessions
+4. Add deprecation notice in Directus
+5. Remove collection after 30-90 days
 
-**Why:** A bidirectional tool needs to track both recruiter sessions (with job descriptions) and candidate sessions (with candidate profiles).
+**See**: TODO.md "Schema Deprecation & Migration Plan" for detailed steps
 
 ---
 
-### 2. `orbit_candidate_search_request` ✅ Excellent design pattern
+### 2. `orbit_candidate_search_request` ✅ Excellent design pattern (with field rename needed)
 
 **Current Schema:**
 ```typescript
 {
   id: integer (PK)
-  session: integer (FK → orbit_call_session) // nullable
+  session: integer (FK → orbit_call_session) // ⚠️ RENAME TO: job_enrichment_session
   job_description_snapshot: json // nullable
   status: string // nullable
   user_created: uuid
@@ -88,6 +131,11 @@ The Directus schema at `reference/schema.json` is **well-designed** for one-way 
   date_updated: timestamp
 }
 ```
+
+**Required Change:**
+- **Rename**: `session` → `job_enrichment_session`
+- **New FK**: Point to `orbit_job_description_enrichment_session` (not deprecated `orbit_call_session`)
+- **Reason**: Clarity - the field name should indicate what it references
 
 **Strengths:**
 - ✅ **Excellent**: Uses snapshot to preserve search criteria
@@ -163,7 +211,7 @@ Based on `OrbitCallDashboard.tsx:308`, valid statuses appear to be:
 ```typescript
 {
   id: integer (PK)
-  session: integer (FK → orbit_call_session) // nullable
+  candidate_enrichment_session: integer (FK → orbit_candidate_profile_enrichment_session) // NOT "session"!
   candidate_profile_snapshot: json // nullable - snapshot of candidate data
   status: enum("pending", "processing", "listed", "failed")
   search_filters: json // nullable - optional filters like location, remote, salary
@@ -175,6 +223,8 @@ Based on `OrbitCallDashboard.tsx:308`, valid statuses appear to be:
   date_updated: timestamp
 }
 ```
+
+**Important**: Use `candidate_enrichment_session` (not generic `session`) for clarity and consistency.
 
 **Purpose:**
 - Enables candidates to search for matching jobs during video call
@@ -952,16 +1002,19 @@ Main video call session record.
 
 1. **Missing `orbit_job_search_request` collection**
 2. **Missing `orbit_job_search_result` collection**
-3. **No `mode` field in `orbit_call_session`**
-4. **Inadequate `candidate_profile` fields for job search**
-5. **Unclear purpose of `orbit_search_request/result`**
+3. **`orbit_call_session` should be deprecated** (replaced by specific enrichment sessions)
+4. **Generic `session` field names** should be renamed to `{entity}_enrichment_session`
+5. **Inadequate `candidate_profile` fields for job search**
+6. **Unclear purpose of `orbit_search_request/result`**
 
 ### Priority Actions
 
 **Must Have (P0):**
-- Create `orbit_job_search_request` collection
+- Create `orbit_job_search_request` collection (with `candidate_enrichment_session` field)
 - Create `orbit_job_search_result` collection
-- Add `mode` field to `orbit_call_session`
+- Deprecate `orbit_call_session` (replace with enrichment sessions)
+- Rename `orbit_candidate_search_request.session` to `job_enrichment_session`
+- Move `host_user` and `mode` to `orbit_call_request`
 - Fix `candidate_profile.year_of_experience` type
 
 **Should Have (P1):**

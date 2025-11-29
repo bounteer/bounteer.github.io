@@ -531,17 +531,35 @@ className="bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blu
 
 ---
 
-## Orbit Call - Schema Requirements for Bidirectional Support
+## Orbit Call - Schema Deprecation & Migration Plan
 
+**Status**: Approved - 2025-11-29
 **See detailed analysis in**: `comment.md`
 
-### Critical Schema Changes Required (P0) ❌
+### 🔄 DEPRECATION: `orbit_call_session` Collection
 
-#### 1. Create Missing Collections
+**Decision**: Deprecate `orbit_call_session` in favor of two specific enrichment session collections.
 
-- [ ] **Create `orbit_job_search_request` collection**
-  - Fields: `id`, `session` (FK), `candidate_profile_snapshot` (json), `status` (enum), timestamps
-  - Purpose: Enable candidates to search for matching jobs
+**Rationale**:
+- ✅ Better separation of concerns (job enrichment vs candidate enrichment)
+- ✅ Clearer purpose and intent
+- ✅ Aligns with bidirectional architecture
+- ✅ Eliminates ambiguity about session type
+
+#### Phase 1: Schema Rename & Field Updates (P0) 🔴
+
+**IMPORTANT**: Rename generic `session` field to specific enrichment session type
+
+- [ ] **Rename field in `orbit_candidate_search_request`**
+  - Current: `session` (FK → orbit_call_session) ❌ Generic, ambiguous
+  - New: `job_enrichment_session` (FK → orbit_job_description_enrichment_session) ✅
+  - Reason: Recruiters enrich a job, then search for candidates
+  - SQL: `ALTER TABLE orbit_candidate_search_request RENAME COLUMN session TO job_enrichment_session;`
+
+- [ ] **Create `orbit_job_search_request` with correct field name**
+  - Field: `candidate_enrichment_session` (FK → orbit_candidate_profile_enrichment_session)
+  - NOT: `session` (too generic)
+  - Reason: Candidates enrich their profile, then search for jobs
   - Pattern: Mirror `orbit_candidate_search_request` structure
   - Reference: comment.md section 4
 
@@ -551,18 +569,84 @@ className="bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blu
   - Pattern: Mirror `orbit_candidate_search_result` structure
   - Reference: comment.md section 5
 
+#### Phase 2: Migrate `orbit_search_request` (P0) 🔴
+
+**Current Issue**: `orbit_search_request` references deprecated `orbit_call_session`
+
+- [ ] **Update `orbit_search_request` schema**
+  - Current: Has `orbit_call_session` FK ❌
+  - New: Replace with `job_enrichment_session` FK ✅
+  - SQL:
+    ```sql
+    -- Add new column
+    ALTER TABLE orbit_search_request
+      ADD COLUMN job_enrichment_session INTEGER
+      REFERENCES orbit_job_description_enrichment_session(id);
+
+    -- Migrate data: find matching enrichment session for each call session
+    UPDATE orbit_search_request osr
+    SET job_enrichment_session = (
+      SELECT id FROM orbit_job_description_enrichment_session ojdes
+      WHERE ojdes.request = (
+        SELECT request FROM orbit_call_session ocs
+        WHERE ocs.id = osr.orbit_call_session
+      )
+      AND ojdes.job_description = osr.job_description
+      LIMIT 1
+    );
+
+    -- Verify migration
+    SELECT COUNT(*) FROM orbit_search_request WHERE job_enrichment_session IS NULL;
+
+    -- Drop old column
+    ALTER TABLE orbit_search_request DROP COLUMN orbit_call_session;
+    ```
+
+- [ ] **Clarify `orbit_search_request` purpose**
+  - Is this still used? Or is it replaced by `orbit_candidate_search_request`?
+  - If deprecated: Add deprecation notice, schedule deletion
+  - If active: Document how it differs from `orbit_candidate_search_request`
+
+#### Phase 3: Deprecate `orbit_call_session` (P0) 🔴
+
+- [ ] **Audit codebase for `orbit_call_session` usage**
+  - [ ] Search frontend code (TypeScript/TSX files)
+  - [ ] Search API calls to `/items/orbit_call_session`
+  - [ ] Check Directus flows/hooks/webhooks
+  - [ ] Document all usage locations
+
+- [ ] **Replace `orbit_call_session` with enrichment sessions**
+  - Move `host_user` field to `orbit_call_request` (parent level)
+  - OR add `host_user` to both enrichment sessions
+  - Update all code references to use specific enrichment sessions
+
+- [ ] **Add deprecation notice in Directus**
+  - Mark collection as deprecated
+  - Add note: "Use orbit_job_description_enrichment_session or orbit_candidate_profile_enrichment_session"
+  - Set deprecation date: 2025-12-01
+
+- [ ] **Remove `orbit_call_session` collection**
+  - Wait 30-90 days after deprecation notice
+  - Verify no active usage
+  - Backup existing data
+  - Drop collection
+
+### Critical Schema Changes Required (P0) ❌
+
 #### 2. Extend Existing Collections
 
-- [ ] **Add `mode` field to `orbit_call_session`**
+- [ ] **Add `mode` field to `orbit_call_request`** (NOT orbit_call_session - that's deprecated)
   - Type: `enum("recruiter", "candidate")`
   - Required: YES (after backfill)
-  - Purpose: Identify which mode the session is using
+  - Purpose: Identify which mode the call request is using
   - Migration: Set existing records to "recruiter"
+  - Location: Parent level (orbit_call_request) since it applies to the entire call
 
-- [ ] **Add `candidate_profile` FK to `orbit_call_session`**
-  - Type: `integer` (FK → candidate_profile)
-  - Nullable: YES (only used in candidate mode)
-  - Purpose: Link session to candidate profile for candidate mode
+- [ ] **Add `host_user` to `orbit_call_request`** (move from deprecated orbit_call_session)
+  - Type: `uuid` (FK → users)
+  - Nullable: NO
+  - Purpose: Track who initiated the call
+  - Migration: Copy from existing orbit_call_session records before deletion
 
 #### 3. Fix Data Type Issues
 
