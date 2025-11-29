@@ -20,7 +20,7 @@ interface Candidate {
 
 
 interface SearchRequest {
-  sessionId: string; // orbit_job_description_enrichment_session ID
+  job_description_enrichment_session: string; // orbit_job_description_enrichment_session ID
   jobDescription: JobDescriptionFormData;
 }
 
@@ -214,7 +214,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
    * Handle search candidate request using provided request data
    */
   const handleSearchCandidate = async () => {
-    if (!request?.sessionId) {
+    if (!request?.job_description_enrichment_session) {
       onError("Missing job description enrichment session ID");
       return;
     }
@@ -237,7 +237,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
       };
 
       const result = await createOrbitCandidateSearchRequest(
-        request.sessionId,
+        request.job_description_enrichment_session,
         jobDescriptionSnapshot,
         EXTERNAL.directus_url
       );
@@ -315,7 +315,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
     <div className="flex items-center gap-2">
       <Button
         onClick={handleSearchCandidate}
-        disabled={isSearching || !request?.sessionId}
+        disabled={isSearching || !request?.job_description_enrichment_session}
         className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700"
         size="sm"
       >
