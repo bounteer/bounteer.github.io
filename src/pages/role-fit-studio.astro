@@ -1,0 +1,365 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+---
+
+<Layout
+  title="Role Fit Studio - AI-Powered CV Optimization"
+  description="Transform your CV with AI-powered analysis. Get instant feedback, professional suggestions, and optimize your resume for any job description."
+  image_url="https://bounteer.com/og_rfi.png"
+>
+  <Header />
+  <main class="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
+    <!-- Hero Section -->
+    <section class="container mx-auto px-4 pt-32 pb-20">
+      <div class="max-w-5xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm mb-6">
+          <span class="flex h-2 w-2 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+          </span>
+          <span class="text-sm font-medium text-gray-700">AI-Powered CV Analysis</span>
+        </div>
+
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+          Perfect Your Resume with
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">
+            Role Fit Studio
+          </span>
+        </h1>
+
+        <p class="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+          Get AI-powered CV analysis and optimization. Match your resume perfectly to any job description with intelligent suggestions and real-time feedback.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="/dashboard/role-fit-studio"
+            class="group relative inline-flex items-center gap-2 bg-gradient-to-r from-teal-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+            Launch Role Fit Studio
+            <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+          </a>
+
+          <a
+            href="#features"
+            class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200 hover:border-gray-300"
+          >
+            Learn More
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero Visual -->
+      <div class="mt-20 max-w-6xl mx-auto">
+        <div class="relative rounded-2xl overflow-hidden shadow-2xl border-8 border-white/50 backdrop-blur">
+          <div class="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-blue-500/10"></div>
+          <div class="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+            <div class="text-center">
+              <svg class="w-24 h-24 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-gray-500 text-lg">CV Analysis Dashboard Preview</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white/50 backdrop-blur-sm">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Everything You Need for the Perfect CV
+          </h2>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            Role Fit Studio uses advanced AI to help you create CVs that stand out and get results
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <!-- Feature 1 -->
+          <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border border-gray-100">
+            <div class="w-14 h-14 bg-teal-100 rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">Instant CV Analysis</h3>
+            <p class="text-gray-600 leading-relaxed">
+              Upload your CV and get immediate feedback on format, content, keywords, and overall effectiveness.
+            </p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border border-gray-100">
+            <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">Role Fit Scoring</h3>
+            <p class="text-gray-600 leading-relaxed">
+              See exactly how well your CV matches job requirements with detailed compatibility scores and insights.
+            </p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border border-gray-100">
+            <div class="w-14 h-14 bg-cyan-100 rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">Smart Suggestions</h3>
+            <p class="text-gray-600 leading-relaxed">
+              Receive actionable recommendations to improve your CV based on industry best practices and job requirements.
+            </p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border border-gray-100">
+            <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">Keyword Optimization</h3>
+            <p class="text-gray-600 leading-relaxed">
+              Automatically identify and suggest relevant keywords to help your CV pass ATS systems and recruiter screenings.
+            </p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border border-gray-100">
+            <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">Iterative Improvement</h3>
+            <p class="text-gray-600 leading-relaxed">
+              Make incremental improvements to your CV with each revision, tracking progress and measuring impact.
+            </p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border border-gray-100">
+            <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-900 mb-4">Privacy Protected</h3>
+            <p class="text-gray-600 leading-relaxed">
+              Your CV data is encrypted and secure. We never share your information with third parties.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 bg-gradient-to-r from-teal-600 to-blue-600">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+          Ready to Create Your Perfect CV?
+        </h2>
+        <p class="text-xl text-teal-100 mb-10 max-w-2xl mx-auto">
+          Join thousands of job seekers who have improved their CVs and landed their dream jobs
+        </p>
+        <a
+          href="/dashboard/role-fit-studio"
+          class="inline-flex items-center gap-2 bg-white text-teal-600 px-10 py-5 rounded-xl font-bold text-lg shadow-2xl hover:shadow-3xl transition-all transform hover:scale-105"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          Start Optimizing Now
+        </a>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="py-20 bg-white/50 backdrop-blur-sm">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            How It Works
+          </h2>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            Optimize your CV in three simple steps
+          </p>
+        </div>
+
+        <div class="max-w-5xl mx-auto">
+          <div class="grid md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div class="relative text-center">
+              <div class="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-lg">
+                1
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">Upload Your CV</h3>
+              <p class="text-gray-600">
+                Upload your current CV and add the job description you're targeting
+              </p>
+              {/* Connector line */}
+              <div class="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-teal-300 to-blue-300"></div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative text-center">
+              <div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-lg">
+                2
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">Get AI Analysis</h3>
+              <p class="text-gray-600">
+                Receive detailed analysis with Role Fit scores and professional improvement suggestions
+              </p>
+              {/* Connector line */}
+              <div class="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-blue-300 to-cyan-300"></div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="w-16 h-16 bg-cyan-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-lg">
+                3
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">Improve & Iterate</h3>
+              <p class="text-gray-600">
+                Apply suggestions, upload revised versions, and track improvement over time
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-5xl mx-auto">
+          <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 class="text-4xl font-bold text-gray-900 mb-6">
+                Why Choose Role Fit Studio?
+              </h2>
+              <div class="space-y-6">
+                <div class="flex gap-4">
+                  <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Industry-Leading AI</h3>
+                    <p class="text-gray-600">Powered by advanced AI trained on thousands of successful job applications</p>
+                  </div>
+                </div>
+
+                <div class="flex gap-4">
+                  <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">ATS-Optimized</h3>
+                    <p class="text-gray-600">Ensure your CV passes Applicant Tracking Systems used by major employers</p>
+                  </div>
+                </div>
+
+                <div class="flex gap-4">
+                  <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Unlimited Revisions</h3>
+                    <p class="text-gray-600">Make as many improvements as you need until your CV is perfect</p>
+                  </div>
+                </div>
+
+                <div class="flex gap-4">
+                  <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Instant Results</h3>
+                    <p class="text-gray-600">Get comprehensive analysis and suggestions in seconds, not days</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-teal-100 to-blue-100 rounded-2xl p-8 md:p-12">
+              <div class="space-y-6">
+                <div class="bg-white rounded-xl p-6 shadow-lg">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-600">Overall Match</span>
+                    <span class="text-2xl font-bold text-teal-600">87%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-gradient-to-r from-teal-500 to-blue-500 h-2 rounded-full" style="width: 87%"></div>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-lg">
+                  <div class="text-sm font-medium text-gray-600 mb-3">Key Strengths</div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Skills Match</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Experience Level</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Education</span>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-lg">
+                  <div class="text-sm font-medium text-gray-600 mb-3">Areas to Improve</div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">Keywords</span>
+                    <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">Formatting</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  /* Smooth scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Animation for the pulse dot */
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+</style>
