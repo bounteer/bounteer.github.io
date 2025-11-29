@@ -15,15 +15,20 @@ import Footer from "../components/Footer.astro";
     />
 
     <!-- Main Content Section -->
-    <section class="py-16 md:py-24 bg-white">
+    <section class="py-16 md:py-24 bg-gradient-to-b from-white via-primary-50/30 to-white">
       <div class="container-custom">
         <div class="max-w-4xl mx-auto">
           <!-- What is the Talent Pool -->
-          <div class="mb-16">
-            <h2 class="text-3xl md:text-4xl text-gray-900 mb-6">
+          <div class="mb-16 animate-slide-up">
+            <div class="inline-block mb-4">
+              <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-primary-100 text-primary-700 border-2 border-primary-200">
+                Exclusive Access
+              </span>
+            </div>
+            <h2 class="text-3xl md:text-4xl text-secondary-900 mb-6 font-display">
               What is the Talent Pool?
             </h2>
-            <p class="text-lg text-gray-700 mb-6">
+            <p class="text-lg text-secondary-600 mb-6 leading-relaxed">
               The Bounteer Talent Pool is an exclusive directory of
               high-performing candidates who have demonstrated exceptional
               skills through their Role Fit Index (RFI) scores. By opting in,
@@ -33,84 +38,104 @@ import Footer from "../components/Footer.astro";
           </div>
 
           <!-- How it Works -->
-          <div class="mb-16">
-            <h2 class="text-3xl md:text-4xl text-gray-900 mb-8">
+          <div class="mb-16 animate-slide-up">
+            <h2 class="text-3xl md:text-4xl text-secondary-900 mb-10 font-display text-center">
               How It Works
             </h2>
             <div class="grid md:grid-cols-3 gap-8">
-              <div class="text-center">
-                <div
-                  class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4"
-                >
-                  <svg
-                    class="w-8 h-8 text-primary-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              <!-- Card 1 -->
+              <div class="group text-center p-8 rounded-2xl bg-white border-2 border-primary-100 hover:border-primary-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div class="relative mb-6">
+                  <div
+                    class="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-primary-300 group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
+                    <svg
+                      class="w-10 h-10 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
+                    1
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                <h3 class="text-xl font-semibold text-secondary-900 mb-3">
                   Score High on RFI
                 </h3>
-                <p class="text-gray-600">
+                <p class="text-secondary-600">
                   Complete your Role Fit Index assessment and achieve 80+ to
                   demonstrate your skills and compatibility.
                 </p>
               </div>
-              <div class="text-center">
-                <div
-                  class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4"
-                >
-                  <svg
-                    class="w-8 h-8 text-primary-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+
+              <!-- Card 2 -->
+              <div class="group text-center p-8 rounded-2xl bg-white border-2 border-primary-100 hover:border-primary-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div class="relative mb-6">
+                  <div
+                    class="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-primary-300 group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    ></path>
-                  </svg>
+                    <svg
+                      class="w-10 h-10 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <div class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
+                    2
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                <h3 class="text-xl font-semibold text-secondary-900 mb-3">
                   Opt-in to the Pool
                 </h3>
-                <p class="text-gray-600">
+                <p class="text-secondary-600">
                   Choose to make your profile visible in our curated talent
                   directory for recruiters to discover.
                 </p>
               </div>
-              <div class="text-center">
-                <div
-                  class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4"
-                >
-                  <svg
-                    class="w-8 h-8 text-primary-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+
+              <!-- Card 3 -->
+              <div class="group text-center p-8 rounded-2xl bg-white border-2 border-primary-100 hover:border-primary-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div class="relative mb-6">
+                  <div
+                    class="w-20 h-20 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-primary-300 group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    ></path>
-                  </svg>
+                    <svg
+                      class="w-10 h-10 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <div class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
+                    3
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                <h3 class="text-xl font-semibold text-secondary-900 mb-3">
                   Get Discovered
                 </h3>
-                <p class="text-gray-600">
+                <p class="text-secondary-600">
                   Recruiters browse the talent pool to find candidates that
                   match their requirements and reach out directly.
                 </p>
@@ -119,17 +144,18 @@ import Footer from "../components/Footer.astro";
           </div>
 
           <!-- Benefits -->
-          <div class="mb-16">
-            <h2 class="text-3xl md:text-4xl text-gray-900 mb-8">
+          <div class="mb-16 animate-slide-up">
+            <h2 class="text-3xl md:text-4xl text-secondary-900 mb-10 font-display text-center">
               Benefits for Candidates
             </h2>
-            <div class="grid md:grid-cols-2 gap-8">
-              <div class="flex items-start space-x-4">
+            <div class="grid md:grid-cols-2 gap-6">
+              <!-- Benefit 1 -->
+              <div class="group flex items-start space-x-4 p-6 rounded-xl bg-gradient-to-br from-primary-50 to-white border border-primary-100 hover:border-primary-300 hover:shadow-lg transition-all duration-300">
                 <div
-                  class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1"
+                  class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"
                 >
                   <svg
-                    class="w-5 h-5 text-green-600"
+                    class="w-6 h-6 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -138,25 +164,32 @@ import Footer from "../components/Footer.astro";
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M5 13l4 4L19 7"></path>
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 class="text-xl font-semibold text-secondary-900 mb-2">
                     Increased Visibility
                   </h3>
-                  <p class="text-gray-600">
+                  <p class="text-secondary-600">
                     Get discovered by recruiters actively seeking candidates
                     with your specific skills and expertise.
                   </p>
                 </div>
               </div>
-              <div class="flex items-start space-x-4">
+
+              <!-- Benefit 2 -->
+              <div class="group flex items-start space-x-4 p-6 rounded-xl bg-gradient-to-br from-primary-50 to-white border border-primary-100 hover:border-primary-300 hover:shadow-lg transition-all duration-300">
                 <div
-                  class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1"
+                  class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"
                 >
                   <svg
-                    class="w-5 h-5 text-green-600"
+                    class="w-6 h-6 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -165,25 +198,27 @@ import Footer from "../components/Footer.astro";
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M5 13l4 4L19 7"></path>
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 class="text-xl font-semibold text-secondary-900 mb-2">
                     Quality Matches
                   </h3>
-                  <p class="text-gray-600">
+                  <p class="text-secondary-600">
                     Connect with roles that align with your skills, as validated
                     by your RFI score.
                   </p>
                 </div>
               </div>
-              <div class="flex items-start space-x-4">
+
+              <!-- Benefit 3 -->
+              <div class="group flex items-start space-x-4 p-6 rounded-xl bg-gradient-to-br from-primary-50 to-white border border-primary-100 hover:border-primary-300 hover:shadow-lg transition-all duration-300">
                 <div
-                  class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1"
+                  class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"
                 >
                   <svg
-                    class="w-5 h-5 text-green-600"
+                    class="w-6 h-6 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -192,25 +227,27 @@ import Footer from "../components/Footer.astro";
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M5 13l4 4L19 7"></path>
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 class="text-xl font-semibold text-secondary-900 mb-2">
                     Passive Job Search
                   </h3>
-                  <p class="text-gray-600">
+                  <p class="text-secondary-600">
                     Let opportunities come to you while maintaining your current
                     position.
                   </p>
                 </div>
               </div>
-              <div class="flex items-start space-x-4">
+
+              <!-- Benefit 4 -->
+              <div class="group flex items-start space-x-4 p-6 rounded-xl bg-gradient-to-br from-primary-50 to-white border border-primary-100 hover:border-primary-300 hover:shadow-lg transition-all duration-300">
                 <div
-                  class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1"
+                  class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"
                 >
                   <svg
-                    class="w-5 h-5 text-green-600"
+                    class="w-6 h-6 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -219,14 +256,14 @@ import Footer from "../components/Footer.astro";
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M5 13l4 4L19 7"></path>
+                      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 class="text-xl font-semibold text-secondary-900 mb-2">
                     Verified Skills
                   </h3>
-                  <p class="text-gray-600">
+                  <p class="text-secondary-600">
                     Your RFI score serves as proof of your capabilities to
                     potential employers.
                   </p>
@@ -236,20 +273,27 @@ import Footer from "../components/Footer.astro";
           </div>
 
           <!-- How Recruiters Use It -->
-          <div class="mb-16">
-            <h2 class="text-3xl md:text-4xl text-gray-900 mb-8">
+          <div class="mb-16 animate-slide-up">
+            <h2 class="text-3xl md:text-4xl text-secondary-900 mb-10 font-display text-center">
               How Recruiters Use the Talent Pool
             </h2>
-            <div class="bg-gray-50 rounded-lg p-8">
-              <p class="text-lg text-gray-700 mb-6">
-                Recruiters and hiring managers access the Talent Pool to find
-                pre-screened candidates who have already demonstrated their fit
-                for specific roles through their RFI assessments.
-              </p>
-              <ul class="space-y-4 text-gray-700">
-                <li class="flex items-start space-x-3">
+            <div class="bg-gradient-to-br from-primary-50 via-white to-primary-50 rounded-2xl p-8 md:p-12 border-2 border-primary-100 shadow-lg">
+              <div class="flex items-start space-x-4 mb-8">
+                <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
+                  <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <p class="text-lg text-secondary-700 leading-relaxed flex-1">
+                  Recruiters and hiring managers access the Talent Pool to find
+                  pre-screened candidates who have already demonstrated their fit
+                  for specific roles through their RFI assessments.
+                </p>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="flex items-start space-x-3 p-4 rounded-xl bg-white/70 border border-primary-100 hover:bg-white hover:border-primary-200 transition-all duration-300">
                   <svg
-                    class="w-5 h-5 text-primary-600 mt-1 flex-shrink-0"
+                    class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -260,14 +304,11 @@ import Footer from "../components/Footer.astro";
                       stroke-width="2"
                       d="M9 12l2 2 4-4"></path>
                   </svg>
-                  <span
-                    >Browse candidates by skills, experience level, and RFI
-                    scores</span
-                  >
-                </li>
-                <li class="flex items-start space-x-3">
+                  <span class="text-secondary-700 font-medium">Browse candidates by skills, experience level, and RFI scores</span>
+                </div>
+                <div class="flex items-start space-x-3 p-4 rounded-xl bg-white/70 border border-primary-100 hover:bg-white hover:border-primary-200 transition-all duration-300">
                   <svg
-                    class="w-5 h-5 text-primary-600 mt-1 flex-shrink-0"
+                    class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -278,13 +319,11 @@ import Footer from "../components/Footer.astro";
                       stroke-width="2"
                       d="M9 12l2 2 4-4"></path>
                   </svg>
-                  <span
-                    >Filter candidates based on specific role requirements</span
-                  >
-                </li>
-                <li class="flex items-start space-x-3">
+                  <span class="text-secondary-700 font-medium">Filter candidates based on specific role requirements</span>
+                </div>
+                <div class="flex items-start space-x-3 p-4 rounded-xl bg-white/70 border border-primary-100 hover:bg-white hover:border-primary-200 transition-all duration-300">
                   <svg
-                    class="w-5 h-5 text-primary-600 mt-1 flex-shrink-0"
+                    class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -295,13 +334,11 @@ import Footer from "../components/Footer.astro";
                       stroke-width="2"
                       d="M9 12l2 2 4-4"></path>
                   </svg>
-                  <span
-                    >Contact candidates directly for relevant opportunities</span
-                  >
-                </li>
-                <li class="flex items-start space-x-3">
+                  <span class="text-secondary-700 font-medium">Contact candidates directly for relevant opportunities</span>
+                </div>
+                <div class="flex items-start space-x-3 p-4 rounded-xl bg-white/70 border border-primary-100 hover:bg-white hover:border-primary-200 transition-all duration-300">
                   <svg
-                    class="w-5 h-5 text-primary-600 mt-1 flex-shrink-0"
+                    class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -312,40 +349,55 @@ import Footer from "../components/Footer.astro";
                       stroke-width="2"
                       d="M9 12l2 2 4-4"></path>
                   </svg>
-                  <span
-                    >Access detailed RFI reports to understand candidate fit</span
-                  >
-                </li>
-              </ul>
+                  <span class="text-secondary-700 font-medium">Access detailed RFI reports to understand candidate fit</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- CTA Section -->
-          <div
-            class="text-center bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-8 text-white"
-          >
-            <h2 class="text-3xl md:text-4xl mb-4">
-              Ready to Join the Bounteer Talent Pool?
-            </h2>
-            <p class="text-xl mb-8 text-primary-100">
-              Take your Role Fit Index assessment and opt-in to get discovered
-              by top recruiters.
-            </p>
-            <div
-              class="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center"
-            >
-              <a
-                href="/role-fit-index"
-                class="inline-block bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Take RFI Assessment
-              </a>
-              <a
-                href="/dashboard"
-                class="inline-block bg-primary-800 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-900 transition-colors"
-              >
-                Access Dashboard
-              </a>
+          <div class="relative overflow-hidden">
+            <!-- Background decorative elements -->
+            <div class="absolute inset-0 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-3xl"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-primary-400 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
+            <div class="absolute bottom-0 left-0 w-80 h-80 bg-primary-700 rounded-full opacity-20 blur-3xl -ml-40 -mb-40"></div>
+
+            <!-- Content -->
+            <div class="relative text-center p-10 md:p-14 text-white">
+              <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-6">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+
+              <h2 class="text-3xl md:text-4xl lg:text-5xl mb-4 font-display font-bold tracking-tight">
+                Ready to Join the Bounteer Talent Pool?
+              </h2>
+              <p class="text-xl md:text-2xl mb-10 text-primary-50 max-w-2xl mx-auto leading-relaxed">
+                Take your Role Fit Index assessment and opt-in to get discovered
+                by top recruiters.
+              </p>
+
+              <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a
+                  href="/role-fit-index"
+                  class="group inline-flex items-center justify-center bg-white text-primary-600 px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-primary-300 hover:scale-105 transition-all duration-300 hover:-translate-y-1 min-w-[220px]"
+                >
+                  <span>Take RFI Assessment</span>
+                  <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                  </svg>
+                </a>
+                <a
+                  href="/dashboard"
+                  class="group inline-flex items-center justify-center bg-primary-800/50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-white/30 hover:bg-primary-800 hover:border-white hover:scale-105 transition-all duration-300 hover:-translate-y-1 min-w-[220px]"
+                >
+                  <span>Access Dashboard</span>
+                  <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
             </div>
           </div>
         </div>
