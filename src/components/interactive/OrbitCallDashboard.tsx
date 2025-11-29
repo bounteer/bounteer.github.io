@@ -312,24 +312,28 @@ export default function OrbitCallDashboard() {
         {/* Row 2 & 3: Responsive layout - stacked on small screens, single row on md+ */}
         <div className="space-y-2">
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-            {/* Toggle buttons */}
-            <div className="flex items-center space-x-3">
-              <Button
+            {/* Input Mode Segmented Control */}
+            <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
+              <button
                 onClick={() => setInputMode("meeting")}
-                variant={inputMode === "meeting" ? "default" : "outline"}
-                size="sm"
-                className={inputMode === "meeting" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                  inputMode === "meeting"
+                    ? "bg-white text-black shadow-md"
+                    : "text-white hover:bg-white/10"
+                }`}
               >
                 Meeting
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={() => setInputMode("testing")}
-                variant={inputMode === "testing" ? "default" : "outline"}
-                size="sm"
-                className={inputMode === "testing" ? "bg-white text-black hover:bg-gray-200" : "bg-white/20 border-white/40 text-white hover:bg-white/30 backdrop-blur-sm"}
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                  inputMode === "testing"
+                    ? "bg-white text-black shadow-md"
+                    : "text-white hover:bg-white/10"
+                }`}
               >
                 Testing
-              </Button>
+              </button>
             </div>
             
             {/* URL input and Deploy button */}
