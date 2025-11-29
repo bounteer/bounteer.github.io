@@ -136,7 +136,7 @@ export default function OrbitCallDashboard() {
     setIsDeploying(true);
 
     try {
-      let requestData: { meeting_url?: string; testing_filename?: string } = {};
+      let requestData: { meeting_url?: string; testing_filename?: string; mode?: 'company_call' | 'candidate_call' } = {};
 
       if (inputMode === "meeting") {
         const validation = enrichAndValidateCallUrl(callUrl);
@@ -173,6 +173,9 @@ export default function OrbitCallDashboard() {
         requestData.testing_filename = callUrl.trim();
         console.log("Loading test file:", callUrl);
       }
+
+      // Add mode based on callType
+      requestData.mode = callType === "company" ? "company_call" : "candidate_call";
 
       // Create orbit call request in Directus
       const result = await createOrbitCallRequest(requestData, EXTERNAL.directus_url);

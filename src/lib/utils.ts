@@ -326,17 +326,18 @@ export type OrbitCallRequest = {
   meeting_url?: string;
   testing_filename?: string;
   status?: 'pending' | 'processing' | 'completed' | 'failed';
+  mode?: 'company_call' | 'candidate_call';
 }
 
 // Create orbit call request in Directus
 export async function createOrbitCallRequest(
-  data: { meeting_url?: string; testing_filename?: string },
+  data: { meeting_url?: string; testing_filename?: string; mode?: 'company_call' | 'candidate_call' },
   directusUrl: string
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
     const authHeaders = getAuthHeaders(user);
-    
+
     const requestData: OrbitCallRequest = {
       ...data,
       status: 'pending'
