@@ -14,6 +14,7 @@ import CandidateSearch from "./CandidateSearch";
 import CandidateList from "./CandidateList";
 
 type InputMode = "meeting" | "testing";
+type CallType = "company" | "candidate";
 
 interface Candidate {
   id: string;
@@ -36,6 +37,7 @@ export default function OrbitCallDashboard() {
   const [callUrl, setCallUrl] = useState("");
   const [callUrlError, setCallUrlError] = useState<string>("");
   const [inputMode, setInputMode] = useState<InputMode>("meeting");
+  const [callType, setCallType] = useState<CallType>("company");
   const [isDeploying, setIsDeploying] = useState(false);
 
   // State management for the 3-stage JD enrichment flow
@@ -280,6 +282,32 @@ export default function OrbitCallDashboard() {
         <div className="mb-4">
             <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
           </div>
+
+        {/* Call Type Segmented Control */}
+        <div className="mb-4">
+          <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
+            <button
+              onClick={() => setCallType("company")}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                callType === "company"
+                  ? "bg-white text-black shadow-md"
+                  : "text-white hover:bg-white/10"
+              }`}
+            >
+              Company Call
+            </button>
+            <button
+              onClick={() => setCallType("candidate")}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                callType === "candidate"
+                  ? "bg-white text-black shadow-md"
+                  : "text-white hover:bg-white/10"
+              }`}
+            >
+              Candidate Call
+            </button>
+          </div>
+        </div>
 
         {/* Row 2 & 3: Responsive layout - stacked on small screens, single row on md+ */}
         <div className="space-y-2">
