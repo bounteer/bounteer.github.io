@@ -40,7 +40,7 @@ export default function CandidateProfileEnrichment({
   onCandidateDataChange
 }: CandidateProfileEnrichmentProps) {
   const [candidateErrors, setCandidateErrors] = useState<CandidateProfileFormErrors>({});
-  const [aiEnrichmentEnabled, setAiEnrichmentEnabled] = useState(true);
+  const [aiEnrichmentEnabled, setAiEnrichmentEnabled] = useState(stage === "ai_enrichment");
   const [originalCandidateData, setOriginalCandidateData] = useState<CandidateProfileFormData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>("");
@@ -83,65 +83,130 @@ export default function CandidateProfileEnrichment({
   };
 
   /**
+   * Sync AI enrichment toggle with stage prop changes
+   */
+  useEffect(() => {
+    const shouldBeEnabled = stage === "ai_enrichment";
+    if (aiEnrichmentEnabled !== shouldBeEnabled) {
+      console.log("Syncing AI enrichment toggle with stage:", stage, "-> enabled:", shouldBeEnabled);
+      setAiEnrichmentEnabled(shouldBeEnabled);
+      
+      // When loading into manual mode, set original data for change tracking
+      if (stage === "manual_enrichment" && !originalCandidateData) {
+        setOriginalCandidateData({ ...candidateData });
+      }
+    }
+  }, [stage, aiEnrichmentEnabled, originalCandidateData, candidateData]);
+
+  /**
    * Handle AI Enrichment toggle
    */
-  const handleAiEnrichmentToggle = (enabled: boolean) => {
+  const handleAiToggle = (enabled: boolean) => {
     setAiEnrichmentEnabled(enabled);
     onStageChange(enabled ? "ai_enrichment" : "manual_enrichment");
 
-    if (!enabled && !originalCandidateData) {
+    // When switching to manual mode, save the current state as original data for change tracking
+    if (!enabled) {
       setOriginalCandidateData({ ...candidateData });
+      setSaveError("");
+      setSaveSuccess(false);
     }
   };
 
   /**
-   * Save candidate profile to Directus
+   * Check if there are changes between original and current candidate data
    */
-  const handleSave = async () => {
+  const hasCandidateDataChanges = (): boolean => {
+    if (!originalCandidateData) return false;
+
+    // Compare each field including skills array
+    const fieldsToCompare: (keyof CandidateProfileFormData)[] = [
+      'name', 'job_title', 'location', 'year_of_experience',
+      'employment_type', 'company_size', 'salary_range', 'raw', 'context'
+    ];
+
+    // Check string fields
+    for (const field of fieldsToCompare) {
+      if (originalCandidateData[field] !== candidateData[field]) {
+        return true;
+      }
+    }
+
+    // Check skills array separately
+    const originalSkills = originalCandidateData.skills || [];
+    const currentSkills = candidateData.skills || [];
+
+    if (originalSkills.length !== currentSkills.length) {
+      return true;
+    }
+
+    for (let i = 0; i < originalSkills.length; i++) {
+      if (originalSkills[i] !== currentSkills[i]) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  /**
+   * Handle saving candidate profile to Directus
+   */
+  const handleSaveCandidateProfile = async () => {
+    if (!candidateProfileId) {
+      setSaveError("Missing candidate profile ID");
+      return;
+    }
     setIsSaving(true);
     setSaveError("");
     setSaveSuccess(false);
 
     try {
       const user = await getUserProfile(EXTERNAL.directus_url);
-      const authHeaders: Record<string, string> = {
-        'Content-Type': 'application/json'
+
+      // Prepare the data to save
+      const dataToSave = {
+        name: candidateData.name,
+        year_of_experience: candidateData.year_of_experience,
+        job_title: candidateData.job_title,
+        employment_type: candidateData.employment_type,
+        company_size: candidateData.company_size,
+        location: candidateData.location,
+        salary_range: candidateData.salary_range,
+        skills: JSON.stringify(candidateData.skills), // Convert array to JSON string for Directus
+        raw: candidateData.raw,
+        context: candidateData.context
       };
 
-      if (user) {
-        authHeaders['Authorization'] = `Bearer ${user.access_token}`;
-      } else {
-        authHeaders['Authorization'] = `Bearer ${EXTERNAL.directus_key}`;
-      }
-
-      const endpoint = candidateProfileId
-        ? `${EXTERNAL.directus_url}/items/candidate_profile/${candidateProfileId}`
-        : `${EXTERNAL.directus_url}/items/candidate_profile`;
-
-      const method = candidateProfileId ? 'PATCH' : 'POST';
-
-      const response = await fetch(endpoint, {
-        method,
+      const response = await fetch(`${EXTERNAL.directus_url}/items/candidate_profile/${candidateProfileId}`, {
+        method: 'PATCH',
         credentials: 'include',
-        headers: authHeaders,
-        body: JSON.stringify({
-          ...candidateData,
-          skills: JSON.stringify(candidateData.skills)
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+        },
+        body: JSON.stringify(dataToSave)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to save candidate profile`);
+        const errorText = await response.text();
+        console.error('Failed to save candidate profile:', response.status, response.statusText, errorText);
+        setSaveError(`Failed to save: ${response.status} ${response.statusText}`);
+        return;
       }
 
       const result = await response.json();
-      console.log("Candidate profile saved:", result);
+      console.log("Candidate profile saved successfully:", result);
+
+      // Update original data to current data since it's now saved
+      setOriginalCandidateData({ ...candidateData });
 
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => setSaveSuccess(false), 3000); // Clear success message after 3 seconds
+
     } catch (error) {
-      console.error("Error saving candidate profile:", error);
-      setSaveError(error instanceof Error ? error.message : "Failed to save");
+      console.error('Error saving candidate profile:', error);
+      setSaveError("An unexpected error occurred while saving. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -416,80 +481,187 @@ export default function CandidateProfileEnrichment({
     };
   }, []);
 
-  return (
-    <GlowCard className="w-full">
+  const renderEnrichmentForm = () => (
+    <>
+      {/* Header with gradient background and toggle */}
       <BackgroundGradientAnimation
-        containerClassName="h-full w-full rounded-3xl"
-        gradientBackgroundStart="rgb(16, 185, 129)"
-        gradientBackgroundEnd="rgb(5, 150, 105)"
-        firstColor="34, 197, 94"
-        secondColor="16, 185, 129"
-        thirdColor="5, 150, 105"
-        fourthColor="6, 182, 212"
-        fifthColor="14, 165, 233"
-        pointerColor="20, 184, 166"
-        interactive={true}
+        containerClassName="h-full w-full"
+        gradientBackgroundStart={stage === "manual_enrichment" ? "rgb(75, 85, 99)" : "rgb(16, 185, 129)"}
+        gradientBackgroundEnd={stage === "manual_enrichment" ? "rgb(55, 65, 81)" : "rgb(5, 150, 105)"}
+        firstColor={stage === "manual_enrichment" ? "107, 114, 128" : "34, 197, 94"}
+        secondColor={stage === "manual_enrichment" ? "75, 85, 99" : "16, 185, 129"}
+        thirdColor={stage === "manual_enrichment" ? "55, 65, 81" : "5, 150, 105"}
+        fourthColor={stage === "manual_enrichment" ? "107, 114, 128" : "6, 182, 212"}
+        fifthColor={stage === "manual_enrichment" ? "75, 85, 99" : "14, 165, 233"}
+        pointerColor={stage === "manual_enrichment" ? "107, 114, 128" : "20, 184, 166"}
+        interactive={stage !== "manual_enrichment"}
       >
-        <div className="relative z-10 p-6 text-white">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-1">Candidate Profile Enrichment</h3>
-              <p className="text-sm text-white/80">
-                {inputMode === "meeting" ? `Call URL: ${callUrl}` : `Test file: ${callUrl}`}
-              </p>
+        <div className="relative p-6 h-full flex items-center">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => onStageChange("not_linked")}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10 hover:text-white p-2 h-8 w-8"
+                title="Back to setup"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+              </Button>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Candidate Profile Enrichment</h3>
+                <p className="text-white/90 text-sm mt-1 mb-0">
+                  {stage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the candidate profile asynchronously" : "Manual editing mode"}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/40">
-              <Label htmlFor="ai-enrichment" className="text-sm font-medium cursor-pointer">
-                AI Enrichment
-              </Label>
-              <Switch
-                id="ai-enrichment"
-                checked={aiEnrichmentEnabled}
-                onCheckedChange={handleAiEnrichmentToggle}
-                className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
-              />
+            <div className="flex items-center space-x-4">
+              {inputMode === "meeting" && (
+                <Button
+                  onClick={() => window.open(callUrl, '_blank')}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/25 border-white/40 text-white hover:bg-white/35 hover:text-white backdrop-blur-sm"
+                >
+                  Go to Meeting
+                </Button>
+              )}
+              <div className="flex items-center space-x-3">
+                <Label htmlFor="ai-toggle" className="text-sm font-medium text-white">
+                  AI Enrichment
+                </Label>
+                <Switch
+                  id="ai-toggle"
+                  checked={aiEnrichmentEnabled}
+                  onCheckedChange={handleAiToggle}
+                />
+                {stage === "manual_enrichment" && candidateProfileId && (
+                  <Button
+                    onClick={handleSaveCandidateProfile}
+                    disabled={isSaving || !hasCandidateDataChanges()}
+                    size="sm"
+                    className="flex items-center gap-2 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  >
+                    {isSaving ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : saveSuccess ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        Save
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
+        </div>
+      </BackgroundGradientAnimation>
 
-          {/* Form Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Name */}
-            <div>
-              <Label htmlFor="name" className="text-sm font-medium mb-1.5 block">
-                Full Name <span className="text-red-300">*</span>
+      {/* Candidate Profile Form */}
+      <div className="p-6">
+        <div className="space-y-4">
+
+          {/* Input Fields */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Full Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="name"
                 value={candidateData.name}
                 onChange={(e) => handleCandidateDataChange('name', e.target.value)}
                 placeholder="John Doe"
-                disabled={aiEnrichmentEnabled}
-                className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
+                className={candidateErrors.name ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
               />
               {candidateErrors.name && (
-                <p className="text-xs text-red-300 mt-1">{candidateErrors.name}</p>
+                <p className="text-sm text-red-500">{candidateErrors.name}</p>
               )}
             </div>
 
-            {/* Job Title */}
-            <div>
-              <Label htmlFor="job_title" className="text-sm font-medium mb-1.5 block">
-                Current Job Title <span className="text-red-300">*</span>
+            <div className="space-y-2">
+              <Label htmlFor="job_title">
+                Current Job Title <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="job_title"
                 value={candidateData.job_title}
                 onChange={(e) => handleCandidateDataChange('job_title', e.target.value)}
                 placeholder="Senior Software Engineer"
-                disabled={aiEnrichmentEnabled}
-                className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
+                className={candidateErrors.job_title ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
               />
+              {candidateErrors.job_title && (
+                <p className="text-sm text-red-500">{candidateErrors.job_title}</p>
+              )}
             </div>
 
-            {/* Years of Experience */}
-            <div>
-              <Label htmlFor="year_of_experience" className="text-sm font-medium mb-1.5 block">
+            <div className="space-y-2">
+              <Label htmlFor="year_of_experience">
                 Years of Experience
               </Label>
               <Input
@@ -497,29 +669,33 @@ export default function CandidateProfileEnrichment({
                 value={candidateData.year_of_experience}
                 onChange={(e) => handleCandidateDataChange('year_of_experience', e.target.value)}
                 placeholder="5"
-                disabled={aiEnrichmentEnabled}
-                className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
+                className={candidateErrors.year_of_experience ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
               />
+              {candidateErrors.year_of_experience && (
+                <p className="text-sm text-red-500">{candidateErrors.year_of_experience}</p>
+              )}
             </div>
 
-            {/* Location */}
-            <div>
-              <Label htmlFor="location" className="text-sm font-medium mb-1.5 block">
-                Location <span className="text-red-300">*</span>
+            <div className="space-y-2">
+              <Label htmlFor="location">
+                Location <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="location"
                 value={candidateData.location}
                 onChange={(e) => handleCandidateDataChange('location', e.target.value)}
                 placeholder="San Francisco, CA"
-                disabled={aiEnrichmentEnabled}
-                className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
+                className={candidateErrors.location ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
               />
+              {candidateErrors.location && (
+                <p className="text-sm text-red-500">{candidateErrors.location}</p>
+              )}
             </div>
 
-            {/* Employment Type */}
-            <div>
-              <Label htmlFor="employment_type" className="text-sm font-medium mb-1.5 block">
+            <div className="space-y-2">
+              <Label htmlFor="employment_type">
                 Preferred Employment Type
               </Label>
               <Input
@@ -527,14 +703,16 @@ export default function CandidateProfileEnrichment({
                 value={candidateData.employment_type}
                 onChange={(e) => handleCandidateDataChange('employment_type', e.target.value)}
                 placeholder="Full-time"
-                disabled={aiEnrichmentEnabled}
-                className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
+                className={candidateErrors.employment_type ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
               />
+              {candidateErrors.employment_type && (
+                <p className="text-sm text-red-500">{candidateErrors.employment_type}</p>
+              )}
             </div>
 
-            {/* Salary Range */}
-            <div>
-              <Label htmlFor="salary_range" className="text-sm font-medium mb-1.5 block">
+            <div className="space-y-2">
+              <Label htmlFor="salary_range">
                 Expected Salary Range
               </Label>
               <Input
@@ -542,47 +720,110 @@ export default function CandidateProfileEnrichment({
                 value={candidateData.salary_range}
                 onChange={(e) => handleCandidateDataChange('salary_range', e.target.value)}
                 placeholder="$120k - $180k"
-                disabled={aiEnrichmentEnabled}
-                className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
+                className={candidateErrors.salary_range ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
               />
+              {candidateErrors.salary_range && (
+                <p className="text-sm text-red-500">{candidateErrors.salary_range}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company_size">
+                Company Size Preference
+              </Label>
+              <Input
+                id="company_size"
+                value={candidateData.company_size}
+                onChange={(e) => handleCandidateDataChange('company_size', e.target.value)}
+                placeholder="Startup, Mid-size, Enterprise"
+                className={candidateErrors.company_size ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
+              />
+              {candidateErrors.company_size && (
+                <p className="text-sm text-red-500">{candidateErrors.company_size}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="skills">
+                Skills (comma-separated)
+              </Label>
+              <Input
+                id="skills"
+                value={candidateData.skills.join(', ')}
+                onChange={(e) => handleCandidateDataChange('skills', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                placeholder="React, TypeScript, Node.js"
+                className={candidateErrors.skills ? 'border-red-500' : ''}
+                disabled={stage === "ai_enrichment"}
+              />
+              {candidateErrors.skills && (
+                <p className="text-sm text-red-500">{candidateErrors.skills}</p>
+              )}
             </div>
           </div>
 
-          {/* Skills */}
-          <div className="mb-4">
-            <Label htmlFor="skills" className="text-sm font-medium mb-1.5 block">
-              Skills (comma-separated)
-            </Label>
-            <Input
-              id="skills"
-              value={candidateData.skills.join(', ')}
-              onChange={(e) => handleCandidateDataChange('skills', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-              placeholder="React, TypeScript, Node.js"
-              disabled={aiEnrichmentEnabled}
-              className="bg-white/20 border-white/40 text-white placeholder-white/60 disabled:opacity-60"
-            />
+          {/* Additional Information */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="raw">
+                Raw Resume Data
+              </Label>
+              <Textarea
+                id="raw"
+                value={candidateData.raw}
+                onChange={(e) => handleCandidateDataChange('raw', e.target.value)}
+                placeholder="Raw extracted resume text..."
+                className={`h-[120px] resize-none overflow-y-auto ${candidateErrors.raw ? 'border-red-500' : ''}`}
+                disabled={stage === "ai_enrichment"}
+              />
+              {candidateErrors.raw && (
+                <p className="text-sm text-red-500">{candidateErrors.raw}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="context">
+                Additional Context
+              </Label>
+              <Textarea
+                id="context"
+                value={candidateData.context}
+                onChange={(e) => handleCandidateDataChange('context', e.target.value)}
+                placeholder="Additional context or notes..."
+                className={`h-[120px] resize-none overflow-y-auto ${candidateErrors.context ? 'border-red-500' : ''}`}
+                disabled={stage === "ai_enrichment"}
+              />
+              {candidateErrors.context && (
+                <p className="text-sm text-red-500">{candidateErrors.context}</p>
+              )}
+            </div>
           </div>
 
-          {/* Save Button */}
-          {!aiEnrichmentEnabled && (
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-white text-green-700 hover:bg-gray-100 font-semibold"
-              >
-                {isSaving ? "Saving..." : "Save Profile"}
-              </Button>
-              {saveSuccess && (
-                <span className="text-sm text-white">✓ Saved successfully</span>
-              )}
-              {saveError && (
-                <span className="text-sm text-red-300">{saveError}</span>
-              )}
+          {/* Save Error Display */}
+          {saveError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{saveError}</p>
             </div>
           )}
         </div>
-      </BackgroundGradientAnimation>
+      </div>
+    </>
+  );
+
+  // Only render the form when stage is ai_enrichment or manual_enrichment
+  if (stage === "not_linked") {
+    return null;
+  }
+
+  return (
+    <GlowCard
+      glowState={stage === "ai_enrichment" ? "processing" : "idle"}
+      color="#10b981"
+      className="w-full shadow-lg overflow-hidden p-0 rounded-3xl"
+      padding={false}
+    >
+      {renderEnrichmentForm()}
     </GlowCard>
   );
 }

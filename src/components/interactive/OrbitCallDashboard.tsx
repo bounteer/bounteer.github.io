@@ -10,7 +10,7 @@ import JobDescriptionEnrichment, { type JDStage } from "./JobDescriptionEnrichme
 import CandidateProfileEnrichment, { type CPStage } from "./CandidateProfileEnrichment";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
-import { get_orbit_job_description_enrichment_session_by_request_id, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
+import { get_orbit_job_description_enrichment_session_by_request_id, type OrbitJobDescriptionEnrichmentSession, get_orbit_candidate_profile_enrichment_session_by_request_id, type OrbitCandidateProfileEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import CandidateSearch from "./CandidateSearch";
 import CandidateList from "./CandidateList";
@@ -63,10 +63,11 @@ export default function OrbitCallDashboard() {
     skill_bonus: []
   });
 
-  // State for orbit call request and job description enrichment session
+  // State for orbit call request and enrichment sessions
   const [requestId, setRequestId] = useState<string>("");
   const [orbitJobDescriptionEnrichmentSession, setOrbitJobDescriptionEnrichmentSession] = useState<OrbitJobDescriptionEnrichmentSession | null>(null);
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
+  const [orbitCandidateProfileEnrichmentSession, setOrbitCandidateProfileEnrichmentSession] = useState<OrbitCandidateProfileEnrichmentSession | null>(null);
 
   // State for candidates data (Company call flow)
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -97,30 +98,155 @@ export default function OrbitCallDashboard() {
   };
 
   /**
+   * Handle JD stage changes with proper reset when going back
+   */
+  const handleJdStageChange = (newStage: JDStage) => {
+    if (newStage === "not_linked") {
+      resetEnrichmentState();
+    }
+    setJdStage(newStage);
+  };
+
+  /**
+   * Handle candidate profile stage changes with proper reset when going back
+   */
+  const handleCpStageChange = (newStage: CPStage) => {
+    if (newStage === "not_linked") {
+      resetEnrichmentState();
+    }
+    setCpStage(newStage);
+  };
+
+  /**
+   * Reset all state when switching between call types
+   */
+  const resetAllState = () => {
+    // Reset common state
+    setCallUrl("");
+    setCallUrlError("");
+    setRequestId("");
+
+    // Reset company call state
+    setJdStage("not_linked");
+    setJobData({
+      company_name: "",
+      role_name: "",
+      location: "",
+      salary_range: "",
+      responsibility: "",
+      minimum_requirement: "",
+      preferred_requirement: "",
+      perk: "",
+      skill: [],
+      skill_core: [],
+      skill_plus: [],
+      skill_bonus: []
+    });
+    setOrbitJobDescriptionEnrichmentSession(null);
+    setJobDescriptionId(null);
+    setCandidates([]);
+    setSearchError("");
+    setIsSearchingCandidates(false);
+    setCurrentSearchRequestId("");
+    setCurrentSearchRequestStatus("");
+
+    // Reset candidate call state
+    setCpStage("not_linked");
+    setCandidateData(DEFAULT_CANDIDATE_PROFILE);
+    setOrbitCandidateProfileEnrichmentSession(null);
+    setCandidateProfileId(null);
+    setJobs([]);
+    setJobSearchError("");
+    setIsSearchingJobs(false);
+  };
+
+  /**
+   * Handle call type switching with proper state reset
+   */
+  const handleCallTypeChange = (newCallType: CallType) => {
+    if (newCallType !== callType) {
+      console.log(`Switching call type from ${callType} to ${newCallType}`);
+      resetAllState();
+      setCallType(newCallType);
+    }
+  };
+
+  /**
+   * Reset enrichment state when going back to setup (keeps call URL)
+   */
+  const resetEnrichmentState = () => {
+    // Reset request and session state
+    setRequestId("");
+    
+    // Reset company call state
+    setJobData({
+      company_name: "",
+      role_name: "",
+      location: "",
+      salary_range: "",
+      responsibility: "",
+      minimum_requirement: "",
+      preferred_requirement: "",
+      perk: "",
+      skill: [],
+      skill_core: [],
+      skill_plus: [],
+      skill_bonus: []
+    });
+    setOrbitJobDescriptionEnrichmentSession(null);
+    setJobDescriptionId(null);
+    setCandidates([]);
+    setSearchError("");
+    setIsSearchingCandidates(false);
+    setCurrentSearchRequestId("");
+    setCurrentSearchRequestStatus("");
+
+    // Reset candidate call state
+    setCandidateData(DEFAULT_CANDIDATE_PROFILE);
+    setOrbitCandidateProfileEnrichmentSession(null);
+    setCandidateProfileId(null);
+    setJobs([]);
+    setJobSearchError("");
+    setIsSearchingJobs(false);
+  };
+
+  /**
+   * Ensure state consistency - called when component mounts or call type changes
+   */
+  const ensureStateConsistency = () => {
+    // Ensure that stages match the current call type
+    if (callType === "company" && cpStage !== "not_linked") {
+      setCpStage("not_linked");
+    }
+    if (callType === "candidate" && jdStage !== "not_linked") {
+      setJdStage("not_linked");
+    }
+  };
+
+  /**
    * Handle selection of a previous orbit call
    */
   const handleCallSelection = async (call: any) => {
     console.log("Selected orbit call:", call);
     
     try {
-      // Only handle company calls for now
+      // Reset state first to ensure clean transition
+      resetAllState();
+      
+      // Set common properties
+      if (call.meeting_url) {
+        setCallUrl(call.meeting_url);
+        setInputMode("meeting");
+      } else if (call.testing_filename) {
+        setCallUrl(call.testing_filename);
+        setInputMode("testing");
+      }
+      
+      setRequestId(call.id);
+      
       if (call.mode === 'company_call') {
         console.log("Loading company call data...");
-        
-        // Set the call URL and input mode
-        if (call.meeting_url) {
-          setCallUrl(call.meeting_url);
-          setInputMode("meeting");
-        } else if (call.testing_filename) {
-          setCallUrl(call.testing_filename);
-          setInputMode("testing");
-        }
-        
-        // Set call type to company
         setCallType("company");
-        
-        // Set request ID to the selected call ID
-        setRequestId(call.id);
         
         // Try to fetch the associated job description enrichment session
         try {
@@ -180,10 +306,76 @@ export default function OrbitCallDashboard() {
         setJdStage("manual_enrichment");
         
       } else if (call.mode === 'candidate_call') {
-        // TODO: Implement candidate call loading
-        console.log("Candidate call loading not yet implemented");
+        console.log("Loading candidate call data...");
         setCallType("candidate");
-        // For now, just switch to candidate mode but don't load data
+        
+        // Try to fetch the associated candidate profile enrichment session
+        try {
+          const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(call.id, EXTERNAL.directus_url);
+          if (sessionResult.success && sessionResult.session) {
+            setOrbitCandidateProfileEnrichmentSession(sessionResult.session);
+            console.log("Found candidate profile enrichment session:", sessionResult.session);
+            
+            if (sessionResult.session.candidate_profile) {
+              setCandidateProfileId(sessionResult.session.candidate_profile);
+              
+              // Fetch and load the candidate profile data
+              const candidateProfileResponse = await fetch(
+                `${EXTERNAL.directus_url}/items/candidate_profile/${sessionResult.session.candidate_profile}?fields=id,name,year_of_experience,job_title,employment_type,company_size,location,salary_range,skills,raw,context`,
+                {
+                  method: 'GET',
+                  credentials: 'include',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${EXTERNAL.directus_key}`
+                  }
+                }
+              );
+              
+              if (candidateProfileResponse.ok) {
+                const candidateProfileResult = await candidateProfileResponse.json();
+                const profile = candidateProfileResult.data;
+                
+                if (profile) {
+                  // Parse skills if it's a JSON string
+                  let skillsArray: string[] = [];
+                  if (profile.skills) {
+                    try {
+                      skillsArray = typeof profile.skills === 'string'
+                        ? JSON.parse(profile.skills)
+                        : profile.skills;
+                    } catch (e) {
+                      console.warn('Failed to parse skills:', e);
+                      skillsArray = [];
+                    }
+                  }
+                  
+                  const loadedCandidateData: CandidateProfileFormData = {
+                    name: profile.name || "",
+                    year_of_experience: profile.year_of_experience || "",
+                    job_title: profile.job_title || "",
+                    employment_type: profile.employment_type || "",
+                    company_size: profile.company_size || "",
+                    location: profile.location || "",
+                    salary_range: profile.salary_range || "",
+                    skills: skillsArray,
+                    raw: profile.raw || "",
+                    context: profile.context || ""
+                  };
+                  
+                  setCandidateData(loadedCandidateData);
+                  console.log("Loaded candidate profile data:", loadedCandidateData);
+                }
+              }
+            }
+          }
+        } catch (sessionError) {
+          console.log("No candidate profile enrichment session found:", sessionError);
+        }
+        
+        // Transition to manual enrichment mode
+        console.log("Transitioning to manual_enrichment mode");
+        setCpStage("manual_enrichment");
       }
       
     } catch (error) {
@@ -330,24 +522,46 @@ export default function OrbitCallDashboard() {
       if (result.id) {
         setRequestId(result.id);
 
-        // Attempt to fetch the orbit job description enrichment session (may not exist yet)
-        try {
-          const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
-          if (sessionResult.success && sessionResult.session) {
-            setOrbitJobDescriptionEnrichmentSession(sessionResult.session);
-            console.log("Orbit job description enrichment session found:", sessionResult.session);
-            console.log("Session job_description field:", sessionResult.session.job_description);
-            if (sessionResult.session.job_description) {
-              console.log("Job description ID found, setting:", sessionResult.session.job_description);
-              setJobDescriptionId(sessionResult.session.job_description);
+        if (callType === "company") {
+          // Attempt to fetch the orbit job description enrichment session (may not exist yet)
+          try {
+            const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
+            if (sessionResult.success && sessionResult.session) {
+              setOrbitJobDescriptionEnrichmentSession(sessionResult.session);
+              console.log("Orbit job description enrichment session found:", sessionResult.session);
+              console.log("Session job_description field:", sessionResult.session.job_description);
+              if (sessionResult.session.job_description) {
+                console.log("Job description ID found, setting:", sessionResult.session.job_description);
+                setJobDescriptionId(sessionResult.session.job_description);
+              } else {
+                console.log("No job_description field in session yet");
+              }
             } else {
-              console.log("No job_description field in session yet");
+              console.log("Orbit job description enrichment session not yet created:", sessionResult.error);
             }
-          } else {
-            console.log("Orbit job description enrichment session not yet created:", sessionResult.error);
+          } catch (sessionError) {
+            console.log("Error fetching orbit job description enrichment session:", sessionError);
           }
-        } catch (sessionError) {
-          console.log("Error fetching orbit job description enrichment session:", sessionError);
+        } else if (callType === "candidate") {
+          // Attempt to fetch the orbit candidate profile enrichment session (may not exist yet)
+          try {
+            const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
+            if (sessionResult.success && sessionResult.session) {
+              setOrbitCandidateProfileEnrichmentSession(sessionResult.session);
+              console.log("Orbit candidate profile enrichment session found:", sessionResult.session);
+              console.log("Session candidate_profile field:", sessionResult.session.candidate_profile);
+              if (sessionResult.session.candidate_profile) {
+                console.log("Candidate profile ID found, setting:", sessionResult.session.candidate_profile);
+                setCandidateProfileId(sessionResult.session.candidate_profile);
+              } else {
+                console.log("No candidate_profile field in session yet");
+              }
+            } else {
+              console.log("Orbit candidate profile enrichment session not yet created:", sessionResult.error);
+            }
+          } catch (sessionError) {
+            console.log("Error fetching orbit candidate profile enrichment session:", sessionError);
+          }
         }
       }
 
@@ -375,7 +589,7 @@ export default function OrbitCallDashboard() {
    * Periodically check for orbit job description enrichment session if we have a request ID but no session yet
    */
   useEffect(() => {
-    if (!requestId || orbitJobDescriptionEnrichmentSession) return;
+    if (!requestId || orbitJobDescriptionEnrichmentSession || callType !== "company") return;
 
     const pollForSession = async () => {
       try {
@@ -407,7 +621,45 @@ export default function OrbitCallDashboard() {
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [requestId, orbitJobDescriptionEnrichmentSession]);
+  }, [requestId, orbitJobDescriptionEnrichmentSession, callType]);
+
+  /**
+   * Periodically check for orbit candidate profile enrichment session if we have a request ID but no session yet
+   */
+  useEffect(() => {
+    if (!requestId || orbitCandidateProfileEnrichmentSession || callType !== "candidate") return;
+
+    const pollForCandidateSession = async () => {
+      try {
+        const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(requestId, EXTERNAL.directus_url);
+        if (sessionResult.success && sessionResult.session) {
+          setOrbitCandidateProfileEnrichmentSession(sessionResult.session);
+          console.log("Orbit candidate profile enrichment session found via polling:", sessionResult.session);
+          console.log("Polling - Session candidate_profile field:", sessionResult.session.candidate_profile);
+          if (sessionResult.session.candidate_profile) {
+            console.log("Polling - Candidate profile ID found, setting:", sessionResult.session.candidate_profile);
+            setCandidateProfileId(sessionResult.session.candidate_profile);
+          } else {
+            console.log("Polling - No candidate_profile field in session yet");
+          }
+        }
+      } catch (error) {
+        console.log("Error polling for orbit candidate profile enrichment session:", error);
+      }
+    };
+
+    // Poll every 5 seconds for up to 2 minutes
+    const pollInterval = setInterval(pollForCandidateSession, 5000);
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      console.log("Stopped polling for orbit candidate profile enrichment session after 2 minutes");
+    }, 120000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [requestId, orbitCandidateProfileEnrichmentSession, callType]);
 
 
 
@@ -434,7 +686,7 @@ export default function OrbitCallDashboard() {
         <div className="mb-4">
           <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
             <button
-              onClick={() => setCallType("company")}
+              onClick={() => handleCallTypeChange("company")}
               className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
                 callType === "company"
                   ? "bg-white text-black shadow-md"
@@ -444,7 +696,7 @@ export default function OrbitCallDashboard() {
               Company Call
             </button>
             <button
-              onClick={() => setCallType("candidate")}
+              onClick={() => handleCallTypeChange("candidate")}
               className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
                 callType === "candidate"
                   ? "bg-white text-black shadow-md"
@@ -574,7 +826,7 @@ export default function OrbitCallDashboard() {
               inputMode={inputMode}
               stage={jdStage}
               jobData={jobData}
-              onStageChange={setJdStage}
+              onStageChange={handleJdStageChange}
               onJobDataChange={handleJobDataChange}
             />
           )}
@@ -632,7 +884,7 @@ export default function OrbitCallDashboard() {
               inputMode={inputMode}
               stage={cpStage}
               candidateData={candidateData}
-              onStageChange={setCpStage}
+              onStageChange={handleCpStageChange}
               onCandidateDataChange={handleCandidateDataChange}
             />
           )}

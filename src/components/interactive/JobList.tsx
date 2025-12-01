@@ -177,51 +177,103 @@ export default function JobList({ jobs, searchComponent, isSearching = false }: 
 
   return (
     <GlowCard>
-      <Card className="border-0 shadow-none">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">
-              {isSearching ? "Searching for Jobs..." : jobs.length > 0 ? `Matching Jobs (${jobs.length})` : "No Jobs Yet"}
-            </CardTitle>
-            {searchComponent}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isSearching ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="text-center">
-                <svg className="w-10 h-10 mx-auto mb-3 text-primary-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <p className="text-sm text-gray-500">Finding matching jobs...</p>
-              </div>
+      <div className="relative">
+        <Card className="border-0 shadow-none min-h-[600px]">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold">
+                {isSearching ? "Searching for Jobs..." : jobs.length > 0 ? `Matching Jobs (${jobs.length})` : "No Jobs Yet"}
+              </CardTitle>
+              {searchComponent}
             </div>
-          ) : jobs.length === 0 ? (
-            <div className="flex items-center justify-center h-48 text-gray-400">
-              <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <p className="text-sm">No job matches yet</p>
-                <p className="text-xs text-gray-400 mt-1">Start by enriching your profile and clicking Search Jobs</p>
+          </CardHeader>
+          <CardContent>
+            {isSearching ? (
+              <div className="flex items-center justify-center h-48">
+                <div className="text-center">
+                  <svg className="w-10 h-10 mx-auto mb-3 text-primary-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <p className="text-sm text-gray-500">Finding matching jobs...</p>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Left: Job List */}
-              <div className="space-y-2 md:col-span-1 max-h-96 overflow-y-auto pr-2">
-                {sortedJobs.map(renderJobListItem)}
+            ) : jobs.length === 0 ? (
+              <div className="flex items-center justify-center h-48 text-gray-400">
+                <div className="text-center">
+                  <svg className="w-12 h-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm">No job matches yet</p>
+                  <p className="text-xs text-gray-400 mt-1">Start by enriching your profile and clicking Search Jobs</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Left: Job List */}
+                <div className="space-y-2 md:col-span-1 max-h-96 overflow-y-auto pr-2">
+                  {sortedJobs.map(renderJobListItem)}
+                </div>
+
+                {/* Right: Job Details */}
+                <div className="md:col-span-2 border-l pl-4">
+                  {renderJobDetail()}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Coming Soon Mask Overlay - Made larger to cover all content */}
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center rounded-xl z-10 min-h-[600px]">
+          <div className="text-center max-w-lg mx-auto p-12">
+            {/* Background decorative elements */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-xl opacity-80"></div>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-primary-200 rounded-full opacity-20 blur-xl -mr-20 -mt-20"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary-200 rounded-full opacity-20 blur-xl -ml-24 -mb-24"></div>
+
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl mb-8 shadow-2xl">
+                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
               </div>
 
-              {/* Right: Job Details */}
-              <div className="md:col-span-2 border-l pl-4">
-                {renderJobDetail()}
+              <h3 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+                Job Search
+              </h3>
+
+              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white px-8 py-4 rounded-full font-semibold text-xl shadow-xl mb-6">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Coming Soon
+              </div>
+              <div className="space-y-3 text-base text-gray-600">
+                <p className="flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Smart job-candidate matching
+                </p>
+                <p className="flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Real-time compatibility scoring
+                </p>
+                <p className="flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Personalized recommendations
+                </p>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </GlowCard>
   );
 }

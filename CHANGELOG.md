@@ -1,5 +1,23 @@
 # Bounteer Changelog
 
+## [0.7.0] - 2025-12-01
+### Added
+- WebSocket subscription for candidate profile AI enrichment (real-time field auto-filling)
+- Back navigation button on both Job Description and Candidate Profile Enrichment cards
+- Candidate profile enrichment session polling for AI integration setup
+- Smart state reset functionality when returning to setup (preserves call URL)
+
+### Enhanced
+- Orbit call dashboard now supports candidate profile enrichment session management
+- Improved state management with proper cleanup when navigating back to setup
+- Enhanced candidate call flow with WebSocket real-time updates matching job description pattern
+
+### Technical Improvements
+- Added proper session polling for candidate profile enrichment (similar to job description)
+- Implemented custom stage change handlers for proper state reset
+- Enhanced OrbitCallDashboard with separate polling logic for company vs candidate calls
+- Improved error handling and connection management for candidate profile WebSocket subscriptions
+
 ## [0.6.0] - 2025-12-01
 ### Added
 - Previous Orbit Calls history list on dashboard when not-linked
