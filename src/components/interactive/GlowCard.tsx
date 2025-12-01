@@ -104,7 +104,7 @@ const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(
         </Card>
 
         {/* Animations */}
-        <style jsx>{`
+        <style>{`
           @keyframes gc_innerPulse {
             0%, 100% {
               box-shadow:

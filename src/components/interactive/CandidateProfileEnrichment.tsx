@@ -52,6 +52,9 @@ export default function CandidateProfileEnrichment({
   // Polling reference for candidate profile updates
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Heartbeat reference for WebSocket keep-alive
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+
   const validateField = (name: keyof CandidateProfileFormData, value: string): string | undefined => {
     switch (name) {
       case 'name':
@@ -214,37 +217,201 @@ export default function CandidateProfileEnrichment({
   };
 
   /**
+   * Set up WebSocket subscription for candidate profile updates
+   */
+  const setupCandidateProfileWebSocket = async (cpId: string) => {
+    try {
+      // Clean up existing WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+
+      await getUserProfile(EXTERNAL.directus_url);
+      const u = new URL(EXTERNAL.directus_url);
+      u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+      u.pathname = "/websocket";
+      u.search = "";
+
+      const ws = new WebSocket(u.toString());
+      wsRef.current = ws;
+
+      const timeout = setTimeout(() => {
+        try { ws.close(); } catch { }
+        console.log("WebSocket timeout for candidate profile subscription");
+      }, 300_000); // 5 minute timeout
+
+      ws.onopen = () => {
+        console.log("WebSocket connected for candidate profile updates");
+        const authPayload = JSON.stringify({
+          type: "auth",
+          access_token: EXTERNAL.directus_key
+        });
+        ws.send(authPayload);
+
+        // Start heartbeat to keep connection alive
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+        }
+        heartbeatRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30000); // Send ping every 30 seconds
+      };
+
+      ws.onmessage = async (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+
+          if (msg.type === "auth" && msg.status === "ok") {
+            console.log("WebSocket authenticated, subscribing to candidate_profile updates");
+            const subscriptionPayload = JSON.stringify({
+              type: "subscribe",
+              collection: "candidate_profile",
+              query: {
+                fields: ["id", "name", "year_of_experience", "job_title", "employment_type", "company_size", "location", "salary_range", "skills", "raw", "context"]
+              },
+            });
+            ws.send(subscriptionPayload);
+          } else if (msg.type === "subscription") {
+            const rec = Array.isArray(msg.data) ? msg.data[0] : msg.data?.payload ?? msg.data?.item ?? msg.data;
+
+            if (msg.event === "update" && rec && String(rec.id) === String(cpId)) {
+              console.log("Candidate profile updated via WebSocket:", rec);
+
+              // Parse skills if it's a JSON string
+              let skillsArray: string[] = [];
+              if (rec.skills) {
+                try {
+                  skillsArray = typeof rec.skills === 'string'
+                    ? JSON.parse(rec.skills)
+                    : rec.skills;
+                } catch (e) {
+                  console.warn('Failed to parse skills:', e);
+                  skillsArray = [];
+                }
+              }
+
+              const updatedData: CandidateProfileFormData = {
+                name: rec.name || '',
+                year_of_experience: rec.year_of_experience || '',
+                job_title: rec.job_title || '',
+                employment_type: rec.employment_type || '',
+                company_size: rec.company_size || '',
+                location: rec.location || '',
+                salary_range: rec.salary_range || '',
+                skills: skillsArray,
+                raw: rec.raw || '',
+                context: rec.context || ''
+              };
+
+              onCandidateDataChange(updatedData);
+              
+              // Update original data when data comes from API (not user edits)
+              if (stage === "ai_enrichment") {
+                setOriginalCandidateData({ ...updatedData });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error processing WebSocket message:", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        clearTimeout(timeout);
+        
+        // Clear heartbeat interval on error
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
+      };
+
+      ws.onclose = (event) => {
+        console.log("WebSocket closed:", event.code, event.reason);
+        clearTimeout(timeout);
+
+        // Clear heartbeat interval
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
+
+        // Attempt to reconnect after 5 seconds if not manually closed
+        if (event.code !== 1000) {
+          setTimeout(() => {
+            if (candidateProfileId) {
+              console.log("Attempting to reconnect WebSocket for candidate profile updates");
+              setupCandidateProfileWebSocket(candidateProfileId);
+            }
+          }, 5000);
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up WebSocket:", error);
+    }
+  };
+
+  /**
    * Setup polling for candidate profile updates
    */
   useEffect(() => {
-    if (USE_POLLING_MODE && candidateProfileId && aiEnrichmentEnabled) {
-      fetchCandidateProfile();
-
-      pollingRef.current = setInterval(() => {
+    if (candidateProfileId && stage === "ai_enrichment") {
+      if (USE_POLLING_MODE) {
+        console.log("Setting up polling for candidate profile:", candidateProfileId);
         fetchCandidateProfile();
-      }, 5000);
 
-      return () => {
-        if (pollingRef.current) {
-          clearInterval(pollingRef.current);
-          pollingRef.current = null;
-        }
-      };
+        pollingRef.current = setInterval(() => {
+          fetchCandidateProfile();
+        }, 5000);
+      } else {
+        console.log("Setting up WebSocket subscription for candidate profile:", candidateProfileId);
+        setupCandidateProfileWebSocket(candidateProfileId);
+      }
     }
-  }, [candidateProfileId, aiEnrichmentEnabled]);
+
+    // Cleanup when stage changes or component unmounts
+    return () => {
+      // Clear polling
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      // Clear heartbeat
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      // Close WebSocket
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [candidateProfileId, stage]);
 
   /**
    * Cleanup on unmount
    */
   useEffect(() => {
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
+      // Clear polling
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
+      }
+      // Clear heartbeat
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      // Close WebSocket
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
       }
     };
   }, []);

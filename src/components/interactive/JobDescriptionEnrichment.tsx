@@ -70,6 +70,9 @@ export default function JobDescriptionEnrichment({
   // Polling reference for job description updates
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Heartbeat reference for WebSocket keep-alive
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+
   const validateField = (name: keyof JobDescriptionFormData, value: string): string | undefined => {
     switch (name) {
       case 'company_name':
@@ -87,7 +90,7 @@ export default function JobDescriptionEnrichment({
     }
   };
 
-  const handleJobDataChange = (name: keyof JobDescriptionFormData, value: string | string[] | ThreeTierSkills) => {
+  const handleJobDataChange = (name: keyof JobDescriptionFormData | 'skills', value: string | string[] | ThreeTierSkills) => {
     let newData;
     
     if (name === 'skills' && typeof value === 'object' && !Array.isArray(value)) {
@@ -237,6 +240,16 @@ export default function JobDescriptionEnrichment({
           access_token: EXTERNAL.directus_key
         });
         ws.send(authPayload);
+
+        // Start heartbeat to keep connection alive
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+        }
+        heartbeatRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30000); // Send ping every 30 seconds
       };
 
       ws.onmessage = async (evt) => {
@@ -292,11 +305,23 @@ export default function JobDescriptionEnrichment({
       ws.onerror = (error) => {
         console.error("WebSocket error:", error);
         clearTimeout(timeout);
+        
+        // Clear heartbeat interval on error
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
       };
 
       ws.onclose = (event) => {
         console.log("WebSocket closed:", event.code, event.reason);
         clearTimeout(timeout);
+
+        // Clear heartbeat interval
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
 
         // Attempt to reconnect after 5 seconds if not manually closed
         if (event.code !== 1000) {
@@ -363,6 +388,11 @@ export default function JobDescriptionEnrichment({
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      // Clear heartbeat
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
       // Close WebSocket
       if (wsRef.current) {
         wsRef.current.close();
@@ -380,6 +410,11 @@ export default function JobDescriptionEnrichment({
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
+      }
+      // Clear heartbeat
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
       }
       // Close WebSocket
       if (wsRef.current) {
