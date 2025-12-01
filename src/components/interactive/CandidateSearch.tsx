@@ -45,9 +45,15 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
    * Check search request status via polling
    */
   const checkSearchRequestStatus = async (requestId: string) => {
+    console.log("=== CHECKING SEARCH REQUEST STATUS ===");
+    console.log("requestId:", requestId);
+
     try {
       await getUserProfile(EXTERNAL.directus_url);
-      const response = await fetch(`${EXTERNAL.directus_url}/items/orbit_candidate_search_request/${requestId}?fields=id,status`, {
+      const statusUrl = `${EXTERNAL.directus_url}/items/orbit_candidate_search_request/${requestId}?fields=id,status`;
+      console.log("Status check URL:", statusUrl);
+
+      const response = await fetch(statusUrl, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -56,21 +62,37 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         }
       });
 
+      console.log("Status check response status:", response.status, response.statusText);
+
       if (!response.ok) {
         console.error('Failed to check search request status:', response.status, response.statusText);
+        const responseText = await response.text();
+        console.error('Response body:', responseText);
         return;
       }
 
       const result = await response.json();
+      console.log("Status check API response:", result);
       const searchRequest = result.data;
 
-      console.log("Search request status check:", searchRequest);
+      console.log("Search request object:", searchRequest);
+      console.log("Search request keys:", Object.keys(searchRequest || {}));
+
+      if (searchRequest) {
+        console.log("Search request status field:", searchRequest.status);
+        console.log("Search request id:", searchRequest.id);
+        console.log("All search request fields:", searchRequest);
+      }
 
       if (searchRequest && searchRequest.status) {
+        console.log("🟡 CURRENT STATUS:", searchRequest.status);
         setSearchRequestStatus(searchRequest.status);
 
         if (searchRequest.status === "listed") {
+          console.log("✅ STATUS REACHED LISTED ===");
           console.log("Candidates listed! Status reached:", searchRequest.status);
+          console.log("About to call fetchCandidateSearchResults with requestId:", requestId);
+          console.log("🚨 SETTING candidatesListed to TRUE - this will STOP polling");
           setCandidatesListed(true);
           setIsSearching(false);
           onSearchingChange?.(false);
@@ -80,13 +102,29 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
-
           // Fetch the candidate search results
           fetchCandidateSearchResults(requestId);
+          console.log("fetchCandidateSearchResults called");
+        } else {
+          console.log("⏳ Status is not 'listed' yet, current status:", searchRequest.status);
+          
+          // Check if it's a different final status that we should handle
+          if (searchRequest.status === "completed" || searchRequest.status === "finished" || searchRequest.status === "done") {
+            console.log("🔍 Found alternative final status, trying to fetch results anyway:", searchRequest.status);
+            console.log("🚨 SETTING candidatesListed to TRUE for alternative status - this will STOP polling");
+            setCandidatesListed(true);
+            setIsSearching(false);
+            onSearchingChange?.(false);
+            fetchCandidateSearchResults(requestId);
+          }
         }
+      } else {
+        console.log("❌ No status field found in search request");
       }
     } catch (error) {
+      console.error('=== ERROR IN STATUS CHECK ===');
       console.error('Error checking search request status:', error);
+      console.error('Error details:', error);
     }
   };
 
@@ -94,40 +132,58 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
    * Start polling for search request status
    */
   const startPolling = (requestId: string) => {
+    console.log("=== STARTING POLLING ===");
     console.log("Starting polling for search request:", requestId);
+    console.log("candidatesListed state:", candidatesListed);
 
     // Clear any existing polling
     if (pollingRef.current) {
+      console.log("Clearing existing polling interval");
       clearInterval(pollingRef.current);
     }
 
     // Initial check
+    console.log("Performing initial status check");
     checkSearchRequestStatus(requestId);
 
-    // Set up polling every 1 second
+    // Set up polling every 3 seconds
     pollingRef.current = setInterval(() => {
+      const now = new Date().toISOString();
+      console.log(`🔄 [${now}] POLLING INTERVAL TICK - candidatesListed:`, candidatesListed);
+      
       if (!candidatesListed) {
+        console.log("📡 Candidates not listed yet, checking status...");
         checkSearchRequestStatus(requestId);
       } else {
+        console.log("✅ Candidates already listed, stopping polling");
         // Stop polling if candidates are already listed
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
           pollingRef.current = null;
         }
       }
-    }, 1000);
+    }, 3000); // Changed to 3 seconds as you requested
+    console.log("Polling interval set up with ID:", pollingRef.current);
   };
 
   /**
    * Fetch candidate search results from Directus
    */
   const fetchCandidateSearchResults = async (searchRequestId: string) => {
+    console.log("=== FETCH CANDIDATE SEARCH RESULTS CALLED ===");
+    console.log("searchRequestId parameter:", searchRequestId);
+
     try {
       console.log("Fetching candidate search results for request ID:", searchRequestId);
 
       await getUserProfile(EXTERNAL.directus_url);
+
       const fetchUrl = `${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}&fields=*,candidate_profile.id,candidate_profile.name,candidate_profile.job_title,candidate_profile.year_of_experience,candidate_profile.location,candidate_profile.skills,pros,cons`;
+
+      console.log("=== EXACT URL THAT SHOULD WORK ===");
       console.log("Fetch URL:", fetchUrl);
+      console.log("Expected working URL: https://directus.bounteer.com/items/orbit_candidate_search_result?filter[request][_eq]=93");
+      console.log("URLs match?", fetchUrl.includes(`filter[request][_eq]=${searchRequestId}`));
       
       const response = await fetch(fetchUrl, {
         method: 'GET',
@@ -147,9 +203,41 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
       const result = await response.json();
       const candidateResults = result.data;
 
+      console.log("=== CANDIDATE SEARCH RESULTS DEBUG ===");
       console.log("Full API response:", result);
       console.log("Candidate results array:", candidateResults);
       console.log("Number of candidates found:", candidateResults?.length || 0);
+      console.log("Type of candidateResults:", typeof candidateResults);
+      console.log("Is candidateResults an array?", Array.isArray(candidateResults));
+
+      // Additional debugging for why results might be empty
+      if (!candidateResults || candidateResults.length === 0) {
+        console.log("=== DEBUGGING EMPTY RESULTS ===");
+        console.log("Response status was OK, but no results found");
+        console.log("searchRequestId used in query:", searchRequestId);
+        console.log("Type of searchRequestId:", typeof searchRequestId);
+        console.log("Is searchRequestId truthy?", !!searchRequestId);
+
+        // Test the URL manually without the fields parameter to see if that's the issue
+        const simpleUrl = `${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${searchRequestId}`;
+        console.log("Trying simplified URL:", simpleUrl);
+
+        const simpleResponse = await fetch(simpleUrl, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${EXTERNAL.directus_key}`
+          }
+        });
+
+        if (simpleResponse.ok) {
+          const simpleResult = await simpleResponse.json();
+          console.log("Simplified URL response:", simpleResult);
+        } else {
+          console.log("Simplified URL failed:", simpleResponse.status, simpleResponse.statusText);
+        }
+      }
 
       if (candidateResults && candidateResults.length > 0) {
         const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => {
@@ -205,12 +293,16 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         });
 
         console.log("Transformed candidates:", transformedCandidates);
-        console.log("Calling onResults with candidates:", transformedCandidates);
+        console.log("About to call onResults with candidates:", transformedCandidates);
+        console.log("onResults function:", onResults);
         onResults(transformedCandidates);
+        console.log("onResults called successfully");
       } else {
         console.log("No candidate search results found - empty or null array");
-        console.log("Calling onResults with empty array");
+        console.log("candidateResults value:", candidateResults);
+        console.log("About to call onResults with empty array");
         onResults([]);
+        console.log("onResults called successfully with empty array");
       }
     } catch (error) {
       console.error('Error fetching candidate search results:', error);
@@ -257,13 +349,18 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         return;
       }
 
+      console.log("=== SEARCH REQUEST CREATED ===");
       console.log("Orbit candidate search request created with ID:", result.id);
+      console.log("Full result object:", result);
 
       if (result.id) {
+        console.log("Setting searchRequestId to:", result.id);
         setSearchRequestId(result.id);
-        console.log("Search request ID stored:", result.id);
-        console.log("Waiting for status to become 'listed'...");
+        console.log("searchRequestId state updated. Waiting for status to become 'listed'...");
         onRequestCreated?.(result.id);
+        console.log("onRequestCreated callback called");
+      } else {
+        console.error("No ID returned from search request creation");
       }
 
       onError("");
@@ -280,12 +377,22 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
    * Effect to start polling when searchRequestId is available
    */
   useEffect(() => {
+    console.log("=== POLLING USEEFFECT TRIGGERED ===");
+    console.log("searchRequestId:", searchRequestId);
+    console.log("candidatesListed:", candidatesListed);
+    console.log("Should start polling?", !!(searchRequestId && !candidatesListed));
+
     if (searchRequestId && !candidatesListed) {
-      console.log("Starting polling for search request:", searchRequestId);
+      console.log("Conditions met, starting polling for search request:", searchRequestId);
       startPolling(searchRequestId);
+    } else {
+      console.log("Conditions not met for polling:");
+      console.log("  - searchRequestId exists:", !!searchRequestId);
+      console.log("  - candidatesListed is false:", !candidatesListed);
     }
 
     return () => {
+      console.log("Polling useEffect cleanup");
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -302,22 +409,36 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
     };
   }, []);
 
-  // Reset state when request changes
+  // Reset state when request changes (but be more selective)
   useEffect(() => {
-    if (request) {
-      setSearchRequestId("");
-      setSearchRequestStatus("");
-      setCandidatesListed(false);
-      setIsSearching(false);
-      onSearchingChange?.(false);
+    console.log("📝 Request useEffect triggered, request:", request);
+    console.log("📝 Current searchRequestId:", searchRequestId);
+    
+    // Only reset if this is truly a new request (different session ID)
+    if (request && request.job_description_enrichment_session) {
+      const isNewSession = searchRequestId === "";
+      console.log("📝 Is this a new session?", isNewSession);
+      
+      if (isNewSession) {
+        console.log("📝 RESETTING STATE for truly new request");
+        setSearchRequestId("");
+        setSearchRequestStatus("");
+        console.log("🔄 SETTING candidatesListed to FALSE - polling can start again");
+        setCandidatesListed(false);
+        setIsSearching(false);
+        onSearchingChange?.(false);
 
-      // Clear any existing polling
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
+        // Clear any existing polling
+        if (pollingRef.current) {
+          console.log("🛑 Clearing existing polling interval");
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      } else {
+        console.log("📝 Same session, not resetting state - keeping polling alive");
       }
     }
-  }, [request]);
+  }, [request?.job_description_enrichment_session]); // Only depend on session ID, not entire request object
 
   return (
     <div className="flex items-center gap-2">
@@ -369,6 +490,22 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
           </>
         )}
       </Button>
+
+      {/* Debug button to manually fetch results */}
+      {searchRequestId && (
+        <Button
+          onClick={() => {
+            console.log("Manual fetch triggered for request ID:", searchRequestId);
+            fetchCandidateSearchResults(searchRequestId);
+          }}
+          variant="outline"
+          size="sm"
+          className="text-xs"
+        >
+          Fetch Results (Debug)
+        </Button>
+      )}
+
       {searchRequestStatus && (
         <span className="text-sm text-gray-600">Status: {searchRequestStatus}</span>
       )}

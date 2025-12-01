@@ -98,7 +98,10 @@ export default function OrbitCallDashboard() {
    * Handle candidate search results
    */
   const handleCandidateResults = (candidateResults: Candidate[]) => {
+    console.log("OrbitCallDashboard - handleCandidateResults called with:", candidateResults);
+    console.log("OrbitCallDashboard - Number of candidates received:", candidateResults?.length || 0);
     setCandidates(candidateResults);
+    console.log("OrbitCallDashboard - setCandidates called, current candidates length will be:", candidateResults?.length || 0);
   };
 
   /**

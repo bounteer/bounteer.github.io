@@ -30,6 +30,11 @@ interface CandidateListProps {
 export default function CandidateList({ candidates, searchComponent, isSearching = false }: CandidateListProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
+  // Debug logging
+  console.log("CandidateList - candidates prop:", candidates);
+  console.log("CandidateList - candidates length:", candidates?.length || 0);
+  console.log("CandidateList - isSearching:", isSearching);
+
   // Sort candidates by RAG score in descending order (highest first)
   const sortedCandidates = [...candidates].sort((a, b) => b.ragScore - a.ragScore);
 
