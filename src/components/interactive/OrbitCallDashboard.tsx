@@ -15,6 +15,7 @@ import { EXTERNAL } from "@/constant";
 import CandidateSearch from "./CandidateSearch";
 import CandidateList from "./CandidateList";
 import JobList from "./JobList";
+import PreviousOrbitCalls from "./PreviousOrbitCalls";
 
 type InputMode = "meeting" | "testing";
 type CallType = "company" | "candidate";
@@ -72,6 +73,7 @@ export default function OrbitCallDashboard() {
   const [searchError, setSearchError] = useState<string>("");
   const [isSearchingCandidates, setIsSearchingCandidates] = useState(false);
   const [currentSearchRequestId, setCurrentSearchRequestId] = useState<string>("");
+  const [currentSearchRequestStatus, setCurrentSearchRequestStatus] = useState<string>("");
 
   // State management for candidate call flow
   const [cpStage, setCpStage] = useState<CPStage>("not_linked");
@@ -92,6 +94,101 @@ export default function OrbitCallDashboard() {
    */
   const handleJobDataChange = (newJobData: JobDescriptionFormData) => {
     setJobData(newJobData);
+  };
+
+  /**
+   * Handle selection of a previous orbit call
+   */
+  const handleCallSelection = async (call: any) => {
+    console.log("Selected orbit call:", call);
+    
+    try {
+      // Only handle company calls for now
+      if (call.mode === 'company_call') {
+        console.log("Loading company call data...");
+        
+        // Set the call URL and input mode
+        if (call.meeting_url) {
+          setCallUrl(call.meeting_url);
+          setInputMode("meeting");
+        } else if (call.testing_filename) {
+          setCallUrl(call.testing_filename);
+          setInputMode("testing");
+        }
+        
+        // Set call type to company
+        setCallType("company");
+        
+        // Set request ID to the selected call ID
+        setRequestId(call.id);
+        
+        // Try to fetch the associated job description enrichment session
+        try {
+          const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(call.id, EXTERNAL.directus_url);
+          if (sessionResult.success && sessionResult.session) {
+            setOrbitJobDescriptionEnrichmentSession(sessionResult.session);
+            console.log("Found job description enrichment session:", sessionResult.session);
+            
+            if (sessionResult.session.job_description) {
+              setJobDescriptionId(sessionResult.session.job_description);
+              
+              // Fetch and load the job description data
+              const jobDescResponse = await fetch(
+                `${EXTERNAL.directus_url}/items/job_description/${sessionResult.session.job_description}?fields=id,company_name,role_name,location,salary_range,responsibility,minimum_requirement,preferred_requirement,perk,skill,skill_core,skill_plus,skill_bonus`,
+                {
+                  method: 'GET',
+                  credentials: 'include',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${EXTERNAL.directus_key}`
+                  }
+                }
+              );
+              
+              if (jobDescResponse.ok) {
+                const jobDescResult = await jobDescResponse.json();
+                const jd = jobDescResult.data;
+                
+                if (jd) {
+                  const loadedJobData: JobDescriptionFormData = {
+                    company_name: jd.company_name || "",
+                    role_name: jd.role_name || "",
+                    location: jd.location || "",
+                    salary_range: jd.salary_range || "",
+                    responsibility: jd.responsibility || "",
+                    minimum_requirement: jd.minimum_requirement || "",
+                    preferred_requirement: jd.preferred_requirement || "",
+                    perk: jd.perk || "",
+                    skill: Array.isArray(jd.skill) ? jd.skill : (jd.skill ? JSON.parse(jd.skill) : []),
+                    skill_core: Array.isArray(jd.skill_core) ? jd.skill_core : (jd.skill_core ? JSON.parse(jd.skill_core) : []),
+                    skill_plus: Array.isArray(jd.skill_plus) ? jd.skill_plus : (jd.skill_plus ? JSON.parse(jd.skill_plus) : []),
+                    skill_bonus: Array.isArray(jd.skill_bonus) ? jd.skill_bonus : (jd.skill_bonus ? JSON.parse(jd.skill_bonus) : [])
+                  };
+                  
+                  setJobData(loadedJobData);
+                  console.log("Loaded job description data:", loadedJobData);
+                }
+              }
+            }
+          }
+        } catch (sessionError) {
+          console.log("No job description enrichment session found:", sessionError);
+        }
+        
+        // Transition to manual enrichment mode
+        console.log("Transitioning to manual_enrichment mode");
+        setJdStage("manual_enrichment");
+        
+      } else if (call.mode === 'candidate_call') {
+        // TODO: Implement candidate call loading
+        console.log("Candidate call loading not yet implemented");
+        setCallType("candidate");
+        // For now, just switch to candidate mode but don't load data
+      }
+      
+    } catch (error) {
+      console.error("Error loading selected call:", error);
+    }
   };
 
   /**
@@ -461,9 +558,12 @@ export default function OrbitCallDashboard() {
         <>
           {/* Stage 1: not_linked - Only shows URL input (no GlowCard) */}
           {jdStage === "not_linked" && (
-            <div className="rounded-3xl overflow-hidden w-full">
-              {renderNotLinkedStage()}
-            </div>
+            <>
+              <div className="rounded-3xl overflow-hidden w-full">
+                {renderNotLinkedStage()}
+              </div>
+              <PreviousOrbitCalls onCallSelect={handleCallSelection} />
+            </>
           )}
 
           {/* Stage 2 & 3: ai_enrichment / manual_enrichment - JobDescriptionEnrichment Component */}
@@ -485,6 +585,10 @@ export default function OrbitCallDashboard() {
               <CandidateList
                 candidates={candidates}
                 isSearching={isSearchingCandidates}
+                debugInfo={{
+                  requestId: currentSearchRequestId || undefined,
+                  requestStatus: currentSearchRequestStatus || undefined
+                }}
                 searchComponent={orbitJobDescriptionEnrichmentSession?.id ? (
                   <CandidateSearch
                     request={{
@@ -495,6 +599,7 @@ export default function OrbitCallDashboard() {
                     onError={handleCandidateError}
                     onSearchingChange={setIsSearchingCandidates}
                     onRequestCreated={setCurrentSearchRequestId}
+                    onStatusChange={setCurrentSearchRequestStatus}
                   />
                 ) : null}
               />
@@ -511,9 +616,12 @@ export default function OrbitCallDashboard() {
         <>
           {/* Stage 1: not_linked - Only shows URL input (no GlowCard) */}
           {cpStage === "not_linked" && (
-            <div className="rounded-3xl overflow-hidden w-full">
-              {renderNotLinkedStage()}
-            </div>
+            <>
+              <div className="rounded-3xl overflow-hidden w-full">
+                {renderNotLinkedStage()}
+              </div>
+              <PreviousOrbitCalls onCallSelect={handleCallSelection} />
+            </>
           )}
 
           {/* Stage 2 & 3: ai_enrichment / manual_enrichment - CandidateProfileEnrichment Component */}

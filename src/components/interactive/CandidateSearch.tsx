@@ -30,9 +30,10 @@ interface CandidateSearchProps {
   onError: (error: string) => void;
   onSearchingChange?: (isSearching: boolean) => void;
   onRequestCreated?: (requestId: string) => void;
+  onStatusChange?: (status: string) => void;
 }
 
-export default function CandidateSearch({ request, onResults, onError, onSearchingChange, onRequestCreated }: CandidateSearchProps) {
+export default function CandidateSearch({ request, onResults, onError, onSearchingChange, onRequestCreated, onStatusChange }: CandidateSearchProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchRequestId, setSearchRequestId] = useState<string>("");
   const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
@@ -87,6 +88,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
       if (searchRequest && searchRequest.status) {
         console.log("🟡 CURRENT STATUS:", searchRequest.status);
         setSearchRequestStatus(searchRequest.status);
+        onStatusChange?.(searchRequest.status);
 
         if (searchRequest.status === "listed") {
           console.log("✅ STATUS REACHED LISTED ===");
@@ -319,9 +321,27 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
       return;
     }
 
+    console.log("=== STARTING NEW SEARCH ===");
+    console.log("Resetting search state for new search request");
+    
+    // Reset all search-related state
+    setSearchRequestId("");
+    setSearchRequestStatus("");
+    setCandidatesListed(false);
     setIsSearching(true);
     onSearchingChange?.(true);
     onError("");
+    
+    // Reset parent component tracking
+    onStatusChange?.("");
+    onRequestCreated?.("");
+    
+    // Clear any existing polling
+    if (pollingRef.current) {
+      console.log("🛑 Clearing existing polling for new search");
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
 
     try {
       const jobDescriptionSnapshot = {
@@ -491,24 +511,6 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         )}
       </Button>
 
-      {/* Debug button to manually fetch results */}
-      {searchRequestId && (
-        <Button
-          onClick={() => {
-            console.log("Manual fetch triggered for request ID:", searchRequestId);
-            fetchCandidateSearchResults(searchRequestId);
-          }}
-          variant="outline"
-          size="sm"
-          className="text-xs"
-        >
-          Fetch Results (Debug)
-        </Button>
-      )}
-
-      {searchRequestStatus && (
-        <span className="text-sm text-gray-600">Status: {searchRequestStatus}</span>
-      )}
     </div>
   );
 }

@@ -1,5 +1,29 @@
 # Bounteer Changelog
 
+## [0.6.0] - 2025-12-01
+### Added
+- Previous Orbit Calls history list on dashboard when not-linked
+- Company call selection and loading functionality to manual enrichment mode
+- WebSocket heartbeat implementation (30-second intervals) to prevent disconnections
+- Debug information section showing request ID and status in Potential Candidates card
+- Enhanced candidate search polling with proper state management
+
+### Modified
+- Fixed AI enrichment toggle state synchronization when loading previous calls
+- Improved candidate list layout to maintain left/right structure even with no candidates
+- Fixed search candidate request state reset for multiple searches
+- Enhanced candidate search result fetching with better error handling
+- Updated color scheme from blue to primary coral colors throughout components
+- Removed debug button in favor of integrated debug section
+- Simplified PreviousOrbitCalls display (removed updated timestamp)
+
+### Fixed
+- WebSocket heartbeat preventing periodic disconnections in JobDescriptionEnrichment and CandidateProfileEnrichment
+- GlowCard JSX attribute error (removed invalid jsx attribute)
+- Polling interval interruption during candidate search status checks
+- AI enrichment toggle not reflecting correct state when loading previous sessions
+- Multiple search requests causing stuck "Searching..." state
+
 ## [0.4.2] - 2025-10-18
 ### Modified
 - chnaged rfi flow so that it catches all the websocket messages

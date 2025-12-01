@@ -58,7 +58,7 @@ export default function JobDescriptionEnrichment({
   onJobDataChange
 }: JobDescriptionEnrichmentProps) {
   const [jobErrors, setJobErrors] = useState<JobDescriptionFormErrors>({});
-  const [aiEnrichmentEnabled, setAiEnrichmentEnabled] = useState(true);
+  const [aiEnrichmentEnabled, setAiEnrichmentEnabled] = useState(stage === "ai_enrichment");
   const [originalJobData, setOriginalJobData] = useState<JobDescriptionFormData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>("");
@@ -122,6 +122,22 @@ export default function JobDescriptionEnrichment({
       setJobErrors(newErrors);
     }
   };
+
+  /**
+   * Sync AI enrichment toggle with stage prop changes
+   */
+  useEffect(() => {
+    const shouldBeEnabled = stage === "ai_enrichment";
+    if (aiEnrichmentEnabled !== shouldBeEnabled) {
+      console.log("Syncing AI enrichment toggle with stage:", stage, "-> enabled:", shouldBeEnabled);
+      setAiEnrichmentEnabled(shouldBeEnabled);
+      
+      // When loading into manual mode, set original data for change tracking
+      if (stage === "manual_enrichment" && !originalJobData) {
+        setOriginalJobData({ ...jobData });
+      }
+    }
+  }, [stage, aiEnrichmentEnabled, originalJobData, jobData]);
 
   /**
    * Handles toggling between AI and manual enrichment
