@@ -1,0 +1,27 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import CandidateOrbitCallEnrichment from "@/components/interactive/CandidateOrbitCallEnrichment";
+import AuthGuard from "@/components/interactive/AuthGuard";
+---
+
+<Layout title="Candidate Orbit Call - Profile Enrichment">
+  <AuthGuard client:load>
+    <main class="bg-gray-50 min-h-screen">
+      <!-- Main content without sidebar -->
+      <section class="px-6 py-10">
+        <!-- Page Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-semibold tracking-tight mb-2">
+            Candidate Orbit Call
+          </h1>
+          <p class="text-sm text-muted-foreground">
+            AI-powered candidate profile enrichment and job search.
+          </p>
+        </div>
+
+        <!-- React Island that will parse session ID client-side -->
+        <CandidateOrbitCallEnrichment client:load />
+      </section>
+    </main>
+  </AuthGuard>
+</Layout>

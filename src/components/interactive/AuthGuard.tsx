@@ -18,10 +18,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
-        // Get the next path from URL params or current path
+        // Get the next path from URL params or current path (don't encode here - getLoginUrl will handle it)
         const urlParams = new URLSearchParams(window.location.search);
         const nextPath = urlParams.get('next') || window.location.pathname + window.location.search;
-        window.location.href = getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, encodeURIComponent(nextPath));
+        window.location.href = getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, nextPath);
       }
     }
 
