@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getUserProfile } from "@/lib/utils";
+import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_candidate_profile_enrichment_session_by_request_id } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
 interface OrbitCallRequest {
@@ -90,6 +91,65 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
 
   const getCallTypeColor = (mode: string) => {
     return mode === 'company_call' ? 'bg-primary-100 text-primary-700' : 'bg-orange-100 text-orange-700';
+  };
+
+  /**
+   * Handle clicking on a previous call - redirect directly to appropriate page
+   */
+  const handleCallClick = async (call: OrbitCallRequest) => {
+    console.log("PreviousOrbitCalls - Redirecting to orbit call:", call);
+    
+    try {
+      if (call.mode === 'company_call') {
+        console.log("PreviousOrbitCalls - Fetching company session for request ID:", call.id);
+        
+        // Use the existing API helper function
+        const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(call.id, EXTERNAL.directus_url);
+        console.log("PreviousOrbitCalls - Session result:", sessionResult);
+        
+        if (sessionResult.success && sessionResult.session) {
+          const sessionId = sessionResult.session.id;
+          console.log("PreviousOrbitCalls - Found company session ID:", sessionId);
+          window.location.href = `/orbit-call/company?session=${sessionId}`;
+          return;
+        } else {
+          console.log("PreviousOrbitCalls - No company session found:", sessionResult.error);
+        }
+        
+        // Fallback if no session found
+        console.log("PreviousOrbitCalls - Redirecting to company page without session");
+        window.location.href = `/orbit-call/company`;
+        
+      } else if (call.mode === 'candidate_call') {
+        console.log("PreviousOrbitCalls - Fetching candidate session for request ID:", call.id);
+        
+        // Use the existing API helper function
+        const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(call.id, EXTERNAL.directus_url);
+        console.log("PreviousOrbitCalls - Candidate session result:", sessionResult);
+        
+        if (sessionResult.success && sessionResult.session) {
+          const sessionId = sessionResult.session.id;
+          console.log("PreviousOrbitCalls - Found candidate session ID:", sessionId);
+          window.location.href = `/orbit-call/candidate?session=${sessionId}`;
+          return;
+        } else {
+          console.log("PreviousOrbitCalls - No candidate session found:", sessionResult.error);
+        }
+        
+        // Fallback if no session found
+        console.log("PreviousOrbitCalls - Redirecting to candidate page without session");
+        window.location.href = `/orbit-call/candidate`;
+      }
+      
+    } catch (error) {
+      console.error("PreviousOrbitCalls - Error redirecting to orbit call:", error);
+      // Still redirect on error, just without session ID
+      if (call.mode === 'company_call') {
+        window.location.href = `/orbit-call/company`;
+      } else {
+        window.location.href = `/orbit-call/candidate`;
+      }
+    }
   };
 
   if (loading) {
@@ -201,12 +261,12 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
-                  onClick={() => onCallSelect?.(call)}
+                  onClick={() => handleCallClick(call)}
                   variant="outline"
                   size="sm"
                   className="text-xs"
                 >
-                  View Details
+                  Open Session
                 </Button>
               </div>
             </div>

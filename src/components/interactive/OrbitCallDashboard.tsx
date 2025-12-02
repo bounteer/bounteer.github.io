@@ -32,70 +32,6 @@ export default function OrbitCallDashboard() {
     }
   };
 
-  /**
-   * Handle selection of a previous orbit call - redirect to appropriate page
-   */
-  const handleCallSelection = async (call: any) => {
-    console.log("Selected orbit call:", call);
-    
-    try {
-      if (call.mode === 'company_call') {
-        // Try to get the job description enrichment session
-        const sessionResult = await fetch(
-          `${EXTERNAL.directus_url}/items/orbit_job_description_enrichment_session?filter[orbit_call_request][_eq]=${call.id}&limit=1`,
-          {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${EXTERNAL.directus_key}`
-            }
-          }
-        );
-
-        if (sessionResult.ok) {
-          const result = await sessionResult.json();
-          if (result.data && result.data.length > 0) {
-            const sessionId = result.data[0].id;
-            window.location.href = `/orbit-call/company?session=${sessionId}`;
-            return;
-          }
-        }
-        
-        // Fallback if no session found
-        console.log("No job description enrichment session found for this call");
-        
-      } else if (call.mode === 'candidate_call') {
-        // Try to get the candidate profile enrichment session
-        const sessionResult = await fetch(
-          `${EXTERNAL.directus_url}/items/orbit_candidate_profile_enrichment_session?filter[orbit_call_request][_eq]=${call.id}&limit=1`,
-          {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${EXTERNAL.directus_key}`
-            }
-          }
-        );
-
-        if (sessionResult.ok) {
-          const result = await sessionResult.json();
-          if (result.data && result.data.length > 0) {
-            const sessionId = result.data[0].id;
-            window.location.href = `/orbit-call/candidate?session=${sessionId}`;
-            return;
-          }
-        }
-        
-        // Fallback if no session found
-        console.log("No candidate profile enrichment session found for this call");
-      }
-      
-    } catch (error) {
-      console.error("Error loading selected call:", error);
-    }
-  };
 
   /**
    * Handles URL/filename changes with real-time validation
@@ -409,7 +345,7 @@ export default function OrbitCallDashboard() {
       </div>
       
       {/* Show previous orbit calls for navigation */}
-      <PreviousOrbitCalls onCallSelect={handleCallSelection} />
+      <PreviousOrbitCalls />
     </div>
   );
 }
