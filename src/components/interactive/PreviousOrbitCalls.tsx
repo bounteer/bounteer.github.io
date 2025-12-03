@@ -108,10 +108,14 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
         console.log("PreviousOrbitCalls - Session result:", sessionResult);
         
         if (sessionResult.success && sessionResult.session) {
-          const sessionId = sessionResult.session.id;
-          console.log("PreviousOrbitCalls - Found company session ID:", sessionId);
-          window.location.href = `/orbit-call/company?session=${sessionId}`;
-          return;
+          const publicKey = sessionResult.session.public_key;
+          if (publicKey) {
+            console.log("PreviousOrbitCalls - Found company session public key:", publicKey);
+            window.location.href = `/orbit-call/company?session=${publicKey}`;
+            return;
+          } else {
+            console.log("PreviousOrbitCalls - Company session found but no public key available");
+          }
         } else {
           console.log("PreviousOrbitCalls - No company session found:", sessionResult.error);
         }
@@ -128,10 +132,14 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
         console.log("PreviousOrbitCalls - Candidate session result:", sessionResult);
         
         if (sessionResult.success && sessionResult.session) {
-          const sessionId = sessionResult.session.id;
-          console.log("PreviousOrbitCalls - Found candidate session ID:", sessionId);
-          window.location.href = `/orbit-call/candidate?session=${sessionId}`;
-          return;
+          const publicKey = sessionResult.session.public_key;
+          if (publicKey) {
+            console.log("PreviousOrbitCalls - Found candidate session public key:", publicKey);
+            window.location.href = `/orbit-call/candidate?session=${publicKey}`;
+            return;
+          } else {
+            console.log("PreviousOrbitCalls - Candidate session found but no public key available");
+          }
         } else {
           console.log("PreviousOrbitCalls - No candidate session found:", sessionResult.error);
         }

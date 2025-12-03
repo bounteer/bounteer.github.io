@@ -3,7 +3,7 @@
   "info": {
     "title": "Dynamic API Specification",
     "description": "This is a dynamically generated API specification for all endpoints existing on the current project.",
-    "version": "c3f5ab81ed15eaa6268916e77da59d0cdbbaf4cf"
+    "version": "8f593820134c8eb9bd42bb73bd74c6359cb077e5"
   },
   "servers": [
     {
@@ -17236,395 +17236,6 @@
         ]
       }
     },
-    "/items/orbit_job_description_enrichment_session": {
-      "post": {
-        "summary": "Create an Item",
-        "description": "Create a new orbit_job_description_enrichment_session item.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "createItemsOrbitJobDescriptionEnrichmentSession",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Meta"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "get": {
-        "summary": "List Items",
-        "description": "List the orbit_job_description_enrichment_session items.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "readItemsOrbitJobDescriptionEnrichmentSession",
-        "security": [
-          {
-            "Auth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/x-metadata"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update Multiple Items",
-        "description": "Update multiple orbit_job_description_enrichment_session items at the same time.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "updateItemsOrbitJobDescriptionEnrichmentSession",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Limit"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Offset"
-          },
-          {
-            "$ref": "#/components/parameters/Sort"
-          },
-          {
-            "$ref": "#/components/parameters/Filter"
-          },
-          {
-            "$ref": "#/components/parameters/Search"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                    }
-                  },
-                  {
-                    "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Multiple Items",
-        "description": "Delete multiple existing orbit_job_description_enrichment_session items.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "deleteItemsOrbitJobDescriptionEnrichmentSession",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        },
-        "parameters": []
-      }
-    },
-    "/items/orbit_job_description_enrichment_session/{id}": {
-      "get": {
-        "summary": "Retrieve an Item",
-        "description": "Retrieve a single orbit_job_description_enrichment_session item by unique identifier.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "readSingleItemsOrbitJobDescriptionEnrichmentSession",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "$ref": "#/components/parameters/Version"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update an Item",
-        "description": "Update an existing orbit_job_description_enrichment_session item.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "updateSingleItemsOrbitJobDescriptionEnrichmentSession",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Fields"
-          },
-          {
-            "$ref": "#/components/parameters/Meta"
-          },
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete an Item",
-        "description": "Delete an existing orbit_job_description_enrichment_session item.",
-        "tags": [
-          "Items",
-          "ItemsOrbitJobDescriptionEnrichmentSession"
-        ],
-        "operationId": "deleteSingleItemsOrbitJobDescriptionEnrichmentSession",
-        "responses": {
-          "200": {
-            "description": "Successful request"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Index of the item.",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "description": "Incremental index of the item.",
-                  "example": 1
-                },
-                {
-                  "type": "string",
-                  "description": "Unique identifier of the item.",
-                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
     "/items/orbit_candidate_profile_enrichment_session": {
       "post": {
         "summary": "Create an Item",
@@ -18013,6 +17624,395 @@
           }
         ]
       }
+    },
+    "/items/orbit_job_description_enrichment_session": {
+      "post": {
+        "summary": "Create an Item",
+        "description": "Create a new orbit_job_description_enrichment_session item.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "createItemsOrbitJobDescriptionEnrichmentSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Meta"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Items",
+        "description": "List the orbit_job_description_enrichment_session items.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "readItemsOrbitJobDescriptionEnrichmentSession",
+        "security": [
+          {
+            "Auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/x-metadata"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update Multiple Items",
+        "description": "Update multiple orbit_job_description_enrichment_session items at the same time.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "updateItemsOrbitJobDescriptionEnrichmentSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Filter"
+          },
+          {
+            "$ref": "#/components/parameters/Search"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Multiple Items",
+        "description": "Delete multiple existing orbit_job_description_enrichment_session items.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "deleteItemsOrbitJobDescriptionEnrichmentSession",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/items/orbit_job_description_enrichment_session/{id}": {
+      "get": {
+        "summary": "Retrieve an Item",
+        "description": "Retrieve a single orbit_job_description_enrichment_session item by unique identifier.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "readSingleItemsOrbitJobDescriptionEnrichmentSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "$ref": "#/components/parameters/Version"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an Item",
+        "description": "Update an existing orbit_job_description_enrichment_session item.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "updateSingleItemsOrbitJobDescriptionEnrichmentSession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Meta"
+          },
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an Item",
+        "description": "Delete an existing orbit_job_description_enrichment_session item.",
+        "tags": [
+          "Items",
+          "ItemsOrbitJobDescriptionEnrichmentSession"
+        ],
+        "operationId": "deleteSingleItemsOrbitJobDescriptionEnrichmentSession",
+        "responses": {
+          "200": {
+            "description": "Successful request"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Index of the item.",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "description": "Incremental index of the item.",
+                  "example": 1
+                },
+                {
+                  "type": "string",
+                  "description": "Unique identifier of the item.",
+                  "example": "8cbb43fe-4cdf-4991-8352-c461779cec02"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "tags": [
@@ -18240,12 +18240,12 @@
       "x-collection": "orbit_job_search_request"
     },
     {
-      "name": "ItemsOrbitJobDescriptionEnrichmentSession",
-      "x-collection": "orbit_job_description_enrichment_session"
-    },
-    {
       "name": "ItemsOrbitCandidateProfileEnrichmentSession",
       "x-collection": "orbit_candidate_profile_enrichment_session"
+    },
+    {
+      "name": "ItemsOrbitJobDescriptionEnrichmentSession",
+      "x-collection": "orbit_job_description_enrichment_session"
     }
   ],
   "components": {
@@ -21860,72 +21860,6 @@
         },
         "x-collection": "orbit_job_search_request"
       },
-      "ItemsOrbitJobDescriptionEnrichmentSession": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "nullable": false,
-            "type": "integer"
-          },
-          "user_created": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/Users"
-              }
-            ]
-          },
-          "date_created": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "user_updated": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "$ref": "#/components/schemas/Users"
-              }
-            ]
-          },
-          "date_updated": {
-            "nullable": true,
-            "type": "string",
-            "format": "timestamp"
-          },
-          "request": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsOrbitCallRequest"
-              }
-            ]
-          },
-          "job_description": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "$ref": "#/components/schemas/ItemsJobDescription"
-              }
-            ]
-          }
-        },
-        "x-collection": "orbit_job_description_enrichment_session"
-      },
       "ItemsOrbitCandidateProfileEnrichmentSession": {
         "type": "object",
         "properties": {
@@ -21988,9 +21922,83 @@
                 "$ref": "#/components/schemas/ItemsCandidateProfile"
               }
             ]
+          },
+          "public_key": {
+            "nullable": true,
+            "type": "string"
           }
         },
         "x-collection": "orbit_candidate_profile_enrichment_session"
+      },
+      "ItemsOrbitJobDescriptionEnrichmentSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "user_created": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/Users"
+              }
+            ]
+          },
+          "date_created": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "user_updated": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "$ref": "#/components/schemas/Users"
+              }
+            ]
+          },
+          "date_updated": {
+            "nullable": true,
+            "type": "string",
+            "format": "timestamp"
+          },
+          "request": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsOrbitCallRequest"
+              }
+            ]
+          },
+          "job_description": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "$ref": "#/components/schemas/ItemsJobDescription"
+              }
+            ]
+          },
+          "public_key": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "x-collection": "orbit_job_description_enrichment_session"
       }
     },
     "parameters": {

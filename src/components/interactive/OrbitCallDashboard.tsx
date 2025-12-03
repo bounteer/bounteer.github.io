@@ -135,10 +135,20 @@ export default function OrbitCallDashboard() {
             const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
             
             if (sessionResult.success && sessionResult.session) {
-              const sessionId = sessionResult.session.id;
-              console.log("Found company session ID:", sessionId);
-              window.location.href = `/orbit-call/company?session=${sessionId}`;
-              return;
+              const publicKey = sessionResult.session.public_key;
+              console.log("Session data:", { 
+                id: sessionResult.session.id, 
+                public_key: sessionResult.session.public_key,
+                request: sessionResult.session.request 
+              });
+              
+              if (publicKey) {
+                console.log("Found company session public key:", publicKey);
+                window.location.href = `/orbit-call/company?session=${publicKey}`;
+                return;
+              } else {
+                console.log("Company session found but no public key available yet, continuing to poll...");
+              }
             }
             
             // Retry if session not found and we haven't exceeded max attempts
@@ -166,10 +176,20 @@ export default function OrbitCallDashboard() {
             const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
             
             if (sessionResult.success && sessionResult.session) {
-              const sessionId = sessionResult.session.id;
-              console.log("Found candidate session ID:", sessionId);
-              window.location.href = `/orbit-call/candidate?session=${sessionId}`;
-              return;
+              const publicKey = sessionResult.session.public_key;
+              console.log("Session data:", { 
+                id: sessionResult.session.id, 
+                public_key: sessionResult.session.public_key,
+                request: sessionResult.session.request 
+              });
+              
+              if (publicKey) {
+                console.log("Found candidate session public key:", publicKey);
+                window.location.href = `/orbit-call/candidate?session=${publicKey}`;
+                return;
+              } else {
+                console.log("Candidate session found but no public key available yet, continuing to poll...");
+              }
             }
             
             // Retry if session not found and we haven't exceeded max attempts

@@ -7,7 +7,7 @@ import { BackgroundGradientAnimation } from "@/components/ui/background-gradient
 import type { CandidateProfileFormData, Job } from "@/types/models";
 import { DEFAULT_CANDIDATE_PROFILE, enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest } from "@/lib/utils";
-import { get_orbit_candidate_profile_enrichment_session_by_request_id, type OrbitCandidateProfileEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
+import { get_orbit_candidate_profile_enrichment_session_by_request_id, get_orbit_candidate_profile_enrichment_session_by_public_key, type OrbitCandidateProfileEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import CandidateProfileEnrichment, { type CPStage } from "./CandidateProfileEnrichment";
 import JobList from "./JobList";
@@ -15,7 +15,7 @@ import JobList from "./JobList";
 type InputMode = "meeting" | "testing";
 
 interface CandidateOrbitCallEnrichmentProps {
-  sessionId?: string;
+  sessionId?: string; // Now expects public_key instead of database ID
 }
 
 export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId }: CandidateOrbitCallEnrichmentProps) {
@@ -41,13 +41,13 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
   const [isSearchingJobs, setIsSearchingJobs] = useState(false);
 
   /**
-   * Get session ID from URL query parameter
+   * Get session public key from URL query parameter
    */
-  const getSessionId = (): string | null => {
-    // First check if sessionId was passed as prop
+  const getSessionPublicKey = (): string | null => {
+    // First check if sessionId was passed as prop (now expects public_key)
     if (propSessionId) return propSessionId;
     
-    // Parse from query parameter: /orbit-call/candidate?session=123
+    // Parse from query parameter: /orbit-call/candidate?session=public_key
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionFromQuery = urlParams.get('session');
@@ -63,9 +63,9 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
    * Load existing session data if sessionId is available
    */
   useEffect(() => {
-    const sessionId = getSessionId();
-    if (sessionId) {
-      loadExistingSession(sessionId);
+    const publicKey = getSessionPublicKey();
+    if (publicKey) {
+      loadExistingSession(publicKey);
     } else {
       // No session ID - show not_linked state for new deployments
       setCpStage("not_linked");
@@ -76,8 +76,8 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
    * Skip not-linked UI when session ID is present - go directly to enrichment
    */
   useEffect(() => {
-    const sessionId = getSessionId();
-    if (sessionId && cpStage === "not_linked") {
+    const publicKey = getSessionPublicKey();
+    if (publicKey && cpStage === "not_linked") {
       // If we have a session ID but are still in not_linked state, move to manual_enrichment
       // (the loadExistingSession will handle setting the proper stage)
       setCpStage("manual_enrichment");
@@ -87,35 +87,36 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
   /**
    * Load existing session data
    */
-  const loadExistingSession = async (enrichmentSessionId: string) => {
+  const loadExistingSession = async (publicKey: string) => {
     try {
-      console.log("Loading candidate session with ID:", enrichmentSessionId);
+      console.log("Loading candidate session with public key:", publicKey);
       
-      // Fetch the enrichment session directly by ID
-      const response = await fetch(
-        `${EXTERNAL.directus_url}/items/orbit_candidate_profile_enrichment_session/${enrichmentSessionId}?fields=*`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${EXTERNAL.directus_key}`
-          }
-        }
-      );
+      // Fetch the enrichment session by public key using the API helper
+      const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_public_key(publicKey, EXTERNAL.directus_url);
+      
+      if (!sessionResult.success || !sessionResult.session) {
+        console.error("Failed to load candidate session:", sessionResult.error);
+        setCpStage("not_linked");
+        return;
+      }
 
-      if (response.ok) {
-        const result = await response.json();
-        const session = result.data;
-        console.log("Loaded candidate session data:", session);
+      const session = sessionResult.session;
+      console.log("Loaded candidate session:", session);
+
+      // Set the session data
+      setOrbitCandidateProfileEnrichmentSession(session);
+      
+      if (session.request) {
+        setRequestId(session.request.toString());
+      }
+
+      if (session.candidate_profile) {
+        setCandidateProfileId(session.candidate_profile.toString());
         
-        if (session) {
-          setOrbitCandidateProfileEnrichmentSession(session);
-          setRequestId(session.orbit_call_request);
-          
-          // Load the orbit call request data
+        // Load the orbit call request data
+        if (session.request) {
           const orbitCallResponse = await fetch(
-            `${EXTERNAL.directus_url}/items/orbit_call_request/${session.orbit_call_request}?fields=*`,
+            `${EXTERNAL.directus_url}/items/orbit_call_request/${session.request}?fields=*`,
             {
               method: 'GET',
               credentials: 'include',
@@ -140,73 +141,64 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
               }
             }
           }
+        }
 
-          // Load candidate profile data if it exists
-          if (session.candidate_profile) {
-            setCandidateProfileId(session.candidate_profile);
-            
-            const candidateProfileResponse = await fetch(
-              `${EXTERNAL.directus_url}/items/candidate_profile/${session.candidate_profile}?fields=*`,
-              {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${EXTERNAL.directus_key}`
-                }
-              }
-            );
-            
-            if (candidateProfileResponse.ok) {
-              const candidateProfileResult = await candidateProfileResponse.json();
-              const profile = candidateProfileResult.data;
-              
-              if (profile) {
-                // Parse skills if it's a JSON string
-                let skillsArray: string[] = [];
-                if (profile.skills) {
-                  try {
-                    skillsArray = typeof profile.skills === 'string'
-                      ? JSON.parse(profile.skills)
-                      : profile.skills;
-                  } catch (e) {
-                    console.warn('Failed to parse skills:', e);
-                    skillsArray = [];
-                  }
-                }
-                
-                const loadedCandidateData: CandidateProfileFormData = {
-                  name: profile.name || "",
-                  year_of_experience: profile.year_of_experience || "",
-                  job_title: profile.job_title || "",
-                  employment_type: profile.employment_type || "",
-                  company_size: profile.company_size || "",
-                  location: profile.location || "",
-                  salary_range: profile.salary_range || "",
-                  skills: skillsArray,
-                  raw: profile.raw || "",
-                  context: profile.context || ""
-                };
-                
-                setCandidateData(loadedCandidateData);
+        // Fetch the candidate profile data
+        const profileResponse = await fetch(
+          `${EXTERNAL.directus_url}/items/candidate_profile/${session.candidate_profile}?fields=*`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${EXTERNAL.directus_key}`
+            }
+          }
+        );
+
+        if (profileResponse.ok) {
+          const candidateProfileResult = await profileResponse.json();
+          const profile = candidateProfileResult.data;
+          
+          if (profile) {
+            // Parse skills if it's a JSON string
+            let skillsArray: string[] = [];
+            if (profile.skills) {
+              try {
+                skillsArray = typeof profile.skills === 'string'
+                  ? JSON.parse(profile.skills)
+                  : profile.skills;
+              } catch (e) {
+                console.warn('Failed to parse skills:', e);
+                skillsArray = [];
               }
             }
             
-            // Set stage to manual enrichment
+            const loadedCandidateData: CandidateProfileFormData = {
+              name: profile.name || "",
+              year_of_experience: profile.year_of_experience || "",
+              job_title: profile.job_title || "",
+              employment_type: profile.employment_type || "",
+              company_size: profile.company_size || "",
+              location: profile.location || "",
+              salary_range: profile.salary_range || "",
+              skills: skillsArray,
+              raw: profile.raw || "",
+              context: profile.context || ""
+            };
+            
+            setCandidateData(loadedCandidateData);
+            
+            // Set stage to manual enrichment since we have profile data
             setCpStage("manual_enrichment");
           } else {
             // If no candidate profile yet, set to ai_enrichment
             setCpStage("ai_enrichment");
           }
         } else {
-          console.log("No candidate session data found");
-          // Session not found, show manual enrichment mode for new session
-          setCpStage("manual_enrichment");
+          // If candidate profile can't be loaded, set to ai_enrichment
+          setCpStage("ai_enrichment");
         }
-      } else {
-        console.log("Failed to fetch candidate session, status:", response.status);
-        // If session doesn't exist or can't be loaded, show manual enrichment
-        setCpStage("manual_enrichment");
       }
     } catch (error) {
       console.error("Error loading existing candidate session:", error);

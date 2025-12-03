@@ -7,7 +7,7 @@ import { BackgroundGradientAnimation } from "@/components/ui/background-gradient
 import type { JobDescriptionFormData } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest } from "@/lib/utils";
-import { get_orbit_job_description_enrichment_session_by_request_id, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
+import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_job_description_enrichment_session_by_public_key, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import JobDescriptionEnrichment, { type JDStage } from "./JobDescriptionEnrichment";
 import CandidateSearch from "./CandidateSearch";
@@ -28,7 +28,7 @@ interface Candidate {
 }
 
 interface CompanyOrbitCallEnrichmentProps {
-  sessionId?: string;
+  sessionId?: string; // Now expects public_key instead of database ID
 }
 
 export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }: CompanyOrbitCallEnrichmentProps) {
@@ -69,13 +69,13 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   const [currentSearchRequestStatus, setCurrentSearchRequestStatus] = useState<string>("");
 
   /**
-   * Get session ID from URL query parameter
+   * Get session public key from URL query parameter
    */
-  const getSessionId = (): string | null => {
-    // First check if sessionId was passed as prop
+  const getSessionPublicKey = (): string | null => {
+    // First check if sessionId was passed as prop (now expects public_key)
     if (propSessionId) return propSessionId;
     
-    // Parse from query parameter: /orbit-call/company?session=123
+    // Parse from query parameter: /orbit-call/company?session=public_key
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionFromQuery = urlParams.get('session');
@@ -91,9 +91,9 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
    * Load existing session data if sessionId is available
    */
   useEffect(() => {
-    const sessionId = getSessionId();
-    if (sessionId) {
-      loadExistingSession(sessionId);
+    const publicKey = getSessionPublicKey();
+    if (publicKey) {
+      loadExistingSession(publicKey);
     } else {
       // No session ID - show not_linked state for new deployments
       setJdStage("not_linked");
@@ -104,8 +104,8 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
    * Skip not-linked UI when session ID is present - go directly to enrichment
    */
   useEffect(() => {
-    const sessionId = getSessionId();
-    if (sessionId && jdStage === "not_linked") {
+    const publicKey = getSessionPublicKey();
+    if (publicKey && jdStage === "not_linked") {
       // If we have a session ID but are still in not_linked state, move to manual_enrichment
       // (the loadExistingSession will handle setting the proper stage)
       setJdStage("manual_enrichment");
@@ -113,15 +113,48 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   }, [jdStage]);
 
   /**
-   * Load existing session data
+   * Fetch the last candidate search for a job description enrichment session
    */
-  const loadExistingSession = async (enrichmentSessionId: string) => {
+  const fetchLastCandidateSearch = async (sessionId: string) => {
     try {
-      console.log("Loading session with ID:", enrichmentSessionId);
+      console.log("Fetching last candidate search for session:", sessionId);
       
-      // Fetch the enrichment session directly by ID
-      const response = await fetch(
-        `${EXTERNAL.directus_url}/items/orbit_job_description_enrichment_session/${enrichmentSessionId}?fields=*`,
+      // First, get the candidate search request for this session
+      const searchUrl = `${EXTERNAL.directus_url}/items/orbit_candidate_search_request?filter[job_description_enrichment_session][_eq]=${encodeURIComponent(sessionId)}&sort=-date_created&limit=1&fields=id,date_created`;
+      console.log("Searching for candidate requests with URL:", searchUrl);
+      
+      const searchRequestResponse = await fetch(searchUrl, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
+        }
+      });
+
+      console.log("Search request response status:", searchRequestResponse.status);
+      
+      if (!searchRequestResponse.ok) {
+        const errorText = await searchRequestResponse.text();
+        console.log("Search request failed:", errorText);
+        return;
+      }
+
+      const searchRequestResult = await searchRequestResponse.json();
+      console.log("Search request response data:", searchRequestResult);
+      const searchRequest = searchRequestResult.data?.[0];
+      
+      if (!searchRequest) {
+        console.log("No candidate search request data found");
+        return;
+      }
+
+      console.log("Found candidate search request:", searchRequest.id);
+      setCurrentSearchRequestId(searchRequest.id.toString());
+
+      // Now fetch the candidate search results for this request
+      const searchResultsResponse = await fetch(
+        `${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${encodeURIComponent(searchRequest.id)}&fields=id,name,title,year_of_experience,rag_score,skills,company,pros,cons`,
         {
           method: 'GET',
           credentials: 'include',
@@ -132,98 +165,197 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
         }
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        const session = result.data;
-        console.log("Loaded session data:", session);
-        
-        if (session) {
-          setOrbitJobDescriptionEnrichmentSession(session);
-          setRequestId(session.orbit_call_request);
-          
-          // Load the orbit call request data
-          const orbitCallResponse = await fetch(
-            `${EXTERNAL.directus_url}/items/orbit_call_request/${session.orbit_call_request}?fields=*`,
-            {
-              method: 'GET',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${EXTERNAL.directus_key}`
-              }
-            }
-          );
+      if (!searchResultsResponse.ok) {
+        console.log("No candidate search results found");
+        return;
+      }
 
-          if (orbitCallResponse.ok) {
-            const orbitCallResult = await orbitCallResponse.json();
-            const orbitCall = orbitCallResult.data;
-            
-            if (orbitCall) {
-              if (orbitCall.meeting_url) {
-                setCallUrl(orbitCall.meeting_url);
-                setInputMode("meeting");
-              } else if (orbitCall.testing_filename) {
-                setCallUrl(orbitCall.testing_filename);
-                setInputMode("testing");
-              }
-            }
-          }
+      const searchResultsData = await searchResultsResponse.json();
+      const results = searchResultsData.data || [];
+      
+      console.log(`Found ${results.length} candidate search results`);
 
-          // Load job description data if it exists
-          if (session.job_description) {
-            setJobDescriptionId(session.job_description);
-            
-            const jobDescResponse = await fetch(
-              `${EXTERNAL.directus_url}/items/job_description/${session.job_description}?fields=*`,
-              {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${EXTERNAL.directus_key}`
-                }
-              }
-            );
-            
-            if (jobDescResponse.ok) {
-              const jobDescResult = await jobDescResponse.json();
-              const jd = jobDescResult.data;
-              
-              if (jd) {
-                const loadedJobData: JobDescriptionFormData = {
-                  company_name: jd.company_name || "",
-                  role_name: jd.role_name || "",
-                  location: jd.location || "",
-                  salary_range: jd.salary_range || "",
-                  responsibility: jd.responsibility || "",
-                  minimum_requirement: jd.minimum_requirement || "",
-                  preferred_requirement: jd.preferred_requirement || "",
-                  perk: jd.perk || "",
-                  skill: Array.isArray(jd.skill) ? jd.skill : (jd.skill ? JSON.parse(jd.skill) : []),
-                  skill_core: Array.isArray(jd.skill_core) ? jd.skill_core : (jd.skill_core ? JSON.parse(jd.skill_core) : []),
-                  skill_plus: Array.isArray(jd.skill_plus) ? jd.skill_plus : (jd.skill_plus ? JSON.parse(jd.skill_plus) : []),
-                  skill_bonus: Array.isArray(jd.skill_bonus) ? jd.skill_bonus : (jd.skill_bonus ? JSON.parse(jd.skill_bonus) : [])
-                };
-                
-                setJobData(loadedJobData);
-              }
-            }
-            
-            // Set stage to manual enrichment
-            setJdStage("manual_enrichment");
-          } else {
-            // If no job description yet, set to ai_enrichment
-            setJdStage("ai_enrichment");
-          }
-        } else {
-          console.log("No session data found");
-          // Session not found, show manual enrichment mode for new session
-          setJdStage("manual_enrichment");
+      // Transform results to match the Candidate interface
+      const transformedCandidates: Candidate[] = results.map((result: any) => ({
+        id: result.id.toString(),
+        name: result.name || "Unknown",
+        title: result.title || "Unknown Title",
+        experience: result.year_of_experience ? `${result.year_of_experience} years` : "Unknown",
+        ragScore: result.rag_score || 0,
+        skills: Array.isArray(result.skills) ? result.skills : (result.skills ? JSON.parse(result.skills) : []),
+        company: result.company || undefined,
+        pros: Array.isArray(result.pros) ? result.pros : (result.pros ? JSON.parse(result.pros) : []),
+        cons: Array.isArray(result.cons) ? result.cons : (result.cons ? JSON.parse(result.cons) : [])
+      }));
+
+      setCandidates(transformedCandidates);
+      console.log("Loaded previous candidate search results:", transformedCandidates.length);
+
+    } catch (error) {
+      console.error("Error fetching last candidate search:", error);
+      // Try alternative approach: search by session public_key if available
+      if (sessionId) {
+        await fetchCandidateSearchBySessionPublicKey(sessionId);
+      }
+    }
+  };
+
+  /**
+   * Alternative method to fetch candidate search using session data directly
+   */
+  const fetchCandidateSearchBySessionPublicKey = async (sessionId: string) => {
+    try {
+      console.log("Trying alternative approach for session:", sessionId);
+      
+      // Try to find candidate search results that might reference the session directly
+      const directSearchUrl = `${EXTERNAL.directus_url}/items/orbit_candidate_search_result?sort=-date_created&limit=20&fields=id,name,title,year_of_experience,rag_score,skills,company,pros,cons,request`;
+      console.log("Direct search URL:", directSearchUrl);
+      
+      const directResponse = await fetch(directSearchUrl, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
         }
-      } else {
-        console.log("Failed to fetch session, status:", response.status);
-        // If session doesn't exist or can't be loaded, show manual enrichment
+      });
+
+      if (directResponse.ok) {
+        const directResult = await directResponse.json();
+        console.log("Direct search results:", directResult);
+        
+        if (directResult.data && directResult.data.length > 0) {
+          // For now, just take the most recent results as a fallback
+          const results = directResult.data.slice(0, 10); // Take first 10 results
+          
+          const transformedCandidates: Candidate[] = results.map((result: any) => ({
+            id: result.id.toString(),
+            name: result.name || "Unknown",
+            title: result.title || "Unknown Title", 
+            experience: result.year_of_experience ? `${result.year_of_experience} years` : "Unknown",
+            ragScore: result.rag_score || 0,
+            skills: Array.isArray(result.skills) ? result.skills : (result.skills ? JSON.parse(result.skills) : []),
+            company: result.company || undefined,
+            pros: Array.isArray(result.pros) ? result.pros : (result.pros ? JSON.parse(result.pros) : []),
+            cons: Array.isArray(result.cons) ? result.cons : (result.cons ? JSON.parse(result.cons) : [])
+          }));
+
+          setCandidates(transformedCandidates);
+          console.log("Loaded candidate results using alternative method:", transformedCandidates.length);
+        }
+      }
+    } catch (error) {
+      console.error("Alternative candidate search method also failed:", error);
+    }
+  };
+
+  /**
+   * Load existing session data
+   */
+  const loadExistingSession = async (publicKey: string) => {
+    try {
+      console.log("Loading session with public key:", publicKey);
+      
+      // Fetch the enrichment session by public key using the API helper
+      const sessionResult = await get_orbit_job_description_enrichment_session_by_public_key(publicKey, EXTERNAL.directus_url);
+      
+      if (!sessionResult.success || !sessionResult.session) {
+        console.error("Failed to load session:", sessionResult.error);
+        setJdStage("not_linked");
+        return;
+      }
+
+      const session = sessionResult.session;
+      console.log("Loaded session data:", session);
+      console.log("Session ID for candidate search:", session.id);
+      console.log("Session public_key:", session.public_key);
+
+      // Set the session data
+      setOrbitJobDescriptionEnrichmentSession(session);
+      
+      if (session.request) {
+        setRequestId(session.request.toString());
+        
+        // Load the orbit call request data
+        const orbitCallResponse = await fetch(
+          `${EXTERNAL.directus_url}/items/orbit_call_request/${session.request}?fields=*`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${EXTERNAL.directus_key}`
+            }
+          }
+        );
+
+        if (orbitCallResponse.ok) {
+          const orbitCallResult = await orbitCallResponse.json();
+          const orbitCall = orbitCallResult.data;
+          
+          if (orbitCall) {
+            if (orbitCall.meeting_url) {
+              setCallUrl(orbitCall.meeting_url);
+              setInputMode("meeting");
+            } else if (orbitCall.testing_filename) {
+              setCallUrl(orbitCall.testing_filename);
+              setInputMode("testing");
+            }
+          }
+        }
+      }
+
+      // Load job description data if it exists
+      if (session.job_description) {
+        setJobDescriptionId(session.job_description.toString());
+        
+        const jobDescResponse = await fetch(
+          `${EXTERNAL.directus_url}/items/job_description/${session.job_description}?fields=*`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${EXTERNAL.directus_key}`
+            }
+          }
+        );
+        
+        if (jobDescResponse.ok) {
+          const jobDescResult = await jobDescResponse.json();
+          const jd = jobDescResult.data;
+          
+          if (jd) {
+            const loadedJobData: JobDescriptionFormData = {
+              company_name: jd.company_name || "",
+              role_name: jd.role_name || "",
+              location: jd.location || "",
+              salary_range: jd.salary_range || "",
+              responsibility: jd.responsibility || "",
+              minimum_requirement: jd.minimum_requirement || "",
+              preferred_requirement: jd.preferred_requirement || "",
+              perk: jd.perk || "",
+              skill: Array.isArray(jd.skill) ? jd.skill : (jd.skill ? JSON.parse(jd.skill) : []),
+              skill_core: Array.isArray(jd.skill_core) ? jd.skill_core : (jd.skill_core ? JSON.parse(jd.skill_core) : []),
+              skill_plus: Array.isArray(jd.skill_plus) ? jd.skill_plus : (jd.skill_plus ? JSON.parse(jd.skill_plus) : []),
+              skill_bonus: Array.isArray(jd.skill_bonus) ? jd.skill_bonus : (jd.skill_bonus ? JSON.parse(jd.skill_bonus) : [])
+            };
+            
+            setJobData(loadedJobData);
+          }
+        }
+
+        // Fetch the last candidate search for this session
+        await fetchLastCandidateSearch(session.id);
+        
+        // Set stage to manual enrichment
         setJdStage("manual_enrichment");
+      } else {
+        // If no job description yet, still try to fetch any previous candidate search
+        await fetchLastCandidateSearch(session.id);
+        
+        // Set to ai_enrichment
+        setJdStage("ai_enrichment");
       }
     } catch (error) {
       console.error("Error loading existing session:", error);
