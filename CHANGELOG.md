@@ -1,5 +1,16 @@
 # Bounteer Changelog
 
+## [0.8.0] - 2025-12-04
+### Changed
+- Updated candidate profile schema: migrated from `client_id` (string) to `source_item_id` (integer)
+- Optimized schema loading script to extract only schemas instead of full OpenAPI specification
+- Reduced schema.json file size by excluding paths, parameters, and other OpenAPI components
+
+### Technical Improvements
+- Modified `scripts/load_schema.py` to filter components.schemas only
+- Updated documentation in comment.md to reflect new field structure
+- Schema file now focused purely on data models for better context search
+
 ## [0.7.0] - 2025-12-01
 ### Added
 - WebSocket subscription for candidate profile AI enrichment (real-time field auto-filling)

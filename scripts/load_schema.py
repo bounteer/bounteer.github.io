@@ -65,7 +65,14 @@ def load_schema():
                 print(f"❌ ERROR: Received status code {response.status}")
                 return False
 
-            schema_data = json.loads(response.read().decode("utf-8"))
+            full_spec = json.loads(response.read().decode("utf-8"))
+
+        # Extract only the schemas from components
+        schema_data = full_spec.get("components", {}).get("schemas", {})
+        
+        if not schema_data:
+            print("❌ ERROR: No schemas found in the OpenAPI specification")
+            return False
 
         # Ensure reference directory exists
         reference_dir = Path(__file__).parent.parent / "reference"
@@ -77,7 +84,7 @@ def load_schema():
             json.dump(schema_data, f, indent=2, ensure_ascii=False)
 
         print(f"✅ Schema successfully saved to: {schema_file}")
-        print(f"📊 Schema contains {len(schema_data.get('components', {}).get('schemas', {}))} schemas")
+        print(f"📊 Schema contains {len(schema_data)} schemas")
 
         return True
 

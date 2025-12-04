@@ -311,7 +311,7 @@ interface Job {
   raw: string // nullable
   context: string // nullable
   source: string // nullable
-  client_id: string // nullable
+  source_item_id: integer // nullable
   user_created: uuid
   date_created: timestamp
   user_updated: uuid
