@@ -539,6 +539,8 @@ export type Space = {
   description?: string;
   date_created?: string;
   date_updated?: string;
+  job_description_count?: number;
+  candidate_profile_count?: number;
 }
 
 export type SpaceUser = {
@@ -686,6 +688,160 @@ export async function addUserToSpace(
     };
   } catch (error) {
     console.error('Error adding user to space:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Job Description type
+export type JobDescription = {
+  id: number;
+  title?: string;
+  company?: string;
+  location?: string;
+  description?: string;
+  date_created?: string;
+  date_updated?: string;
+  space?: number;
+  [key: string]: any;
+}
+
+// Candidate Profile type
+export type CandidateProfile = {
+  id: number;
+  name?: string;
+  email?: string;
+  phone?: string;
+  resume_url?: string;
+  date_created?: string;
+  date_updated?: string;
+  space?: number;
+  [key: string]: any;
+}
+
+// Fetch job descriptions by space
+export async function getJobDescriptionsBySpace(
+  spaceId: number,
+  directusUrl: string
+): Promise<{ success: boolean; jobDescriptions?: JobDescription[]; error?: string }> {
+  try {
+    const response = await fetch(
+      `${directusUrl}/items/job_description?filter[space][_eq]=${spaceId}&sort[]=-date_created&limit=100`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      jobDescriptions: result.data || []
+    };
+  } catch (error) {
+    console.error('Error fetching job descriptions:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Fetch candidate profiles by space
+export async function getCandidateProfilesBySpace(
+  spaceId: number,
+  directusUrl: string
+): Promise<{ success: boolean; candidateProfiles?: CandidateProfile[]; error?: string }> {
+  try {
+    const response = await fetch(
+      `${directusUrl}/items/candidate_profile?filter[space][_eq]=${spaceId}&sort[]=-date_created&limit=100`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      candidateProfiles: result.data || []
+    };
+  } catch (error) {
+    console.error('Error fetching candidate profiles:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Fetch counts for job descriptions and candidate profiles by space
+export async function getSpaceCounts(
+  spaceId: number,
+  directusUrl: string
+): Promise<{ success: boolean; job_description_count?: number; candidate_profile_count?: number; error?: string }> {
+  try {
+    // Fetch job descriptions count
+    const jdResponse = await fetch(
+      `${directusUrl}/items/job_description?filter[space][_eq]=${spaceId}&aggregate[count]=id`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    // Fetch candidate profiles count
+    const cpResponse = await fetch(
+      `${directusUrl}/items/candidate_profile?filter[space][_eq]=${spaceId}&aggregate[count]=id`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!jdResponse.ok || !cpResponse.ok) {
+      return {
+        success: false,
+        error: 'Failed to fetch counts'
+      };
+    }
+
+    const jdResult = await jdResponse.json();
+    const cpResult = await cpResponse.json();
+
+    return {
+      success: true,
+      job_description_count: jdResult.data?.[0]?.count?.id || 0,
+      candidate_profile_count: cpResult.data?.[0]?.count?.id || 0
+    };
+  } catch (error) {
+    console.error('Error fetching space counts:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

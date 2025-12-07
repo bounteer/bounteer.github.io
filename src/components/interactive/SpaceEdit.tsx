@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { getUserSpaces, getUserProfile, createSpace, addUserToSpace, updateSpace, type Space } from "@/lib/utils";
+import { getUserSpaces, getUserProfile, createSpace, addUserToSpace, updateSpace, getSpaceCounts, getJobDescriptionsBySpace, getCandidateProfilesBySpace, type Space, type JobDescription, type CandidateProfile } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
 interface SpaceEditProps {
@@ -25,11 +25,17 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
   const [editingSpaceId, setEditingSpaceId] = useState<number | null>(null);
   const [editingSpaceName, setEditingSpaceName] = useState("");
   const [editingSpaceDescription, setEditingSpaceDescription] = useState("");
-  
+
   // New space creation state
   const [newSpaceName, setNewSpaceName] = useState("");
   const [newSpaceDescription, setNewSpaceDescription] = useState("");
   const [isCreatingSpace, setIsCreatingSpace] = useState(false);
+
+  // Table view state
+  const [tableView, setTableView] = useState<'job_descriptions' | 'candidate_profiles'>('job_descriptions');
+  const [jobDescriptions, setJobDescriptions] = useState<JobDescription[]>([]);
+  const [candidateProfiles, setCandidateProfiles] = useState<CandidateProfile[]>([]);
+  const [loadingTable, setLoadingTable] = useState(false);
 
   // Mock member data for UI placeholder
   const mockMembers = [
@@ -63,19 +69,35 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
     try {
       setLoading(true);
       const result = await getUserSpaces(EXTERNAL.directus_url);
-      
+
       if (result.success && result.spaces) {
-        setSpaces(result.spaces);
-        
+        // Fetch counts for each space
+        const spacesWithCounts = await Promise.all(
+          result.spaces.map(async (space) => {
+            const counts = await getSpaceCounts(space.id, EXTERNAL.directus_url);
+            return {
+              ...space,
+              job_description_count: counts.job_description_count || 0,
+              candidate_profile_count: counts.candidate_profile_count || 0
+            };
+          })
+        );
+
+        setSpaces(spacesWithCounts);
+
         // If spaceId provided, select that space
         if (spaceId) {
-          const space = result.spaces.find(s => s.id.toString() === spaceId);
+          const space = spacesWithCounts.find(s => s.id.toString() === spaceId);
           if (space) {
             setSelectedSpace(space);
+            // Fetch table data for the selected space
+            fetchTableData(space.id);
           }
-        } else if (result.spaces.length > 0) {
+        } else if (spacesWithCounts.length > 0) {
           // Default to first space
-          setSelectedSpace(result.spaces[0]);
+          setSelectedSpace(spacesWithCounts[0]);
+          // Fetch table data for the first space
+          fetchTableData(spacesWithCounts[0].id);
         }
       } else {
         setError(result.error || "Failed to fetch spaces");
@@ -92,10 +114,34 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
     fetchSpaces();
   }, [spaceId]);
 
+  const fetchTableData = async (spaceId: number) => {
+    setLoadingTable(true);
+    try {
+      const [jdResult, cpResult] = await Promise.all([
+        getJobDescriptionsBySpace(spaceId, EXTERNAL.directus_url),
+        getCandidateProfilesBySpace(spaceId, EXTERNAL.directus_url)
+      ]);
+
+      if (jdResult.success && jdResult.jobDescriptions) {
+        setJobDescriptions(jdResult.jobDescriptions);
+      }
+
+      if (cpResult.success && cpResult.candidateProfiles) {
+        setCandidateProfiles(cpResult.candidateProfiles);
+      }
+    } catch (err) {
+      console.error('Error fetching table data:', err);
+    } finally {
+      setLoadingTable(false);
+    }
+  };
+
   const handleSpaceSelect = (space: Space) => {
     setSelectedSpace(space);
     // Cancel any ongoing edits when selecting a different space
     setEditingSpaceId(null);
+    // Fetch table data for the selected space
+    fetchTableData(space.id);
   };
 
   const handleEditSpace = (space: Space) => {
@@ -357,6 +403,21 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                         {space.description && (
                           <p className="text-sm text-gray-500 mt-1">{space.description}</p>
                         )}
+                        {/* Space counts */}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>{space.job_description_count || 0} Job{space.job_description_count !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>{space.candidate_profile_count || 0} Candidate{space.candidate_profile_count !== 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
                       </div>
                       <Button
                         onClick={(e) => {
@@ -428,6 +489,132 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Space Data Table */}
+      {selectedSpace && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Space Data</CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setTableView('job_descriptions')}
+                  variant={tableView === 'job_descriptions' ? 'default' : 'outline'}
+                  size="sm"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Job Descriptions ({jobDescriptions.length})
+                </Button>
+                <Button
+                  onClick={() => setTableView('candidate_profiles')}
+                  variant={tableView === 'candidate_profiles' ? 'default' : 'outline'}
+                  size="sm"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Candidate Profiles ({candidateProfiles.length})
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingTable ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading data...
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                {tableView === 'job_descriptions' && (
+                  <>
+                    {jobDescriptions.length === 0 ? (
+                      <div className="text-center py-12 text-gray-500">
+                        <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="text-lg font-medium text-gray-600">No job descriptions found</p>
+                        <p className="text-sm text-gray-500">Job descriptions will appear here once added to this space</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">ID</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Title</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Company</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Location</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {jobDescriptions.map((jd) => (
+                            <tr key={jd.id} className="border-b hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-600">#{jd.id}</td>
+                              <td className="py-3 px-4 text-gray-900">{jd.title || 'Untitled'}</td>
+                              <td className="py-3 px-4 text-gray-600">{jd.company || '-'}</td>
+                              <td className="py-3 px-4 text-gray-600">{jd.location || '-'}</td>
+                              <td className="py-3 px-4 text-gray-600">
+                                {jd.date_created ? new Date(jd.date_created).toLocaleDateString() : '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </>
+                )}
+
+                {tableView === 'candidate_profiles' && (
+                  <>
+                    {candidateProfiles.length === 0 ? (
+                      <div className="text-center py-12 text-gray-500">
+                        <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <p className="text-lg font-medium text-gray-600">No candidate profiles found</p>
+                        <p className="text-sm text-gray-500">Candidate profiles will appear here once added to this space</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">ID</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Email</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Phone</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {candidateProfiles.map((cp) => (
+                            <tr key={cp.id} className="border-b hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-600">#{cp.id}</td>
+                              <td className="py-3 px-4 text-gray-900">{cp.name || 'Unknown'}</td>
+                              <td className="py-3 px-4 text-gray-600">{cp.email || '-'}</td>
+                              <td className="py-3 px-4 text-gray-600">{cp.phone || '-'}</td>
+                              <td className="py-3 px-4 text-gray-600">
+                                {cp.date_created ? new Date(cp.date_created).toLocaleDateString() : '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Member Management */}
       {selectedSpace && (
