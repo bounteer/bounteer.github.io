@@ -2007,6 +2007,17 @@
       "skill_bonus": {
         "nullable": true,
         "description": "string array of extra skills"
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
       }
     },
     "x-collection": "job_description"
@@ -2926,84 +2937,6 @@
     },
     "x-collection": "referral_code_directus_users"
   },
-  "ItemsOrbitCallSession": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "job_description": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsJobDescription"
-          }
-        ]
-      },
-      "request": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsOrbitCallRequest"
-          }
-        ]
-      },
-      "host_user": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      }
-    },
-    "x-collection": "orbit_call_session"
-  },
   "ItemsOrbitCandidateSearchRequest": {
     "type": "object",
     "properties": {
@@ -3149,17 +3082,6 @@
             "$ref": "#/components/schemas/ItemsJobDescription"
           }
         ]
-      },
-      "orbit_call_session": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsOrbitCallSession"
-          }
-        ]
       }
     },
     "x-collection": "orbit_search_request"
@@ -3240,62 +3162,6 @@
     },
     "x-collection": "orbit_search_result"
   },
-  "ItemsOrbitCallRequest": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "meeting_url": {
-        "nullable": true,
-        "type": "string"
-      },
-      "testing_filename": {
-        "nullable": true,
-        "type": "string"
-      },
-      "mode": {
-        "nullable": true,
-        "type": "string"
-      }
-    },
-    "x-collection": "orbit_call_request"
-  },
   "ItemsOrbitCandidateSearchResult": {
     "type": "object",
     "properties": {
@@ -3375,6 +3241,73 @@
       }
     },
     "x-collection": "orbit_candidate_search_result"
+  },
+  "ItemsOrbitCallRequest": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "meeting_url": {
+        "nullable": true,
+        "type": "string"
+      },
+      "testing_filename": {
+        "nullable": true,
+        "type": "string"
+      },
+      "mode": {
+        "nullable": true,
+        "type": "string"
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      }
+    },
+    "x-collection": "orbit_call_request"
   },
   "ItemsOrbitJobSearchResult": {
     "type": "object",
@@ -3518,6 +3451,58 @@
     },
     "x-collection": "orbit_job_search_request"
   },
+  "ItemsSpace": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "name": {
+        "nullable": true,
+        "type": "string"
+      },
+      "description": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "space"
+  },
   "ItemsOrbitCandidateProfileEnrichmentSession": {
     "type": "object",
     "properties": {
@@ -3658,6 +3643,140 @@
     },
     "x-collection": "orbit_job_description_enrichment_session"
   },
+  "ItemsSpaceUser": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      },
+      "user": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "role": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "space_user"
+  },
+  "ItemsSpaceItem": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      },
+      "item_type": {
+        "nullable": true,
+        "type": "string"
+      },
+      "item_id": {
+        "nullable": true,
+        "type": "integer"
+      }
+    },
+    "x-collection": "space_item"
+  },
   "ItemsCandidateProfile": {
     "type": "object",
     "properties": {
@@ -3742,14 +3861,20 @@
         "nullable": true,
         "type": "string"
       },
-      "client_id": {
-        "nullable": true,
-        "description": "deprecated",
-        "type": "string"
-      },
       "source_item_id": {
         "nullable": true,
         "type": "integer"
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
       }
     },
     "x-collection": "candidate_profile"

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getUserProfile } from "@/lib/utils";
+import { getUserProfile, getUserSpaces, type Space } from "@/lib/utils";
 import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_candidate_profile_enrichment_session_by_request_id } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 
@@ -14,6 +14,7 @@ interface OrbitCallRequest {
   mode: 'company_call' | 'candidate_call';
   date_created: string;
   date_updated: string;
+  space?: string; // Optional field for space filtering
 }
 
 interface PreviousOrbitCallsProps {
@@ -22,8 +23,13 @@ interface PreviousOrbitCallsProps {
 
 export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsProps) {
   const [calls, setCalls] = useState<OrbitCallRequest[]>([]);
+  const [filteredCalls, setFilteredCalls] = useState<OrbitCallRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>("all");
+  const [selectedCallType, setSelectedCallType] = useState<string>("all");
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [spacesLoading, setSpacesLoading] = useState(true);
 
   /**
    * Fetch previous orbit calls from Directus
@@ -32,9 +38,9 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     try {
       setLoading(true);
       await getUserProfile(EXTERNAL.directus_url);
-      
+
       const response = await fetch(
-        `${EXTERNAL.directus_url}/items/orbit_call_request?sort=-date_created&limit=10&fields=id,meeting_url,testing_filename,mode,date_created,date_updated`,
+        `${EXTERNAL.directus_url}/items/orbit_call_request?sort=-date_created&limit=10&fields=id,meeting_url,testing_filename,mode,date_created,date_updated,space`,
         {
           method: 'GET',
           credentials: 'include',
@@ -50,7 +56,9 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
       }
 
       const result = await response.json();
-      setCalls(result.data || []);
+      const callsData = result.data || [];
+      setCalls(callsData);
+      setFilteredCalls(callsData);
       setError("");
     } catch (err) {
       console.error('Error fetching previous calls:', err);
@@ -60,9 +68,53 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     }
   };
 
+  /**
+   * Fetch spaces from Directus
+   */
+  const fetchSpaces = async () => {
+    try {
+      setSpacesLoading(true);
+      const result = await getUserSpaces(EXTERNAL.directus_url);
+      
+      if (result.success && result.spaces) {
+        setSpaces(result.spaces);
+      }
+    } catch (err) {
+      console.error('Error fetching spaces:', err);
+    } finally {
+      setSpacesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPreviousCalls();
+    fetchSpaces();
   }, []);
+
+  // Filter calls based on space and call type
+  useEffect(() => {
+    let filtered = [...calls];
+
+    // Filter by space
+    if (selectedSpaceId && selectedSpaceId !== "all") {
+      filtered = filtered.filter(call => call.space === selectedSpaceId);
+    }
+
+    // Filter by call type
+    if (selectedCallType !== "all") {
+      filtered = filtered.filter(call => call.mode === selectedCallType);
+    }
+
+    setFilteredCalls(filtered);
+  }, [calls, selectedSpaceId, selectedCallType]);
+
+  const handleSpaceChange = (spaceId: string | null) => {
+    setSelectedSpaceId(spaceId);
+  };
+
+  const handleCallTypeChange = (callType: string) => {
+    setSelectedCallType(callType);
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -98,15 +150,15 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
    */
   const handleCallClick = async (call: OrbitCallRequest) => {
     console.log("PreviousOrbitCalls - Redirecting to orbit call:", call);
-    
+
     try {
       if (call.mode === 'company_call') {
         console.log("PreviousOrbitCalls - Fetching company session for request ID:", call.id);
-        
+
         // Use the existing API helper function
         const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(call.id, EXTERNAL.directus_url);
         console.log("PreviousOrbitCalls - Session result:", sessionResult);
-        
+
         if (sessionResult.success && sessionResult.session) {
           const publicKey = sessionResult.session.public_key;
           if (publicKey) {
@@ -119,18 +171,18 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
         } else {
           console.log("PreviousOrbitCalls - No company session found:", sessionResult.error);
         }
-        
+
         // Fallback if no session found
         console.log("PreviousOrbitCalls - Redirecting to company page without session");
         window.location.href = `/orbit-call/company`;
-        
+
       } else if (call.mode === 'candidate_call') {
         console.log("PreviousOrbitCalls - Fetching candidate session for request ID:", call.id);
-        
+
         // Use the existing API helper function
         const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(call.id, EXTERNAL.directus_url);
         console.log("PreviousOrbitCalls - Candidate session result:", sessionResult);
-        
+
         if (sessionResult.success && sessionResult.session) {
           const publicKey = sessionResult.session.public_key;
           if (publicKey) {
@@ -143,12 +195,12 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
         } else {
           console.log("PreviousOrbitCalls - No candidate session found:", sessionResult.error);
         }
-        
+
         // Fallback if no session found
         console.log("PreviousOrbitCalls - Redirecting to candidate page without session");
         window.location.href = `/orbit-call/candidate`;
       }
-      
+
     } catch (error) {
       console.error("PreviousOrbitCalls - Error redirecting to orbit call:", error);
       // Still redirect on error, just without session ID
@@ -195,10 +247,10 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
               </svg>
             </div>
             <p className="text-red-600 font-medium">{error}</p>
-            <Button 
-              onClick={fetchPreviousCalls} 
-              variant="outline" 
-              size="sm" 
+            <Button
+              onClick={fetchPreviousCalls}
+              variant="outline"
+              size="sm"
               className="mt-3"
             >
               Try Again
@@ -235,9 +287,9 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold">Previous Orbit Calls</CardTitle>
-          <Button 
-            onClick={fetchPreviousCalls} 
-            variant="ghost" 
+          <Button
+            onClick={fetchPreviousCalls}
+            variant="ghost"
             size="sm"
             className="text-gray-500 hover:text-gray-700"
           >
@@ -246,40 +298,85 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
             </svg>
           </Button>
         </div>
+
+        {/* Filter Section */}
+        <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Space:</span>
+            <select
+              value={selectedSpaceId || "all"}
+              onChange={(e) => handleSpaceChange(e.target.value === "all" ? "all" : e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={spacesLoading}
+            >
+              <option value="all">All</option>
+              {spaces.map((space) => (
+                <option key={space.id} value={space.id.toString()}>
+                  {space.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Call type:</span>
+            <select
+              value={selectedCallType}
+              onChange={(e) => handleCallTypeChange(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All</option>
+              <option value="company_call">Company Call</option>
+              <option value="candidate_call">Candidate Call</option>
+            </select>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="space-y-3">
-          {calls.map((call) => (
-            <div
-              key={call.id}
-              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCallTypeColor(call.mode)}`}>
-                    {getCallTypeDisplayText(call.mode)}
-                  </span>
-                  <span className="text-sm font-medium text-gray-900 truncate">
-                    {getCallDisplayText(call)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>Created: {formatDate(call.date_created)}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  onClick={() => handleCallClick(call)}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  Open Session
-                </Button>
-              </div>
+        {filteredCalls.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <div className="mb-3">
+              <svg className="w-8 h-8 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
             </div>
-          ))}
-        </div>
+            <p className="text-sm text-gray-600">No calls match the current filters</p>
+            <p className="text-xs text-gray-500">Try adjusting your filter criteria</p>
+          </div>
+        ) : (
+            <div className="space-y-3">
+              {filteredCalls.map((call) => (
+                <div
+                  key={call.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCallTypeColor(call.mode)}`}>
+                        {getCallTypeDisplayText(call.mode)}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {getCallDisplayText(call)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span>Created: {formatDate(call.date_created)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      onClick={() => handleCallClick(call)}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      Open Session
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+        )}
       </CardContent>
     </Card>
   );

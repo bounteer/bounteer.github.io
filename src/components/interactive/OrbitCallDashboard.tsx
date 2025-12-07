@@ -9,6 +9,7 @@ import { createOrbitCallRequest } from "@/lib/utils";
 import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_candidate_profile_enrichment_session_by_request_id } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import PreviousOrbitCalls from "./PreviousOrbitCalls";
+import SpaceSelector from "./SpaceSelector";
 
 type InputMode = "meeting" | "testing";
 type CallType = "company" | "candidate";
@@ -19,6 +20,7 @@ export default function OrbitCallDashboard() {
   const [inputMode, setInputMode] = useState<InputMode>("meeting");
   const [callType, setCallType] = useState<CallType>("company");
   const [isDeploying, setIsDeploying] = useState(false);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
 
   /**
    * Handle call type switching with state reset
@@ -76,7 +78,7 @@ export default function OrbitCallDashboard() {
     setIsDeploying(true);
 
     try {
-      let requestData: { meeting_url?: string; testing_filename?: string; mode?: 'company_call' | 'candidate_call' } = {};
+      let requestData: { meeting_url?: string; testing_filename?: string; mode?: 'company_call' | 'candidate_call'; space?: number } = {};
 
       if (inputMode === "meeting") {
         const validation = enrichAndValidateCallUrl(callUrl);
@@ -114,6 +116,11 @@ export default function OrbitCallDashboard() {
 
       // Add mode based on callType
       requestData.mode = callType === "company" ? "company_call" : "candidate_call";
+
+      // Add selected space if available
+      if (selectedSpaceId) {
+        requestData.space = parseInt(selectedSpaceId);
+      }
 
       // Create orbit call request in Directus
       const result = await createOrbitCallRequest(requestData, EXTERNAL.directus_url);
@@ -231,9 +238,16 @@ export default function OrbitCallDashboard() {
       interactive={true}
     >
       <div className="relative z-10 p-6 text-white">
-        {/* Row 1: Title */}
-        <div className="mb-4">
+        {/* Row 1: Title and Space Selector */}
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-white/70">Search Space:</span>
+            <SpaceSelector 
+              onSpaceChange={setSelectedSpaceId}
+              selectedSpaceId={selectedSpaceId}
+            />
+          </div>
         </div>
 
         {/* Call Type Segmented Control */}
@@ -302,7 +316,7 @@ export default function OrbitCallDashboard() {
               <Button
                 onClick={handleSendBot}
                 size="sm"
-                disabled={!!callUrlError || !callUrl.trim() || isDeploying}
+                disabled={!!callUrlError || !callUrl.trim() || isDeploying || !selectedSpaceId}
                 className="flex items-center justify-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 {isDeploying ? (
@@ -351,6 +365,9 @@ export default function OrbitCallDashboard() {
           </div>
           {callUrlError && (
             <p className="text-sm text-red-300">{callUrlError}</p>
+          )}
+          {!selectedSpaceId && (
+            <p className="text-sm text-yellow-300">Please select a space to proceed</p>
           )}
         </div>
       </div>

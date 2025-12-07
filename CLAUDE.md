@@ -110,11 +110,25 @@ Based on package.json, these ShadCN components are available:
 
 ## 📋 Recent Development Notes
 
-### Bounteer Orbit Call Page
-- Created `/bounteer-orbit-call` page with Google Meet integration
-- Features real-time job description updates with mockup data
-- Uses responsive grid layout with interactive elements
-- Includes copy functionality and status indicators
+### Space Management System (v0.8.0+)
+- **Space Management Dashboard**: New `/dashboard/spaces` page for managing workspaces
+- **Space Creation**: Users can create new spaces with automatic admin role assignment
+- **Inline Editing**: Space cards support direct editing with save/cancel functionality
+- **Member Management**: UI for inviting members, managing roles, and permissions
+- **Space Integration**: All orbit call requests are now associated with selected spaces
+- **API Functions**: Complete CRUD operations for spaces and space-user relationships
+
+### Bounteer Orbit Call Enhancements
+- **Space Selector**: Integrated space selection in orbit call setup
+- **Space Filtering**: Previous orbit calls can be filtered by space and call type
+- **Validation**: Orbit calls require space selection before deployment
+- **Database Schema**: Proper space relationships in orbit_call_request table
+
+### Previous Orbit Calls
+- **Enhanced Filtering**: Added space and call type filters with "All" options
+- **Improved UI**: Consistent styling between filter dropdowns
+- **Real-time Updates**: Filters update call list dynamically
+- **Empty States**: Proper messaging when no calls match filters
 
 ### Development Workflow
 - Use TodoWrite tool for tracking complex tasks

@@ -1,0 +1,49 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { Sidebar } from "@/components/interactive/Sidebar";
+import SpaceEdit from "@/components/interactive/SpaceEdit";
+import AuthGuard from "@/components/interactive/AuthGuard";
+
+// Get space ID from URL params if provided
+const url = new URL(Astro.request.url);
+const spaceId = url.searchParams.get("id");
+---
+
+<Layout
+  name="Bounteer"
+  title="Space Management - Bounteer"
+  description="Manage your spaces, invite team members, and configure settings."
+  url="https://bounteer.com/dashboard/spaces"
+  image_url="https://bounteer.com/og.png"
+>
+  <AuthGuard client:load>
+    <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
+      <!-- Sidebar handles both mobile topbar + desktop sidebar -->
+      <Sidebar client:load />
+
+      <!-- Main content -->
+      <section class="flex-1 px-6 py-10">
+        <div class="mb-6">
+          <div class="flex items-center gap-3 mb-2">
+            <a 
+              href="/dashboard" 
+              class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Dashboard
+            </a>
+          </div>
+          <h1 class="text-2xl font-semibold tracking-tight">Space Management</h1>
+          <p class="text-sm text-muted-foreground">
+            Manage your spaces, invite team members, and configure settings.
+          </p>
+        </div>
+
+        <!-- Space Edit Component -->
+        <SpaceEdit client:load spaceId={spaceId} />
+      </section>
+    </main>
+  </AuthGuard>
+</Layout>
