@@ -57,6 +57,12 @@ export default function JobDescriptionCard() {
   const [jdId, setJdId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ensure we're in the browser environment
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+    
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     setJdId(id);
