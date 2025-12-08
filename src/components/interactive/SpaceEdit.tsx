@@ -572,10 +572,10 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  {jd.title || 'Untitled'}
+                                  {jd.role_name || jd.title || 'Untitled'}
                                 </a>
                               </td>
-                              <td className="py-3 px-4 text-gray-600">{jd.company || '-'}</td>
+                              <td className="py-3 px-4 text-gray-600">{jd.company_name || jd.company || '-'}</td>
                               <td className="py-3 px-4 text-gray-600">{jd.location || '-'}</td>
                               <td className="py-3 px-4 text-gray-600">
                                 {jd.date_created ? new Date(jd.date_created).toLocaleDateString() : '-'}
