@@ -565,7 +565,16 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                           {jobDescriptions.map((jd) => (
                             <tr key={jd.id} className="border-b hover:bg-gray-50">
                               <td className="py-3 px-4 text-gray-600">#{jd.id}</td>
-                              <td className="py-3 px-4 text-gray-900">{jd.title || 'Untitled'}</td>
+                              <td className="py-3 px-4">
+                                <a 
+                                  href={`http://localhost:4321/role-fit-index/job-description?id=${jd.id}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {jd.title || 'Untitled'}
+                                </a>
+                              </td>
                               <td className="py-3 px-4 text-gray-600">{jd.company || '-'}</td>
                               <td className="py-3 px-4 text-gray-600">{jd.location || '-'}</td>
                               <td className="py-3 px-4 text-gray-600">
