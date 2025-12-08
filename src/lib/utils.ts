@@ -541,6 +541,7 @@ export type Space = {
   date_updated?: string;
   job_description_count?: number;
   candidate_profile_count?: number;
+  user_count?: number;
 }
 
 export type SpaceUser = {
@@ -598,8 +599,8 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
 // Create a new space in Directus
 export async function createSpace(
   name: string, 
-  description?: string, 
-  directusUrl: string
+  directusUrl: string,
+  description?: string
 ): Promise<{ success: boolean; space?: Space; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
@@ -797,11 +798,11 @@ export async function getCandidateProfilesBySpace(
   }
 }
 
-// Fetch counts for job descriptions and candidate profiles by space
+// Fetch counts for job descriptions, candidate profiles and users by space
 export async function getSpaceCounts(
   spaceId: number,
   directusUrl: string
-): Promise<{ success: boolean; job_description_count?: number; candidate_profile_count?: number; error?: string }> {
+): Promise<{ success: boolean; job_description_count?: number; candidate_profile_count?: number; user_count?: number; error?: string }> {
   try {
     // Fetch job descriptions count
     const jdResponse = await fetch(
@@ -825,7 +826,18 @@ export async function getSpaceCounts(
       }
     );
 
-    if (!jdResponse.ok || !cpResponse.ok) {
+    // Fetch users count for this space
+    const usersResponse = await fetch(
+      `${directusUrl}/items/space_user?filter[space][_eq]=${spaceId}&aggregate[count]=id`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!jdResponse.ok || !cpResponse.ok || !usersResponse.ok) {
       return {
         success: false,
         error: 'Failed to fetch counts'
@@ -834,11 +846,13 @@ export async function getSpaceCounts(
 
     const jdResult = await jdResponse.json();
     const cpResult = await cpResponse.json();
+    const usersResult = await usersResponse.json();
 
     return {
       success: true,
       job_description_count: jdResult.data?.[0]?.count?.id || 0,
-      candidate_profile_count: cpResult.data?.[0]?.count?.id || 0
+      candidate_profile_count: cpResult.data?.[0]?.count?.id || 0,
+      user_count: usersResult.data?.[0]?.count?.id || 0
     };
   } catch (error) {
     console.error('Error fetching space counts:', error);
@@ -853,8 +867,8 @@ export async function getSpaceCounts(
 export async function updateSpace(
   spaceId: number,
   name: string,
-  description?: string,
-  directusUrl: string
+  directusUrl: string,
+  description?: string
 ): Promise<{ success: boolean; space?: Space; error?: string }> {
   try {
     const spaceData = {
