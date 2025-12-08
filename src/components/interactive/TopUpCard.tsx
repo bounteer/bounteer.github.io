@@ -131,9 +131,10 @@ export default function TopUpCard({
       console.log(email);
       const userId = meData.data.id;
 
-      // stripe checkout button
-      const webhookUrl = "https://n8n.bounteer.com/webhook/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
-      // const webhookUrl = "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339";
+      // N8N webhook for Stripe checkout session creation
+      // This webhook creates a Stripe checkout session and returns the payment URL
+      const webhookUrl = EXTERNAL.payment_webhook_url;
+      // const webhookUrl = EXTERNAL.payment_webhook_test_url;
       const params = new URLSearchParams({
         user: String(userId),
         product: String(p.id),

@@ -4,7 +4,12 @@ export const EXTERNAL = {
     directus_key: "9Qfz6A4s0RjzSPLLIR0yT7NTptiPfTGQ", // guest account
     guest_user_id: "f25f8ce7-e4c9-40b8-ab65-40cde3409f27", // guest user id
     auth_idp_key: "logto",
-    auth_idp_logput_url: "https://logto-app.bounteer.com/oidc/session/end?post_logout_redirect_uri=https://bounteer.com"
+    auth_idp_logput_url: "https://logto-app.bounteer.com/oidc/session/end?post_logout_redirect_uri=https://bounteer.com",
+    payment_webhook_url: "https://n8n.bounteer.com/webhook/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339",
+    payment_webhook_test_url: "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339",
+    twitter_intent_url: "https://twitter.com/intent/tweet",
+    facebook_share_url: "https://www.facebook.com/sharer/sharer.php",
+    linkedin_share_url: "https://www.linkedin.com/shareArticle"
 }
 export const KEYWORDS = {
     name: "Bounteer",

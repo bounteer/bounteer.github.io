@@ -17,6 +17,15 @@ interface OrbitCallRequest {
   space?: string; // Optional field for space filtering
 }
 
+interface OrbitCallSession {
+  id: string;
+  public_key?: string;
+  request: {
+    id: string;
+    space?: string;
+  };
+}
+
 interface PreviousOrbitCallsProps {
   onCallSelect?: (call: OrbitCallRequest) => void;
 }
@@ -30,6 +39,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
   const [selectedCallType, setSelectedCallType] = useState<string>("all");
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [spacesLoading, setSpacesLoading] = useState(true);
+  const [sessions, setSessions] = useState<{[requestId: string]: OrbitCallSession}>({});
 
   /**
    * Fetch previous orbit calls from Directus
@@ -58,6 +68,10 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
       const result = await response.json();
       const callsData = result.data || [];
       setCalls(callsData);
+      
+      // Fetch sessions for each call to get space information
+      await fetchSessionsWithSpace(callsData);
+      
       setFilteredCalls(callsData);
       setError("");
     } catch (err) {
@@ -65,6 +79,66 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
       setError(err instanceof Error ? err.message : "Failed to load previous calls");
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Fetch sessions with expanded request information for space filtering
+   */
+  const fetchSessionsWithSpace = async (calls: OrbitCallRequest[]) => {
+    try {
+      const sessionsMap: {[requestId: string]: OrbitCallSession} = {};
+      
+      // Fetch company call sessions
+      const companySessionsResponse = await fetch(
+        `${EXTERNAL.directus_url}/items/orbit_job_description_enrichment_session?fields=id,public_key,request.id,request.space&limit=100`,
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${EXTERNAL.directus_key}`
+          }
+        }
+      );
+
+      if (companySessionsResponse.ok) {
+        const companyResult = await companySessionsResponse.json();
+        const companySessions = companyResult.data || [];
+        companySessions.forEach((session: any) => {
+          if (session.request?.id) {
+            sessionsMap[session.request.id] = session;
+          }
+        });
+      }
+
+      // Fetch candidate call sessions  
+      const candidateSessionsResponse = await fetch(
+        `${EXTERNAL.directus_url}/items/orbit_candidate_profile_enrichment_session?fields=id,public_key,request.id,request.space&limit=100`,
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${EXTERNAL.directus_key}`
+          }
+        }
+      );
+
+      if (candidateSessionsResponse.ok) {
+        const candidateResult = await candidateSessionsResponse.json();
+        const candidateSessions = candidateResult.data || [];
+        candidateSessions.forEach((session: any) => {
+          if (session.request?.id) {
+            sessionsMap[session.request.id] = session;
+          }
+        });
+      }
+
+      console.log('[DEBUG] Sessions fetched:', sessionsMap);
+      setSessions(sessionsMap);
+    } catch (err) {
+      console.error('Error fetching sessions with space information:', err);
     }
   };
 
@@ -77,6 +151,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
       const result = await getUserSpaces(EXTERNAL.directus_url);
       
       if (result.success && result.spaces) {
+        console.log('[DEBUG] Spaces fetched:', result.spaces);
         setSpaces(result.spaces);
       }
     } catch (err) {
@@ -95,10 +170,18 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
   useEffect(() => {
     let filtered = [...calls];
 
-    // Filter by space
+    // Filter by space - use session.request.space or fall back to call.space
     if (selectedSpaceId && selectedSpaceId !== "all") {
-      filtered = filtered.filter(call => call.space === selectedSpaceId);
+      filtered = filtered.filter(call => {
+        const session = sessions[call.id];
+        const spaceId = session?.request?.space || call.space;
+        console.log(`[DEBUG] Call ID: ${call.id}, Session space: ${session?.request?.space}, Call space: ${call.space}, Selected: ${selectedSpaceId}, Match: ${spaceId === selectedSpaceId}`);
+        // Convert both to string for comparison since IDs might be stored as numbers
+        return String(spaceId) === String(selectedSpaceId);
+      });
     }
+
+    console.log(`[DEBUG] Total calls: ${calls.length}, Filtered calls: ${filtered.length}, Selected space: ${selectedSpaceId}`);
 
     // Filter by call type
     if (selectedCallType !== "all") {
@@ -106,7 +189,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     }
 
     setFilteredCalls(filtered);
-  }, [calls, selectedSpaceId, selectedCallType]);
+  }, [calls, selectedSpaceId, selectedCallType, sessions]);
 
   const handleSpaceChange = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);

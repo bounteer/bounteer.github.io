@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { getUserSpaces, getUserProfile, createSpace, addUserToSpace, updateSpace, getSpaceCounts, getJobDescriptionsBySpace, getCandidateProfilesBySpace, type Space, type JobDescription, type CandidateProfile } from "@/lib/utils";
+import { getUserSpaces, getUserProfile, createSpace, addUserToSpace, updateSpace, getSpaceCounts, getJobDescriptionsBySpace, getCandidateProfilesBySpace, getUserPermissionInSpace, type Space, type JobDescription, type CandidateProfile } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
 interface SpaceEditProps {
@@ -36,34 +36,14 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
   const [jobDescriptions, setJobDescriptions] = useState<JobDescription[]>([]);
   const [candidateProfiles, setCandidateProfiles] = useState<CandidateProfile[]>([]);
   const [loadingTable, setLoadingTable] = useState(false);
+  
+  // User permission state
+  const [currentUserPermission, setCurrentUserPermission] = useState<string | null>(null);
+  const [loadingPermission, setLoadingPermission] = useState(false);
+  const [spacePermissions, setSpacePermissions] = useState<{ [spaceId: number]: string }>({});
 
-  // Mock member data for UI placeholder
-  const mockMembers = [
-    {
-      id: "1",
-      email: "john.doe@company.com",
-      name: "John Doe",
-      role: "Admin",
-      status: "Active",
-      joinedAt: "2024-01-15"
-    },
-    {
-      id: "2", 
-      email: "jane.smith@company.com",
-      name: "Jane Smith",
-      role: "Member",
-      status: "Active",
-      joinedAt: "2024-02-01"
-    },
-    {
-      id: "3",
-      email: "bob.wilson@company.com", 
-      name: "Bob Wilson",
-      role: "Member",
-      status: "Pending",
-      joinedAt: "2024-12-06"
-    }
-  ];
+  // TODO: Replace with actual member data from API
+  const mockMembers: any[] = [];
 
   const fetchSpaces = async () => {
     try {
@@ -71,7 +51,7 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
       const result = await getUserSpaces(EXTERNAL.directus_url);
 
       if (result.success && result.spaces) {
-        // Fetch counts for each space
+        // Fetch counts and permissions for each space
         const spacesWithCounts = await Promise.all(
           result.spaces.map(async (space) => {
             const counts = await getSpaceCounts(space.id, EXTERNAL.directus_url);
@@ -84,6 +64,18 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
           })
         );
 
+        // Fetch permissions for all spaces
+        const permissionsMap: { [spaceId: number]: string } = {};
+        await Promise.all(
+          spacesWithCounts.map(async (space) => {
+            const permissionResult = await getUserPermissionInSpace(space.id, EXTERNAL.directus_url);
+            if (permissionResult.success && permissionResult.permission) {
+              permissionsMap[space.id] = permissionResult.permission;
+            }
+          })
+        );
+        setSpacePermissions(permissionsMap);
+
         setSpaces(spacesWithCounts);
 
         // If spaceId provided, select that space
@@ -91,14 +83,16 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
           const space = spacesWithCounts.find(s => s.id.toString() === spaceId);
           if (space) {
             setSelectedSpace(space);
-            // Fetch table data for the selected space
+            // Fetch table data and user permission for the selected space
             fetchTableData(space.id);
+            fetchUserPermission(space.id);
           }
         } else if (spacesWithCounts.length > 0) {
           // Default to first space
           setSelectedSpace(spacesWithCounts[0]);
-          // Fetch table data for the first space
+          // Fetch table data and user permission for the first space
           fetchTableData(spacesWithCounts[0].id);
+          fetchUserPermission(spacesWithCounts[0].id);
         }
       } else {
         setError(result.error || "Failed to fetch spaces");
@@ -137,12 +131,54 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
     }
   };
 
+  const fetchUserPermission = async (spaceId: number) => {
+    setLoadingPermission(true);
+    try {
+      const permissionResult = await getUserPermissionInSpace(spaceId, EXTERNAL.directus_url);
+      if (permissionResult.success) {
+        setCurrentUserPermission(permissionResult.permission || null);
+      }
+    } catch (err) {
+      console.error('Error fetching user permission:', err);
+    } finally {
+      setLoadingPermission(false);
+    }
+  };
+
+  // Permission hierarchy: admin and readwritedelete have full access
+  const hasAdminPermissions = () => {
+    const adminPermissions = ['admin', 'readwritedelete'];
+    return adminPermissions.includes(currentUserPermission || '');
+  };
+
+  // Helper function to parse permissions into individual capabilities
+  const getPermissionCapabilities = (permission: string | null) => {
+    if (!permission) return [];
+    
+    const capabilities = [];
+    if (permission.includes('read')) capabilities.push('Read');
+    if (permission.includes('write')) capabilities.push('Write');
+    if (permission.includes('delete')) capabilities.push('Delete');
+    
+    // Handle special cases
+    if (permission === 'admin') return ['Admin'];
+    
+    return capabilities;
+  };
+
+  // Helper function to get user-friendly permission display
+  const getPermissionDisplayName = (permission: string | null) => {
+    const capabilities = getPermissionCapabilities(permission);
+    return capabilities.length > 0 ? capabilities.join(' • ') : 'Unknown';
+  };
+
   const handleSpaceSelect = (space: Space) => {
     setSelectedSpace(space);
     // Cancel any ongoing edits when selecting a different space
     setEditingSpaceId(null);
-    // Fetch table data for the selected space
+    // Fetch table data and user permission for the selected space
     fetchTableData(space.id);
+    fetchUserPermission(space.id);
   };
 
   const handleEditSpace = (space: Space) => {
@@ -425,6 +461,26 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                             <span>{space.user_count || 0} User{space.user_count !== 1 ? 's' : ''}</span>
                           </div>
                         </div>
+                        
+                        {/* Permission badges */}
+                        {spacePermissions[space.id] && (
+                          <div className="flex items-center gap-1 mt-3">
+                            <span className="text-xs text-gray-500 mr-1">Your access:</span>
+                            {getPermissionCapabilities(spacePermissions[space.id]).map((capability, index) => (
+                              <span 
+                                key={index}
+                                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                  capability === 'Read' ? 'bg-green-100 text-green-600' :
+                                  capability === 'Write' ? 'bg-blue-100 text-blue-600' :
+                                  capability === 'Delete' ? 'bg-red-100 text-red-600' :
+                                  'bg-purple-100 text-purple-600'
+                                }`}
+                              >
+                                {capability}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <Button
                         onClick={(e) => {
@@ -639,115 +695,173 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
             <CardTitle>Manage Members</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Invite New Member */}
-            <div>
-              <Label htmlFor="inviteEmail">Invite New Member</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  id="inviteEmail"
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="Enter email address"
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleInviteMember}
-                  disabled={!inviteEmail.trim()}
-                >
-                  Send Invite
-                </Button>
+            {/* Show loading state while fetching user permission */}
+            {loadingPermission ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading permissions...
+                </div>
               </div>
-            </div>
-
-            <Separator />
-
-            {/* Member List */}
-            <div>
-              <h4 className="font-medium text-gray-900 mb-4">Current Members</h4>
-              <div className="space-y-3">
-                {mockMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600">
-                            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{member.name}</p>
-                          <p className="text-sm text-gray-500">{member.email}</p>
-                        </div>
+            ) : !hasAdminPermissions() ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="mb-3">
+                  <svg className="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <p className="text-lg font-medium text-gray-600">Administrative Access Required</p>
+                <p className="text-sm text-gray-500">Only users with administrative permissions can manage members and settings</p>
+                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
                       </div>
+                      <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Your Permissions</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        member.status === "Active" 
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}>
-                        {member.status}
-                      </span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        member.role === "Admin"
-                          ? "bg-blue-100 text-blue-700" 
-                          : "bg-gray-100 text-gray-700"
-                      }`}>
-                        {member.role}
-                      </span>
-                      {member.role !== "Admin" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member.id)}
-                          className="text-red-600 hover:text-red-700"
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      {getPermissionCapabilities(currentUserPermission).map((capability, index) => (
+                        <span 
+                          key={index}
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            capability === 'Read' ? 'bg-green-100 text-green-700' :
+                            capability === 'Write' ? 'bg-blue-100 text-blue-700' :
+                            capability === 'Delete' ? 'bg-red-100 text-red-700' :
+                            'bg-purple-100 text-purple-700'
+                          }`}
                         >
-                          Remove
-                        </Button>
-                      )}
+                          {capability}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Invite New Member - Only visible to admins */}
+                <div>
+                  <Label htmlFor="inviteEmail">Invite New Member</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      id="inviteEmail"
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="Enter email address"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleInviteMember}
+                      disabled={!inviteEmail.trim()}
+                    >
+                      Send Invite
+                    </Button>
+                  </div>
+                </div>
 
-            {/* Placeholder for future features */}
-            <Separator />
+                <Separator />
+              </>
+            )}
 
-            <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">Additional Settings</h4>
-              
-              {/* Permission Settings Placeholder */}
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h5 className="font-medium text-gray-700 mb-2">Permission Settings</h5>
-                <p className="text-sm text-gray-500 mb-3">Configure member permissions and access levels</p>
-                <Button variant="outline" disabled className="opacity-50">
-                  Configure Permissions (Coming Soon)
-                </Button>
+            {/* Member List - Always visible but with restricted actions */}
+            {!loadingPermission && (
+              <div>
+                <h4 className="font-medium text-gray-900 mb-4">Current Members</h4>
+                <div className="space-y-3">
+                  {mockMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-600">
+                              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{member.name}</p>
+                            <p className="text-sm text-gray-500">{member.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          member.status === "Active" 
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}>
+                          {member.status}
+                        </span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          member.role === "Admin"
+                            ? "bg-blue-100 text-blue-700" 
+                            : "bg-gray-100 text-gray-700"
+                        }`}>
+                          {member.role}
+                        </span>
+                        {/* Only show Remove button if current user has admin permissions and member is not admin */}
+                        {hasAdminPermissions() && member.role !== "Admin" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveMember(member.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
 
-              {/* Space Analytics Placeholder */}
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h5 className="font-medium text-gray-700 mb-2">Space Analytics</h5>
-                <p className="text-sm text-gray-500 mb-3">View usage statistics and member activity</p>
-                <Button variant="outline" disabled className="opacity-50">
-                  View Analytics (Coming Soon)
-                </Button>
-              </div>
+            {/* Additional Settings - Only visible to users with admin permissions */}
+            {hasAdminPermissions() && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900">Additional Settings</h4>
+                  
+                  {/* Permission Settings Placeholder */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h5 className="font-medium text-gray-700 mb-2">Permission Settings</h5>
+                    <p className="text-sm text-gray-500 mb-3">Configure member permissions and access levels</p>
+                    <Button variant="outline" disabled className="opacity-50">
+                      Configure Permissions (Coming Soon)
+                    </Button>
+                  </div>
 
-              {/* Integration Settings Placeholder */}
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h5 className="font-medium text-gray-700 mb-2">Integrations</h5>
-                <p className="text-sm text-gray-500 mb-3">Connect with Slack, Microsoft Teams, and other tools</p>
-                <Button variant="outline" disabled className="opacity-50">
-                  Manage Integrations (Coming Soon)
-                </Button>
-              </div>
-            </div>
+                  {/* Space Analytics Placeholder */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h5 className="font-medium text-gray-700 mb-2">Space Analytics</h5>
+                    <p className="text-sm text-gray-500 mb-3">View usage statistics and member activity</p>
+                    <Button variant="outline" disabled className="opacity-50">
+                      View Analytics (Coming Soon)
+                    </Button>
+                  </div>
+
+                  {/* Integration Settings Placeholder */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h5 className="font-medium text-gray-700 mb-2">Integrations</h5>
+                    <p className="text-sm text-gray-500 mb-3">Connect with Slack, Microsoft Teams, and other tools</p>
+                    <Button variant="outline" disabled className="opacity-50">
+                      Manage Integrations (Coming Soon)
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

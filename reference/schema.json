@@ -3707,9 +3707,9 @@
           }
         ]
       },
-      "role": {
+      "permission": {
         "nullable": true,
-        "type": "string"
+        "description": "options include: [\"read\", \"write\", \"delete\", \"admin\"]"
       }
     },
     "x-collection": "space_user"

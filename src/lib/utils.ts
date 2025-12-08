@@ -548,7 +548,7 @@ export type SpaceUser = {
   id: number;
   space: Space;
   user: string;
-  role?: string;
+  permission?: string;
 }
 
 // Fetch user spaces from Directus
@@ -563,7 +563,7 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
     }
 
     const response = await fetch(
-      `${directusUrl}/items/space_user?filter[user][_eq]=${encodeURIComponent(user.id)}&fields=id,space.id,space.name,space.description,role`,
+      `${directusUrl}/items/space_user?filter[user][_eq]=${encodeURIComponent(user.id)}&fields=id,space.id,space.name,space.description,permission`,
       {
         credentials: 'include',
         headers: {
@@ -653,14 +653,14 @@ export async function createSpace(
 export async function addUserToSpace(
   spaceId: number, 
   userId: string, 
-  role: string = 'admin',
+  permission: string = 'admin',
   directusUrl: string
 ): Promise<{ success: boolean; spaceUser?: SpaceUser; error?: string }> {
   try {
     const spaceUserData = {
       space: spaceId,
       user: userId,
-      role
+      permission
     };
 
     const response = await fetch(`${directusUrl}/items/space_user`, {
@@ -902,6 +902,51 @@ export async function updateSpace(
     };
   } catch (error) {
     console.error('Error updating space:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Get current user's permission in a specific space
+export async function getUserPermissionInSpace(spaceId: number, directusUrl: string): Promise<{ success: boolean; permission?: string; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const response = await fetch(
+      `${directusUrl}/items/space_user?filter[user][_eq]=${encodeURIComponent(user.id)}&filter[space][_eq]=${spaceId}&fields=permission`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    const spaceUser = result.data?.[0];
+    
+    return {
+      success: true,
+      permission: spaceUser?.permission || null
+    };
+  } catch (error) {
+    console.error('Error fetching user permission in space:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

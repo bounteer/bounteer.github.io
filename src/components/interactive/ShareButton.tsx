@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { EXTERNAL } from '@/constant';
 
 // The component receives the URL and title as properties (props)
 interface Props {
@@ -59,7 +60,7 @@ export default function ShareButton({ postUrl, title }: Props) {
             🔗 Copy link
           </button>
           <a
-            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(title)}`}
+            href={`${EXTERNAL.twitter_intent_url}?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(title)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
@@ -67,7 +68,7 @@ export default function ShareButton({ postUrl, title }: Props) {
             🐦 Share on X
           </a>
           <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`}
+            href={`${EXTERNAL.facebook_share_url}?u=${encodeURIComponent(postUrl)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
@@ -75,7 +76,7 @@ export default function ShareButton({ postUrl, title }: Props) {
             📘 Share on Facebook
           </a>
           <a
-            href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(postUrl)}&title=${encodeURIComponent(title)}`}
+            href={`${EXTERNAL.linkedin_share_url}?mini=true&url=${encodeURIComponent(postUrl)}&title=${encodeURIComponent(title)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center px-4 py-2 text-sm hover:bg-gray-100"
