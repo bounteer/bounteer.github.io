@@ -223,7 +223,7 @@ export default function JobDescriptionCard() {
         <div>
           <h3 className="text-lg font-semibold mb-3">Original Input</h3>
           <div className="rounded-lg bg-gray-50 p-4">
-            {jobDescription.raw_input.startsWith('http') ? (
+            {jobDescription.raw_input && jobDescription.raw_input.startsWith('http') ? (
               <div>
                 <p className="text-sm text-gray-600 mb-2">Job Description URL:</p>
                 <a
@@ -235,12 +235,17 @@ export default function JobDescriptionCard() {
                   {jobDescription.raw_input}
                 </a>
               </div>
-            ) : (
+            ) : jobDescription.raw_input ? (
               <div>
                 <p className="text-sm text-gray-600 mb-2">Job Description Text:</p>
                 <p className="whitespace-pre-wrap text-gray-900">
                   {jobDescription.raw_input}
                 </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Original Input:</p>
+                <p className="text-gray-500 italic">No original input available</p>
               </div>
             )}
           </div>
