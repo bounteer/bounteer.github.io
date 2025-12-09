@@ -246,6 +246,7 @@ export default function OrbitCallDashboard() {
             <SpaceSelector 
               onSpaceChange={setSelectedSpaceId}
               selectedSpaceId={selectedSpaceId}
+              requireWriteAccess={true}
             />
           </div>
         </div>

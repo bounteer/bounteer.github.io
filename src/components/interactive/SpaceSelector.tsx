@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getUserSpaces, type Space } from "@/lib/utils";
+import { getUserSpaces, getUserSpacesWithWriteAccess, type Space } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
 interface SpaceSelectorProps {
@@ -10,9 +10,10 @@ interface SpaceSelectorProps {
   selectedSpaceId?: string | null;
   className?: string;
   showAllOption?: boolean;
+  requireWriteAccess?: boolean; // New prop to determine if only write access spaces should be shown
 }
 
-export default function SpaceSelector({ onSpaceChange, selectedSpaceId, className = "", showAllOption = false }: SpaceSelectorProps) {
+export default function SpaceSelector({ onSpaceChange, selectedSpaceId, className = "", showAllOption = false, requireWriteAccess = false }: SpaceSelectorProps) {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +24,9 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
       setError(null);
 
       try {
-        const result = await getUserSpaces(EXTERNAL.directus_url);
+        const result = requireWriteAccess 
+          ? await getUserSpacesWithWriteAccess(EXTERNAL.directus_url)
+          : await getUserSpaces(EXTERNAL.directus_url);
         
         if (result.success && result.spaces) {
           setSpaces(result.spaces);
@@ -43,7 +46,7 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
     }
 
     fetchSpaces();
-  }, [selectedSpaceId, onSpaceChange]);
+  }, [selectedSpaceId, onSpaceChange, requireWriteAccess]);
 
   if (isLoading) {
     return (
@@ -76,7 +79,7 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
         value={selectedSpaceId || undefined} 
         onValueChange={onSpaceChange}
       >
-        <SelectTrigger className="w-48 bg-white/20 border-white/40 text-white backdrop-blur-sm [&_svg]:text-white/70 focus-visible:ring-white/50">
+        <SelectTrigger className="w-64 bg-white/20 border-white/40 text-white backdrop-blur-sm [&_svg]:text-white/70 focus-visible:ring-white/50">
           <SelectValue placeholder="Select a space" />
         </SelectTrigger>
         <SelectContent className="bg-white border border-gray-200 shadow-lg">
@@ -94,7 +97,7 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
               value={space.id.toString()}
               className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100"
             >
-              {space.name}
+              {space.name} ({space.job_description_count || 0} jobs, {space.candidate_profile_count || 0} candidates)
             </SelectItem>
           ))}
         </SelectContent>

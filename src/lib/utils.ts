@@ -646,11 +646,12 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
       return false;
     }).map((item: any) => item.space).filter(Boolean) || [];
     
-    // Fetch candidate counts for each space separately
+    // Fetch candidate and job description counts for each space separately
     const spacesWithCounts = await Promise.all(
       spacesWithReadAccess.map(async (space: any) => {
         try {
-          const countResponse = await fetch(
+          // Fetch candidate profile count
+          const candidateResponse = await fetch(
             `${directusUrl}/items/candidate_profile?filter[space][_eq]=${space.id}&aggregate[count]=id`,
             {
               credentials: 'include',
@@ -660,31 +661,67 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
             }
           );
           
-          if (countResponse.ok) {
-            const countResult = await countResponse.json();
+          if (candidateResponse.ok) {
+            const candidateResult = await candidateResponse.json();
             
             // Extract count from aggregate response - try different possible structures
             let count = 0;
-            if (countResult.data?.[0]?.count !== undefined) {
-              const countValue = countResult.data[0].count;
+            if (candidateResult.data?.[0]?.count !== undefined) {
+              const countValue = candidateResult.data[0].count;
               // Handle case where count is an object with id property
               if (typeof countValue === 'object' && countValue.id !== undefined) {
                 count = parseInt(countValue.id) || 0;
               } else {
                 count = parseInt(countValue) || 0;
               }
-            } else if (countResult.data?.length !== undefined) {
-              count = countResult.data.length;
-            } else if (typeof countResult.data === 'number') {
-              count = countResult.data;
+            } else if (candidateResult.data?.length !== undefined) {
+              count = candidateResult.data.length;
+            } else if (typeof candidateResult.data === 'number') {
+              count = candidateResult.data;
             }
             
             space.candidate_profile_count = count;
           } else {
             space.candidate_profile_count = 0;
           }
+
+          // Fetch job description count
+          const jdResponse = await fetch(
+            `${directusUrl}/items/job_description?filter[space][_eq]=${space.id}&aggregate[count]=id`,
+            {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+          
+          if (jdResponse.ok) {
+            const jdResult = await jdResponse.json();
+            
+            // Extract count from aggregate response - try different possible structures
+            let count = 0;
+            if (jdResult.data?.[0]?.count !== undefined) {
+              const countValue = jdResult.data[0].count;
+              // Handle case where count is an object with id property
+              if (typeof countValue === 'object' && countValue.id !== undefined) {
+                count = parseInt(countValue.id) || 0;
+              } else {
+                count = parseInt(countValue) || 0;
+              }
+            } else if (jdResult.data?.length !== undefined) {
+              count = jdResult.data.length;
+            } else if (typeof jdResult.data === 'number') {
+              count = jdResult.data;
+            }
+            
+            space.job_description_count = count;
+          } else {
+            space.job_description_count = 0;
+          }
         } catch (error) {
           space.candidate_profile_count = 0;
+          space.job_description_count = 0;
         }
         return space;
       })
@@ -696,6 +733,155 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
     };
   } catch (error) {
     console.error('Error fetching user spaces:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Fetch user spaces with write access only (for orbit call creation)
+export async function getUserSpacesWithWriteAccess(directusUrl: string): Promise<{ success: boolean; spaces?: Space[]; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const response = await fetch(
+      `${directusUrl}/items/space_user?filter[user][_eq]=${encodeURIComponent(user.id)}&fields=id,space.id,space.name,space.description,permission`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    
+    // Filter spaces where user has 'write' access or higher permissions (for orbit call creation)
+    const spacesWithWriteAccess = result.data?.filter((item: any) => {
+      const permission = item.permission;
+      
+      // If no permission is set, deny access
+      if (!permission) {
+        return false;
+      }
+      
+      // Handle array of permissions
+      if (Array.isArray(permission)) {
+        return permission.some(perm => 
+          typeof perm === 'string' && ['write', 'admin'].includes(perm.toLowerCase())
+        );
+      }
+      
+      // Handle single string permission
+      if (typeof permission === 'string') {
+        return ['write', 'admin'].includes(permission.toLowerCase());
+      }
+      
+      return false;
+    }).map((item: any) => item.space).filter(Boolean) || [];
+    
+    // Fetch candidate and job description counts for each space separately
+    const spacesWithCounts = await Promise.all(
+      spacesWithWriteAccess.map(async (space: any) => {
+        try {
+          // Fetch candidate profile count
+          const candidateResponse = await fetch(
+            `${directusUrl}/items/candidate_profile?filter[space][_eq]=${space.id}&aggregate[count]=id`,
+            {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+          
+          if (candidateResponse.ok) {
+            const candidateResult = await candidateResponse.json();
+            
+            // Extract count from aggregate response - try different possible structures
+            let count = 0;
+            if (candidateResult.data?.[0]?.count !== undefined) {
+              const countValue = candidateResult.data[0].count;
+              // Handle case where count is an object with id property
+              if (typeof countValue === 'object' && countValue.id !== undefined) {
+                count = parseInt(countValue.id) || 0;
+              } else {
+                count = parseInt(countValue) || 0;
+              }
+            } else if (candidateResult.data?.length !== undefined) {
+              count = candidateResult.data.length;
+            } else if (typeof candidateResult.data === 'number') {
+              count = candidateResult.data;
+            }
+            
+            space.candidate_profile_count = count;
+          } else {
+            space.candidate_profile_count = 0;
+          }
+
+          // Fetch job description count
+          const jdResponse = await fetch(
+            `${directusUrl}/items/job_description?filter[space][_eq]=${space.id}&aggregate[count]=id`,
+            {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+          
+          if (jdResponse.ok) {
+            const jdResult = await jdResponse.json();
+            
+            // Extract count from aggregate response - try different possible structures
+            let count = 0;
+            if (jdResult.data?.[0]?.count !== undefined) {
+              const countValue = jdResult.data[0].count;
+              // Handle case where count is an object with id property
+              if (typeof countValue === 'object' && countValue.id !== undefined) {
+                count = parseInt(countValue.id) || 0;
+              } else {
+                count = parseInt(countValue) || 0;
+              }
+            } else if (jdResult.data?.length !== undefined) {
+              count = jdResult.data.length;
+            } else if (typeof jdResult.data === 'number') {
+              count = jdResult.data;
+            }
+            
+            space.job_description_count = count;
+          } else {
+            space.job_description_count = 0;
+          }
+        } catch (error) {
+          space.candidate_profile_count = 0;
+          space.job_description_count = 0;
+        }
+        return space;
+      })
+    );
+    
+    return {
+      success: true,
+      spaces: spacesWithCounts
+    };
+  } catch (error) {
+    console.error('Error fetching user spaces with write access:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
