@@ -63,6 +63,7 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
   const [spaceIds, setSpaceIds] = useState<number[]>([]);
   const [spaceName, setSpaceName] = useState<string | null>(null);
+  const [sessionRequestSpace, setSessionRequestSpace] = useState<{ id: number; name?: string } | null>(null);
 
   // State for candidates data
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -363,7 +364,10 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
             // Load space ID if available
             if (orbitCall.space) {
               const spaceId = typeof orbitCall.space === 'object' ? orbitCall.space.id : orbitCall.space;
+              const spaceName = typeof orbitCall.space === 'object' ? orbitCall.space.name : undefined;
               setSpaceIds([spaceId]);
+              // Set the session request space for Job Description Enrichment
+              setSessionRequestSpace({ id: spaceId, name: spaceName });
             }
           }
         }
@@ -467,6 +471,7 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
     setOrbitJobDescriptionEnrichmentSession(null);
     setJobDescriptionId(null);
     setSpaceIds([]);
+    setSessionRequestSpace(null);
     setCandidates([]);
     setSearchError("");
     setIsSearchingCandidates(false);
@@ -805,8 +810,8 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
           jobData={jobData}
           onStageChange={handleJdStageChange}
           onJobDataChange={handleJobDataChange}
-          spaceId={spaceIds[0] || null}
-          spaceName={spaceName}
+          spaceId={sessionRequestSpace?.id || null}
+          spaceName={sessionRequestSpace?.name || spaceName}
         />
       )}
 
