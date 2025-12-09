@@ -24,6 +24,7 @@ interface Candidate {
 interface SearchRequest {
   job_description_enrichment_session: string; // orbit_job_description_enrichment_session ID
   jobDescription: JobDescriptionFormData;
+  spaceId?: number | null; // Selected space ID
 }
 
 interface CandidateSearchProps {
@@ -44,6 +45,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   // Polling mode state
   const [isPollingMode, setIsPollingMode] = useState(false);
   const lastSearchedJDHash = useRef<number>(0);
+  const [hasPendingSearch, setHasPendingSearch] = useState(false); // Track if there's a pending search after JD change
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const jdPollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -109,6 +111,26 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         console.log("🟡 CURRENT STATUS:", searchRequest.status);
         setSearchRequestStatus(searchRequest.status);
         onStatusChange?.(searchRequest.status);
+
+        // Check if search is completed (any final status)
+        const completedStatuses = ["listed", "completed", "finished", "done", "failed"];
+        const isCompleted = completedStatuses.includes(searchRequest.status);
+
+        if (isCompleted) {
+          // Mark search as no longer processing
+          setIsSearching(false);
+          onSearchingChange?.(false);
+
+          // If there's a pending search due to JD changes, trigger it
+          if (hasPendingSearch && searchRequest.status === "listed") {
+            console.log("🚀 Current search completed and JD has changed - triggering new search");
+            setHasPendingSearch(false);
+            // Small delay to avoid race conditions
+            setTimeout(() => {
+              handleSearchCandidate();
+            }, 500);
+          }
+        }
 
         if (searchRequest.status === "listed") {
           console.log("✅ STATUS REACHED LISTED ===");
@@ -373,13 +395,18 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         minimum_requirement: request.jobDescription.minimum_requirement,
         preferred_requirement: request.jobDescription.preferred_requirement,
         perk: request.jobDescription.perk,
-        skill: request.jobDescription.skill
+        skill: request.jobDescription.skill,
+        // Include the categorized skills for accurate search requests
+        skill_core: request.jobDescription.skill_core,
+        skill_plus: request.jobDescription.skill_plus,
+        skill_bonus: request.jobDescription.skill_bonus
       };
 
       const result = await createOrbitCandidateSearchRequest(
         request.job_description_enrichment_session,
         jobDescriptionSnapshot,
-        EXTERNAL.directus_url
+        EXTERNAL.directus_url,
+        request.spaceId
       );
 
       if (!result.success) {
@@ -459,8 +486,9 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   }, []);
 
   /**
-   * Poll for JD changes every 3 seconds when polling mode is enabled
+   * Poll for JD changes when polling mode is enabled
    * Only trigger search when JD has changed since last search
+   * Implements smart queuing - if search is in progress, queue the next search
    */
   useEffect(() => {
     if (!isPollingMode || !request?.jobDescription) {
@@ -470,10 +498,12 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         clearInterval(jdPollingRef.current);
         jdPollingRef.current = null;
       }
+      // Clear pending search when polling is disabled
+      setHasPendingSearch(false);
       return;
     }
 
-    console.log("🟢 Starting JD polling - checking every 3 seconds for changes");
+    console.log("🟢 Starting JD change detection - checking every 1 second for changes");
 
     // Clear any existing polling
     if (jdPollingRef.current) {
@@ -494,7 +524,11 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         minimum_requirement: request.jobDescription.minimum_requirement,
         preferred_requirement: request.jobDescription.preferred_requirement,
         perk: request.jobDescription.perk,
-        skill: request.jobDescription.skill
+        skill: request.jobDescription.skill,
+        // Include the categorized skills that are used in the three-tier system
+        skill_core: request.jobDescription.skill_core,
+        skill_plus: request.jobDescription.skill_plus,
+        skill_bonus: request.jobDescription.skill_bonus
       };
 
       const currentHash = hashJD(currentJD);
@@ -508,25 +542,27 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
 
       // Check if JD has changed since last search (compare hashes)
       if (currentHash !== lastSearchedJDHash.current) {
-        console.log("🔄 JD CHANGED detected - triggering new search");
-        console.log("Previous hash:", lastSearchedJDHash.current);
-        console.log("Current hash:", currentHash);
+        console.log("🔄 JD CHANGED detected");
 
-        // Trigger search - the hash will be updated in handleSearchCandidate
-        handleSearchCandidate();
-      } else {
-        console.log("✅ No JD changes - skipping search (hash:", currentHash, ")");
-      }
+        if (isSearching) {
+          // If currently searching, mark as pending instead of starting immediately
+          console.log("⏳ Search in progress - marking as pending search");
+          setHasPendingSearch(true);
+        } else {
+          // No search in progress, start immediately
+          console.log("🚀 No search in progress - starting search immediately");
+          handleSearchCandidate();
+        }
+      } 
     };
 
     // Initial check
     checkJDChange();
 
-    // Set up polling every 3 seconds
+    // Set up polling every 1 second for faster JD change detection
     jdPollingRef.current = setInterval(() => {
-      console.log("⏰ JD polling tick (3s)");
       checkJDChange();
-    }, 3000);
+    }, 1000);
 
     return () => {
       if (jdPollingRef.current) {
@@ -570,12 +606,14 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
 
   return (
     <div className="flex items-center gap-4">
-      <Button
-        onClick={handleSearchCandidate}
-        disabled={isSearching || !request?.job_description_enrichment_session}
-        className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700"
-        size="sm"
-      >
+      {/* Hide search button when realtime search is enabled */}
+      {!isPollingMode && (
+        <Button
+          onClick={handleSearchCandidate}
+          disabled={isSearching || !request?.job_description_enrichment_session}
+          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700"
+          size="sm"
+        >
         {isSearching ? (
           <>
             <svg
@@ -617,7 +655,8 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
             Search Candidate (Current JD)
           </>
         )}
-      </Button>
+        </Button>
+      )}
 
       {/* Polling Mode Toggle */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
@@ -631,9 +670,14 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
           htmlFor="polling-mode"
           className="text-sm font-medium cursor-pointer flex items-center gap-2"
         >
-          <span>Auto-search on JD change (3s polling)</span>
+          <span>Realtime candidate search</span>
           {isPollingMode && (
             <span className="inline-flex items-center justify-center w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          )}
+          {hasPendingSearch && (
+            <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+              Pending
+            </span>
           )}
         </Label>
       </div>

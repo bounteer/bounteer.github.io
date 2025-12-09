@@ -242,7 +242,7 @@ export default function OrbitCallDashboard() {
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-white/70">Search Space:</span>
+            <span className="text-sm text-white/70">Space:</span>
             <SpaceSelector 
               onSpaceChange={setSelectedSpaceId}
               selectedSpaceId={selectedSpaceId}

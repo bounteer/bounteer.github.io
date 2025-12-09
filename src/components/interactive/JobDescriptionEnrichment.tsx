@@ -46,6 +46,8 @@ export interface JobDescriptionEnrichmentProps {
   jobData: JobDescriptionFormData;
   onStageChange: (stage: JDStage) => void;
   onJobDataChange: (jobData: JobDescriptionFormData) => void;
+  spaceId?: number | null;
+  spaceName?: string | null;
 }
 
 export default function JobDescriptionEnrichment({
@@ -55,7 +57,9 @@ export default function JobDescriptionEnrichment({
   stage,
   jobData,
   onStageChange,
-  onJobDataChange
+  onJobDataChange,
+  spaceId,
+  spaceName
 }: JobDescriptionEnrichmentProps) {
   const [jobErrors, setJobErrors] = useState<JobDescriptionFormErrors>({});
   const [aiEnrichmentEnabled, setAiEnrichmentEnabled] = useState(stage === "ai_enrichment");
@@ -586,7 +590,14 @@ export default function JobDescriptionEnrichment({
                 </svg>
               </Button>
               <div>
-                <h3 className="text-lg font-semibold text-white">Job Description Enrichment</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-white">Job Description Enrichment</h3>
+                  {spaceName && (
+                    <span className="text-sm text-white/80 bg-white/20 px-3 py-1 rounded-full border border-white/30">
+                      {spaceName}
+                    </span>
+                  )}
+                </div>
                 <p className="text-white/90 text-sm mt-1 mb-0">
                   {stage === "ai_enrichment" ? "Bounteer AI will join the call, and enrich the job description asynchronously" : "Manual editing mode"}
                 </p>

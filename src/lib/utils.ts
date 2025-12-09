@@ -1,9 +1,45 @@
 import { EXTERNAL } from "@/constant";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { GlowState } from "@/components/interactive/GlowCard";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Maps API status values to GlowCard glow states
+ * @param status - The status from the API ('pending' | 'processing' | 'completed' | 'failed' | etc.)
+ * @returns The corresponding glow state ('idle' | 'listening' | 'processing')
+ * 
+ * Usage example:
+ * ```tsx
+ * <GlowCard glowState={mapStatusToGlowState(request.status)} />
+ * ```
+ * 
+ * Mapping:
+ * - 'pending' → 'listening' (waiting for processing to start)
+ * - 'processing' → 'processing' (actively being processed)
+ * - 'completed', 'complete', 'finished', 'done', 'listed' → 'idle' (finished processing)
+ * - all other values → 'idle' (default/fallback state)
+ */
+export function mapStatusToGlowState(status?: string): GlowState {
+  if (!status) return "idle";
+  
+  switch (status) {
+    case "pending":
+      return "listening";
+    case "processing":
+      return "processing";
+    case "completed":
+    case "complete":
+    case "finished":
+    case "done":
+    case "listed":
+      return "idle";
+    default:
+      return "idle";
+  }
 }
 
 export type UserProfile = {
@@ -438,13 +474,15 @@ export type OrbitCandidateSearchRequest = {
   job_enrichment_session: string; // Renamed from 'session' - references orbit_job_description_enrichment_session
   job_description_snapshot: any;
   status?: 'pending' | 'processing' | 'completed' | 'failed' | 'listed';
+  space?: number | null; // Reference to space table
 }
 
 // Create orbit candidate search request in Directus
 export async function createOrbitCandidateSearchRequest(
   jobEnrichmentSessionId: string,
   jobDescriptionSnapshot: any,
-  directusUrl: string
+  directusUrl: string,
+  spaceId?: number | null
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
@@ -453,7 +491,8 @@ export async function createOrbitCandidateSearchRequest(
     const requestData: OrbitCandidateSearchRequest = {
       job_enrichment_session: jobEnrichmentSessionId,
       job_description_snapshot: jobDescriptionSnapshot,
-      status: 'pending'
+      status: 'pending',
+      space: spaceId || null
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_candidate_search_request`, {
@@ -581,11 +620,79 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
     }
 
     const result = await response.json();
-    const spaces = result.data?.map((item: any) => item.space).filter(Boolean) || [];
+    
+    
+    // Filter spaces where user has 'read' access or higher permissions
+    const spacesWithReadAccess = result.data?.filter((item: any) => {
+      const permission = item.permission;
+      
+      // If no permission is set, deny access
+      if (!permission) {
+        return false;
+      }
+      
+      // Handle array of permissions
+      if (Array.isArray(permission)) {
+        return permission.some(perm => 
+          typeof perm === 'string' && ['read', 'write', 'admin'].includes(perm.toLowerCase())
+        );
+      }
+      
+      // Handle single string permission
+      if (typeof permission === 'string') {
+        return ['read', 'write', 'admin'].includes(permission.toLowerCase());
+      }
+      
+      return false;
+    }).map((item: any) => item.space).filter(Boolean) || [];
+    
+    // Fetch candidate counts for each space separately
+    const spacesWithCounts = await Promise.all(
+      spacesWithReadAccess.map(async (space: any) => {
+        try {
+          const countResponse = await fetch(
+            `${directusUrl}/items/candidate_profile?filter[space][_eq]=${space.id}&aggregate[count]=id`,
+            {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+          
+          if (countResponse.ok) {
+            const countResult = await countResponse.json();
+            
+            // Extract count from aggregate response - try different possible structures
+            let count = 0;
+            if (countResult.data?.[0]?.count !== undefined) {
+              const countValue = countResult.data[0].count;
+              // Handle case where count is an object with id property
+              if (typeof countValue === 'object' && countValue.id !== undefined) {
+                count = parseInt(countValue.id) || 0;
+              } else {
+                count = parseInt(countValue) || 0;
+              }
+            } else if (countResult.data?.length !== undefined) {
+              count = countResult.data.length;
+            } else if (typeof countResult.data === 'number') {
+              count = countResult.data;
+            }
+            
+            space.candidate_profile_count = count;
+          } else {
+            space.candidate_profile_count = 0;
+          }
+        } catch (error) {
+          space.candidate_profile_count = 0;
+        }
+        return space;
+      })
+    );
     
     return {
       success: true,
-      spaces
+      spaces: spacesWithCounts
     };
   } catch (error) {
     console.error('Error fetching user spaces:', error);
