@@ -61,9 +61,12 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   const [requestId, setRequestId] = useState<string>("");
   const [orbitJobDescriptionEnrichmentSession, setOrbitJobDescriptionEnrichmentSession] = useState<OrbitJobDescriptionEnrichmentSession | null>(null);
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
-  const [spaceIds, setSpaceIds] = useState<number[]>([]);
+  // Space management - these are kept separate to avoid conflicts:
+  // - sessionSpace: The space ID from the original orbit call request (used by Job Description Enrichment)
+  // - spaceIds: The space IDs selected by user in the candidate search interface (used by Candidate Search)
+  const [spaceIds, setSpaceIds] = useState<number[]>([]); // For candidate search space selection
   const [spaceName, setSpaceName] = useState<string | null>(null);
-  const [sessionRequestSpace, setSessionRequestSpace] = useState<{ id: number; name?: string } | null>(null);
+  const [sessionSpace, setSessionSpace] = useState<number | null>(null); // For job description enrichment from request.space
 
   // State for candidates data
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -73,50 +76,27 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   const [currentSearchRequestStatus, setCurrentSearchRequestStatus] = useState<string>("");
 
   /**
-   * Fetch space names by space IDs
+   * Fetch session space name by space ID (for Job Description Enrichment display only)
    */
-  const fetchSpaceNames = async (spaceIdsToFetch: number[]) => {
-    if (spaceIdsToFetch.length === 0) {
-      setSpaceName(null);
-      return;
-    }
-
+  const fetchSessionSpaceName = async (spaceId: number) => {
     try {
-      const promises = spaceIdsToFetch.map(spaceId => 
-        fetch(`${EXTERNAL.directus_url}/items/space/${spaceId}?fields=id,name`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${EXTERNAL.directus_key}`
-          }
-        })
-      );
-
-      const responses = await Promise.all(promises);
-      const spaces = await Promise.all(
-        responses.map(async (response) => {
-          if (response.ok) {
-            const result = await response.json();
-            return result.data?.name;
-          }
-          return null;
-        })
-      );
-
-      const validSpaceNames = spaces.filter(name => name);
-      if (validSpaceNames.length > 0) {
-        if (validSpaceNames.length === 1) {
-          setSpaceName(validSpaceNames[0]);
-        } else {
-          setSpaceName(`${validSpaceNames.length} spaces selected`);
+      const response = await fetch(`${EXTERNAL.directus_url}/items/space/${spaceId}?fields=id,name`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${EXTERNAL.directus_key}`
         }
-      } else {
-        setSpaceName(null);
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.name) {
+          setSpaceName(result.data.name);
+        }
       }
     } catch (error) {
-      console.error('Error fetching space names:', error);
-      setSpaceName(null);
+      console.error('Error fetching session space name:', error);
     }
   };
 
@@ -140,11 +120,15 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   };
 
   /**
-   * Fetch space names when spaceIds changes
+   * Fetch session space name when sessionSpace changes
    */
   useEffect(() => {
-    fetchSpaceNames(spaceIds);
-  }, [spaceIds]);
+    if (sessionSpace) {
+      fetchSessionSpaceName(sessionSpace);
+    } else {
+      setSpaceName(null);
+    }
+  }, [sessionSpace]);
 
   /**
    * Load existing session data if sessionId is available
@@ -364,10 +348,10 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
             // Load space ID if available
             if (orbitCall.space) {
               const spaceId = typeof orbitCall.space === 'object' ? orbitCall.space.id : orbitCall.space;
-              const spaceName = typeof orbitCall.space === 'object' ? orbitCall.space.name : undefined;
-              setSpaceIds([spaceId]);
-              // Set the session request space for Job Description Enrichment
-              setSessionRequestSpace({ id: spaceId, name: spaceName });
+              // Don't set spaceIds from existing session - let CandidateList initialize with all spaces
+              // Set the session space for Job Description Enrichment (separate from candidate search spaces)
+              setSessionSpace(spaceId);
+              // The useEffect will handle fetching the space name when sessionSpace changes
             }
           }
         }
@@ -470,8 +454,8 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
     });
     setOrbitJobDescriptionEnrichmentSession(null);
     setJobDescriptionId(null);
-    setSpaceIds([]);
-    setSessionRequestSpace(null);
+    setSpaceIds([]); // Reset candidate search space selection
+    setSessionSpace(null); // Reset job description enrichment space
     setCandidates([]);
     setSearchError("");
     setIsSearchingCandidates(false);
@@ -657,7 +641,8 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
           session_type: "job_description_enrichment",
           job_description_id: jobDescriptionId,
           job_data: jobData,
-          space_ids: spaceIds,
+          space_ids: spaceIds, // Candidate search space selection (user-selected)
+          session_space: sessionSpace, // Job description enrichment space (from request.space)
           timestamp: new Date().toISOString()
         };
 
@@ -677,7 +662,7 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [orbitJobDescriptionEnrichmentSession, jobDescriptionId, jobData, spaceIds]);
+  }, [orbitJobDescriptionEnrichmentSession, jobDescriptionId, jobData, spaceIds, sessionSpace]);
 
   const renderNotLinkedStage = () => (
     <BackgroundGradientAnimation
@@ -810,8 +795,8 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
           jobData={jobData}
           onStageChange={handleJdStageChange}
           onJobDataChange={handleJobDataChange}
-          spaceId={sessionRequestSpace?.id || null}
-          spaceName={sessionRequestSpace?.name || spaceName}
+          spaceId={sessionSpace}
+          spaceName={spaceName}
         />
       )}
 

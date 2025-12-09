@@ -42,8 +42,8 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
   const [candidatesListed, setCandidatesListed] = useState(false);
 
-  // Polling mode state
-  const [isPollingMode, setIsPollingMode] = useState(false);
+  // Polling mode state - enabled by default
+  const [isPollingMode, setIsPollingMode] = useState(true);
   const lastSearchedJDHash = useRef<number>(0);
   const [hasPendingSearch, setHasPendingSearch] = useState(false); // Track if there's a pending search after JD change
 
