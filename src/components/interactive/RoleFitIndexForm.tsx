@@ -204,7 +204,6 @@ export default function RoleFitForm() {
       const filter = `filter[user_created][id][_eq]=${encodeURIComponent(userId)}`;
       const url = `${DIRECTUS_URL}/items/role_fit_index_submission?${fields}&${filter}&sort[]=-date_created&limit=1`;
 
-      // TODO the auth header is not using hte logged in user currently (using generic)
       const res = await fetch(url, {
         credentials: "include",
         headers: getAuthHeaders(me),
@@ -645,7 +644,7 @@ export default function RoleFitForm() {
       case "update":
         console.log("Record updated:", rec);
         if (!rec || String(rec.id) !== String(id)) return;
-        //  TODO check status
+
         console.log("received:" + rec);
         // Handle status updates
         if (rec.status) {

@@ -143,7 +143,6 @@ export default function TopUpCard({
 
       });
 
-      // todo failed to fetch below
       const res = await fetch(`${webhookUrl}?${params.toString()}`, {
         method: "POST",
       });
