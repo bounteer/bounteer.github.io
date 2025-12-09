@@ -43,14 +43,24 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
 
   // Polling mode state
   const [isPollingMode, setIsPollingMode] = useState(false);
-  const [jdChanged, setJdChanged] = useState(false);
-  const [lastJDSnapshot, setLastJDSnapshot] = useState<string>("");
-  const [isDebouncing, setIsDebouncing] = useState(false);
+  const lastSearchedJDHash = useRef<number>(0);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const autoSearchPollingRef = useRef<NodeJS.Timeout | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const jdPollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  /**
+   * Simple hash function for JD comparison
+   */
+  const hashJD = (jd: any): number => {
+    const str = JSON.stringify(jd);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash;
+  };
 
   /**
    * Check search request status via polling
@@ -389,6 +399,11 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         console.log("searchRequestId state updated. Waiting for status to become 'listed'...");
         onRequestCreated?.(result.id);
         console.log("onRequestCreated callback called");
+
+        // Save the JD hash after successful search creation
+        const jdHash = hashJD(jobDescriptionSnapshot);
+        lastSearchedJDHash.current = jdHash;
+        console.log("💾 Saved JD hash for polling comparison:", jdHash);
       } else {
         console.error("No ID returned from search request creation");
       }
@@ -436,117 +451,91 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
-      if (autoSearchPollingRef.current) {
-        clearInterval(autoSearchPollingRef.current);
-        autoSearchPollingRef.current = null;
-      }
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-        debounceTimeoutRef.current = null;
+      if (jdPollingRef.current) {
+        clearInterval(jdPollingRef.current);
+        jdPollingRef.current = null;
       }
     };
   }, []);
 
   /**
-   * Detect JD changes by comparing snapshot with 3-second debounce
+   * Poll for JD changes every 3 seconds when polling mode is enabled
+   * Only trigger search when JD has changed since last search
    */
   useEffect(() => {
-    if (!request?.jobDescription) return;
-
-    const currentJDSnapshot = JSON.stringify({
-      company_name: request.jobDescription.company_name,
-      role_name: request.jobDescription.role_name,
-      location: request.jobDescription.location,
-      salary_range: request.jobDescription.salary_range,
-      responsibility: request.jobDescription.responsibility,
-      minimum_requirement: request.jobDescription.minimum_requirement,
-      preferred_requirement: request.jobDescription.preferred_requirement,
-      perk: request.jobDescription.perk,
-      skill: request.jobDescription.skill
-    });
-
-    // Initialize snapshot on first load
-    if (lastJDSnapshot === "") {
-      setLastJDSnapshot(currentJDSnapshot);
+    if (!isPollingMode || !request?.jobDescription) {
+      // Clear polling when disabled or no request
+      if (jdPollingRef.current) {
+        console.log("🛑 Stopping JD polling - polling mode disabled or no request");
+        clearInterval(jdPollingRef.current);
+        jdPollingRef.current = null;
+      }
       return;
     }
 
-    // Detect changes only if not currently debouncing
-    if (currentJDSnapshot !== lastJDSnapshot && !isDebouncing) {
-      console.log("🔄 JD CHANGED - Setting jdChanged flag to true");
-      setJdChanged(true);
-      setLastJDSnapshot(currentJDSnapshot);
+    console.log("🟢 Starting JD polling - checking every 3 seconds for changes");
 
-      // Start 3-second debounce period
-      setIsDebouncing(true);
-
-      // Clear any existing debounce timeout
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-
-      // Set 3-second debounce
-      debounceTimeoutRef.current = setTimeout(() => {
-        console.log("⏰ Debounce period ended - ready to detect next JD change");
-        setIsDebouncing(false);
-      }, 3000);
+    // Clear any existing polling
+    if (jdPollingRef.current) {
+      clearInterval(jdPollingRef.current);
+      jdPollingRef.current = null;
     }
-  }, [request?.jobDescription, isDebouncing]);
 
-  /**
-   * Auto-search polling when JD changes and polling mode is enabled
-   * - Triggers IMMEDIATELY when JD changes
-   * - Continues polling every 5 seconds until candidates are listed
-   */
-  useEffect(() => {
-    // Only start auto-search if:
-    // 1. Polling mode is enabled
-    // 2. JD has changed (flag is on)
-    if (isPollingMode && jdChanged) {
-      console.log("🔄 JD changed while polling mode is ON - triggering IMMEDIATE search");
+    // Helper function to check if JD has changed
+    const checkJDChange = () => {
+      if (!request?.jobDescription) return;
 
-      // Clear any existing auto-search polling
-      if (autoSearchPollingRef.current) {
-        clearInterval(autoSearchPollingRef.current);
-        autoSearchPollingRef.current = null;
+      const currentJD = {
+        company_name: request.jobDescription.company_name,
+        role_name: request.jobDescription.role_name,
+        location: request.jobDescription.location,
+        salary_range: request.jobDescription.salary_range,
+        responsibility: request.jobDescription.responsibility,
+        minimum_requirement: request.jobDescription.minimum_requirement,
+        preferred_requirement: request.jobDescription.preferred_requirement,
+        perk: request.jobDescription.perk,
+        skill: request.jobDescription.skill
+      };
+
+      const currentHash = hashJD(currentJD);
+
+      // Initialize hash on first poll
+      if (lastSearchedJDHash.current === 0) {
+        console.log("📝 Initializing JD hash (first poll):", currentHash);
+        lastSearchedJDHash.current = currentHash;
+        return;
       }
 
-      // Trigger IMMEDIATE search
-      handleSearchCandidate();
+      // Check if JD has changed since last search (compare hashes)
+      if (currentHash !== lastSearchedJDHash.current) {
+        console.log("🔄 JD CHANGED detected - triggering new search");
+        console.log("Previous hash:", lastSearchedJDHash.current);
+        console.log("Current hash:", currentHash);
 
-      // Start continuous polling interval (5 seconds)
-      // This will keep searching until candidates are listed
-      autoSearchPollingRef.current = setInterval(() => {
-        console.log("🔄 Auto-search polling tick (5s) - triggering new search");
+        // Trigger search - the hash will be updated in handleSearchCandidate
         handleSearchCandidate();
-      }, 5000);
-    }
-
-    return () => {
-      if (autoSearchPollingRef.current) {
-        clearInterval(autoSearchPollingRef.current);
-        autoSearchPollingRef.current = null;
+      } else {
+        console.log("✅ No JD changes - skipping search (hash:", currentHash, ")");
       }
     };
-  }, [jdChanged, isPollingMode]);
 
-  /**
-   * Stop auto-search polling when:
-   * 1. Polling mode is disabled
-   * 2. Candidates are listed (search completed)
-   */
-  useEffect(() => {
-    if ((!isPollingMode || candidatesListed) && autoSearchPollingRef.current) {
-      console.log("🛑 Stopping auto-search polling - polling mode disabled or candidates listed");
-      clearInterval(autoSearchPollingRef.current);
-      autoSearchPollingRef.current = null;
+    // Initial check
+    checkJDChange();
 
-      // Clear the jdChanged flag when candidates are listed
-      if (candidatesListed) {
-        setJdChanged(false);
+    // Set up polling every 3 seconds
+    jdPollingRef.current = setInterval(() => {
+      console.log("⏰ JD polling tick (3s)");
+      checkJDChange();
+    }, 3000);
+
+    return () => {
+      if (jdPollingRef.current) {
+        console.log("🧹 Cleanup: clearing JD polling interval");
+        clearInterval(jdPollingRef.current);
+        jdPollingRef.current = null;
       }
-    }
-  }, [isPollingMode, candidatesListed]);
+    };
+  }, [isPollingMode, request?.jobDescription]);
 
   // Reset state when request changes (but be more selective)
   useEffect(() => {
@@ -642,8 +631,8 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
           htmlFor="polling-mode"
           className="text-sm font-medium cursor-pointer flex items-center gap-2"
         >
-          <span>Auto-search on JD change</span>
-          {isPollingMode && jdChanged && (
+          <span>Auto-search on JD change (3s polling)</span>
+          {isPollingMode && (
             <span className="inline-flex items-center justify-center w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           )}
         </Label>
