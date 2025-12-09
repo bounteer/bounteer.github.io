@@ -953,8 +953,10 @@ export async function addUserToSpace(
     const spaceUserData = {
       space: spaceId,
       user: userId,
-      permission
+      permission: ["read", "write", "delete", "admin"]
     };
+
+    console.log('addUserToSpace: Sending request with data:', spaceUserData);
 
     const response = await fetch(`${directusUrl}/items/space_user`, {
       method: 'POST',
@@ -965,8 +967,11 @@ export async function addUserToSpace(
       body: JSON.stringify(spaceUserData)
     });
 
+    console.log('addUserToSpace: Response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('addUserToSpace: Error response:', errorText);
       return {
         success: false,
         error: `HTTP ${response.status}: ${errorText}`
@@ -974,6 +979,7 @@ export async function addUserToSpace(
     }
 
     const result = await response.json();
+    console.log('addUserToSpace: Success response:', result);
     const spaceUser = result.data || result;
 
     return {
@@ -1234,9 +1240,20 @@ export async function getUserPermissionInSpace(spaceId: number, directusUrl: str
     const result = await response.json();
     const spaceUser = result.data?.[0];
     
+    // Convert JSON permission array to string format for display
+    let permissionString = null;
+    if (spaceUser?.permission && Array.isArray(spaceUser.permission)) {
+      const permissions = spaceUser.permission;
+      if (permissions.includes('admin')) {
+        permissionString = 'readwritedeleteadmin';
+      } else {
+        permissionString = permissions.join('');
+      }
+    }
+    
     return {
       success: true,
-      permission: spaceUser?.permission || null
+      permission: permissionString
     };
   } catch (error) {
     console.error('Error fetching user permission in space:', error);

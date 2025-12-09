@@ -145,15 +145,20 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
     }
   };
 
-  // Permission hierarchy: admin and readwritedelete have full access
+  // Permission hierarchy: admin, readwritedelete, and readwritedeleteadmin have full access
   const hasAdminPermissions = () => {
-    const adminPermissions = ['admin', 'readwritedelete'];
+    const adminPermissions = ['admin', 'readwritedelete', 'readwritedeleteadmin'];
     return adminPermissions.includes(currentUserPermission || '');
   };
 
   // Helper function to parse permissions into individual capabilities
   const getPermissionCapabilities = (permission: string | null) => {
     if (!permission) return [];
+    
+    // Handle special combined permissions for new spaces
+    if (permission === 'readwritedeleteadmin') {
+      return ['Read', 'Write', 'Delete', 'Admin'];
+    }
     
     const capabilities = [];
     if (permission.includes('read')) capabilities.push('Read');
@@ -283,6 +288,12 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
         return;
       }
 
+      console.log("Creating space-user relationship:", {
+        spaceId: spaceResult.space.id,
+        userId: user.id,
+        permission: ["read", "write", "delete", "admin"]
+      });
+
       // Add current user to the space as admin
       const spaceUserResult = await addUserToSpace(
         spaceResult.space.id, 
@@ -292,9 +303,18 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
       );
       
       if (!spaceUserResult.success) {
-        console.warn("Space created but failed to add user:", spaceUserResult.error);
-        // Continue anyway since space was created
+        console.error("Failed to add user to space:", spaceUserResult.error);
+        setError(`Space created but failed to set user permissions: ${spaceUserResult.error}`);
+        // Don't continue since this is critical for space functionality
+        return;
       }
+
+      // Add permissions to the map for immediate display
+      const newPermissionsMap = {
+        ...spacePermissions,
+        [spaceResult.space.id]: 'readwritedeleteadmin'
+      };
+      setSpacePermissions(newPermissionsMap);
 
       // Add to spaces list and select it
       const updatedSpaces = [...spaces, spaceResult.space];
@@ -463,10 +483,10 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                         </div>
                         
                         {/* Permission badges */}
-                        {spacePermissions[space.id] && (
-                          <div className="flex items-center gap-1 mt-3">
-                            <span className="text-xs text-gray-500 mr-1">Your access:</span>
-                            {getPermissionCapabilities(spacePermissions[space.id]).map((capability, index) => (
+                        <div className="flex items-center gap-1 mt-3">
+                          <span className="text-xs text-gray-500 mr-1">Your access:</span>
+                          {spacePermissions[space.id] ? (
+                            getPermissionCapabilities(spacePermissions[space.id]).map((capability, index) => (
                               <span 
                                 key={index}
                                 className={`px-2 py-0.5 text-xs font-medium rounded-full ${
@@ -478,9 +498,13 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                               >
                                 {capability}
                               </span>
-                            ))}
-                          </div>
-                        )}
+                            ))
+                          ) : (
+                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                              Loading...
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <Button
                         onClick={(e) => {
@@ -694,7 +718,19 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
           <CardHeader>
             <CardTitle>Manage Members</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 relative">
+            {/* Coming Soon Mask */}
+            <div className="absolute inset-0 bg-gray-50/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+              <div className="text-center p-6">
+                <div className="mb-4">
+                  <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Coming Soon</h3>
+                <p className="text-gray-500 text-sm">Member management features are currently under development</p>
+              </div>
+            </div>
             {/* Show loading state while fetching user permission */}
             {loadingPermission ? (
               <div className="flex items-center justify-center py-8">
