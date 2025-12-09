@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { createOrbitCandidateSearchRequest, getUserProfile } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 import type { JobDescriptionFormData } from "@/types/models";
@@ -39,7 +41,15 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   const [searchRequestStatus, setSearchRequestStatus] = useState<string>("");
   const [candidatesListed, setCandidatesListed] = useState(false);
 
+  // Polling mode state
+  const [isPollingMode, setIsPollingMode] = useState(false);
+  const [jdChanged, setJdChanged] = useState(false);
+  const [lastJDSnapshot, setLastJDSnapshot] = useState<string>("");
+  const [isDebouncing, setIsDebouncing] = useState(false);
+
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSearchPollingRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
   /**
@@ -426,8 +436,117 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      if (autoSearchPollingRef.current) {
+        clearInterval(autoSearchPollingRef.current);
+        autoSearchPollingRef.current = null;
+      }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
     };
   }, []);
+
+  /**
+   * Detect JD changes by comparing snapshot with 3-second debounce
+   */
+  useEffect(() => {
+    if (!request?.jobDescription) return;
+
+    const currentJDSnapshot = JSON.stringify({
+      company_name: request.jobDescription.company_name,
+      role_name: request.jobDescription.role_name,
+      location: request.jobDescription.location,
+      salary_range: request.jobDescription.salary_range,
+      responsibility: request.jobDescription.responsibility,
+      minimum_requirement: request.jobDescription.minimum_requirement,
+      preferred_requirement: request.jobDescription.preferred_requirement,
+      perk: request.jobDescription.perk,
+      skill: request.jobDescription.skill
+    });
+
+    // Initialize snapshot on first load
+    if (lastJDSnapshot === "") {
+      setLastJDSnapshot(currentJDSnapshot);
+      return;
+    }
+
+    // Detect changes only if not currently debouncing
+    if (currentJDSnapshot !== lastJDSnapshot && !isDebouncing) {
+      console.log("🔄 JD CHANGED - Setting jdChanged flag to true");
+      setJdChanged(true);
+      setLastJDSnapshot(currentJDSnapshot);
+
+      // Start 3-second debounce period
+      setIsDebouncing(true);
+
+      // Clear any existing debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      // Set 3-second debounce
+      debounceTimeoutRef.current = setTimeout(() => {
+        console.log("⏰ Debounce period ended - ready to detect next JD change");
+        setIsDebouncing(false);
+      }, 3000);
+    }
+  }, [request?.jobDescription, isDebouncing]);
+
+  /**
+   * Auto-search polling when JD changes and polling mode is enabled
+   * - Triggers IMMEDIATELY when JD changes
+   * - Continues polling every 5 seconds until candidates are listed
+   */
+  useEffect(() => {
+    // Only start auto-search if:
+    // 1. Polling mode is enabled
+    // 2. JD has changed (flag is on)
+    if (isPollingMode && jdChanged) {
+      console.log("🔄 JD changed while polling mode is ON - triggering IMMEDIATE search");
+
+      // Clear any existing auto-search polling
+      if (autoSearchPollingRef.current) {
+        clearInterval(autoSearchPollingRef.current);
+        autoSearchPollingRef.current = null;
+      }
+
+      // Trigger IMMEDIATE search
+      handleSearchCandidate();
+
+      // Start continuous polling interval (5 seconds)
+      // This will keep searching until candidates are listed
+      autoSearchPollingRef.current = setInterval(() => {
+        console.log("🔄 Auto-search polling tick (5s) - triggering new search");
+        handleSearchCandidate();
+      }, 5000);
+    }
+
+    return () => {
+      if (autoSearchPollingRef.current) {
+        clearInterval(autoSearchPollingRef.current);
+        autoSearchPollingRef.current = null;
+      }
+    };
+  }, [jdChanged, isPollingMode]);
+
+  /**
+   * Stop auto-search polling when:
+   * 1. Polling mode is disabled
+   * 2. Candidates are listed (search completed)
+   */
+  useEffect(() => {
+    if ((!isPollingMode || candidatesListed) && autoSearchPollingRef.current) {
+      console.log("🛑 Stopping auto-search polling - polling mode disabled or candidates listed");
+      clearInterval(autoSearchPollingRef.current);
+      autoSearchPollingRef.current = null;
+
+      // Clear the jdChanged flag when candidates are listed
+      if (candidatesListed) {
+        setJdChanged(false);
+      }
+    }
+  }, [isPollingMode, candidatesListed]);
 
   // Reset state when request changes (but be more selective)
   useEffect(() => {
@@ -461,7 +580,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   }, [request?.job_description_enrichment_session]); // Only depend on session ID, not entire request object
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-4">
       <Button
         onClick={handleSearchCandidate}
         disabled={isSearching || !request?.job_description_enrichment_session}
@@ -510,6 +629,25 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
           </>
         )}
       </Button>
+
+      {/* Polling Mode Toggle */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+        <Switch
+          id="polling-mode"
+          checked={isPollingMode}
+          onCheckedChange={setIsPollingMode}
+          disabled={!request?.job_description_enrichment_session}
+        />
+        <Label
+          htmlFor="polling-mode"
+          className="text-sm font-medium cursor-pointer flex items-center gap-2"
+        >
+          <span>Auto-search on JD change</span>
+          {isPollingMode && jdChanged && (
+            <span className="inline-flex items-center justify-center w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          )}
+        </Label>
+      </div>
 
     </div>
   );
