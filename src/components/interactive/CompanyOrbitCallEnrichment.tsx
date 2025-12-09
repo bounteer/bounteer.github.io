@@ -8,6 +8,7 @@ import type { JobDescriptionFormData } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest } from "@/lib/utils";
 import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_job_description_enrichment_session_by_public_key, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
+import { createGenericSaveRequestOnUnload } from "@/client_side/fetch/generic_request";
 import { EXTERNAL } from "@/constant";
 import JobDescriptionEnrichment, { type JDStage } from "./JobDescriptionEnrichment";
 import CandidateSearch from "./CandidateSearch";
@@ -60,6 +61,7 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
   const [requestId, setRequestId] = useState<string>("");
   const [orbitJobDescriptionEnrichmentSession, setOrbitJobDescriptionEnrichmentSession] = useState<OrbitJobDescriptionEnrichmentSession | null>(null);
   const [jobDescriptionId, setJobDescriptionId] = useState<string | null>(null);
+  const [spaceId, setSpaceId] = useState<number | null>(null);
 
   // State for candidates data
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -292,7 +294,7 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
         if (orbitCallResponse.ok) {
           const orbitCallResult = await orbitCallResponse.json();
           const orbitCall = orbitCallResult.data;
-          
+
           if (orbitCall) {
             if (orbitCall.meeting_url) {
               setCallUrl(orbitCall.meeting_url);
@@ -300,6 +302,11 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
             } else if (orbitCall.testing_filename) {
               setCallUrl(orbitCall.testing_filename);
               setInputMode("testing");
+            }
+
+            // Load space ID if available
+            if (orbitCall.space) {
+              setSpaceId(typeof orbitCall.space === 'object' ? orbitCall.space.id : orbitCall.space);
             }
           }
         }
@@ -572,6 +579,42 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
       clearTimeout(timeout);
     };
   }, [requestId, orbitJobDescriptionEnrichmentSession]);
+
+  /**
+   * Save session data when user exits tab or shuts down browser
+   * Creates a new generic_request with action="save" each time
+   */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only save if we have job data to save
+      if (orbitJobDescriptionEnrichmentSession?.id && jobData) {
+        // Create payload with session context and current job data
+        const payload = {
+          session_id: orbitJobDescriptionEnrichmentSession.id,
+          session_type: "job_description_enrichment",
+          job_description_id: jobDescriptionId,
+          job_data: jobData,
+          space_id: spaceId,
+          timestamp: new Date().toISOString()
+        };
+
+        // Create a generic request with action="save" and category="job_description"
+        createGenericSaveRequestOnUnload(
+          "job_description",
+          payload,
+          EXTERNAL.directus_url,
+          EXTERNAL.directus_key,
+          spaceId || undefined
+        );
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [orbitJobDescriptionEnrichmentSession, jobDescriptionId, jobData, spaceId]);
 
   const renderNotLinkedStage = () => (
     <BackgroundGradientAnimation

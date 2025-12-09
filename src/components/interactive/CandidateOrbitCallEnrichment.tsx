@@ -8,6 +8,7 @@ import type { CandidateProfileFormData, Job } from "@/types/models";
 import { DEFAULT_CANDIDATE_PROFILE, enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest } from "@/lib/utils";
 import { get_orbit_candidate_profile_enrichment_session_by_request_id, get_orbit_candidate_profile_enrichment_session_by_public_key, type OrbitCandidateProfileEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
+import { createGenericSaveRequestOnUnload } from "@/client_side/fetch/generic_request";
 import { EXTERNAL } from "@/constant";
 import CandidateProfileEnrichment, { type CPStage } from "./CandidateProfileEnrichment";
 import JobList from "./JobList";
@@ -34,6 +35,7 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
   const [requestId, setRequestId] = useState<string>("");
   const [orbitCandidateProfileEnrichmentSession, setOrbitCandidateProfileEnrichmentSession] = useState<OrbitCandidateProfileEnrichmentSession | null>(null);
   const [candidateProfileId, setCandidateProfileId] = useState<string | null>(null);
+  const [spaceId, setSpaceId] = useState<number | null>(null);
 
   // State for jobs data
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -130,7 +132,7 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
           if (orbitCallResponse.ok) {
             const orbitCallResult = await orbitCallResponse.json();
             const orbitCall = orbitCallResult.data;
-            
+
             if (orbitCall) {
               if (orbitCall.meeting_url) {
                 setCallUrl(orbitCall.meeting_url);
@@ -138,6 +140,11 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
               } else if (orbitCall.testing_filename) {
                 setCallUrl(orbitCall.testing_filename);
                 setInputMode("testing");
+              }
+
+              // Load space ID if available
+              if (orbitCall.space) {
+                setSpaceId(typeof orbitCall.space === 'object' ? orbitCall.space.id : orbitCall.space);
               }
             }
           }
@@ -400,6 +407,42 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
       clearTimeout(timeout);
     };
   }, [requestId, orbitCandidateProfileEnrichmentSession]);
+
+  /**
+   * Save session data when user exits tab or shuts down browser
+   * Creates a new generic_request with action="save" each time
+   */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only save if we have candidate data to save
+      if (orbitCandidateProfileEnrichmentSession?.id && candidateData) {
+        // Create payload with session context and current candidate data
+        const payload = {
+          session_id: orbitCandidateProfileEnrichmentSession.id,
+          session_type: "candidate_profile_enrichment",
+          candidate_profile_id: candidateProfileId,
+          candidate_data: candidateData,
+          space_id: spaceId,
+          timestamp: new Date().toISOString()
+        };
+
+        // Create a generic request with action="save" and category="candidate_profile"
+        createGenericSaveRequestOnUnload(
+          "candidate_profile",
+          payload,
+          EXTERNAL.directus_url,
+          EXTERNAL.directus_key,
+          spaceId || undefined
+        );
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [orbitCandidateProfileEnrichmentSession, candidateProfileId, candidateData, spaceId]);
 
   const renderNotLinkedStage = () => (
     <BackgroundGradientAnimation
