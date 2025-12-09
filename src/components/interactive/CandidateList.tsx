@@ -5,6 +5,9 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { GlowCard } from "./GlowCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { ChevronDownIcon } from "lucide-react";
 import { getUserSpaces, type Space } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
@@ -40,11 +43,11 @@ interface CandidateListProps {
     requestStatus?: string;
   };
   searchRound?: number; // For tracking re-ranking rounds
-  selectedSpaceId?: string | null;
-  onSpaceChange?: (spaceId: string | null) => void;
+  selectedSpaceIds?: number[];
+  onSpaceChange?: (spaceIds: number[]) => void;
 }
 
-export default function CandidateList({ candidates, searchComponent, isSearching = false, debugInfo, searchRound, selectedSpaceId, onSpaceChange }: CandidateListProps) {
+export default function CandidateList({ candidates, searchComponent, isSearching = false, debugInfo, searchRound, selectedSpaceIds = [], onSpaceChange }: CandidateListProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [isReranking, setIsReranking] = useState(false);
   const previousCandidatesRef = useRef<Candidate[]>([]);
@@ -127,6 +130,13 @@ export default function CandidateList({ candidates, searchComponent, isSearching
         });
     }
   }, [onSpaceChange]);
+
+  // Initialize with all spaces selected when spaces are loaded and none are selected
+  useEffect(() => {
+    if (spaces.length > 0 && selectedSpaceIds.length === 0 && onSpaceChange) {
+      onSpaceChange(spaces.map(s => s.id));
+    }
+  }, [spaces, selectedSpaceIds.length, onSpaceChange]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -464,35 +474,86 @@ export default function CandidateList({ candidates, searchComponent, isSearching
               {/* Space Selector */}
               {onSpaceChange && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">Space:</span>
-                  <Select 
-                    value={selectedSpaceId || "all"} 
-                    onValueChange={(value) => onSpaceChange(value === "all" ? null : value)}
-                    disabled={isLoadingSpaces}
-                  >
-                    <SelectTrigger className="w-60 h-8 text-sm bg-white border-gray-300 focus-visible:ring-primary-500">
-                      <SelectValue placeholder={isLoadingSpaces ? "Loading..." : "Select space"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                      <SelectItem 
-                        value="all"
-                        className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100"
+                  <span className="text-sm font-medium text-gray-700">Spaces:</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-60 h-8 text-sm bg-white border-gray-300 focus-visible:ring-primary-500 justify-between"
+                        disabled={isLoadingSpaces}
+                      >
+                        <span className="truncate">
+                          {isLoadingSpaces 
+                            ? "Loading..." 
+                            : selectedSpaceIds.length === 0 || selectedSpaceIds.length === spaces.length
+                              ? "All Spaces"
+                              : selectedSpaceIds.length === 1
+                                ? spaces.find(s => s.id === selectedSpaceIds[0])?.name || "1 space selected"
+                                : `${selectedSpaceIds.length} spaces selected`
+                          }
+                        </span>
+                        <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-60 bg-white border border-gray-200 shadow-lg">
+                      <DropdownMenuCheckboxItem
+                        checked={selectedSpaceIds.length === 0 || selectedSpaceIds.length === spaces.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            // Select all spaces
+                            onSpaceChange(spaces.map(s => s.id));
+                          } else {
+                            // Cannot deselect all - enforce at least one space selected
+                            // Keep the first space selected
+                            if (spaces.length > 0) {
+                              onSpaceChange([spaces[0].id]);
+                            }
+                          }
+                        }}
+                        className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100 font-medium"
                       >
                         All Spaces
-                      </SelectItem>
-                      {spaces.map((space) => {
-                        return (
-                          <SelectItem 
-                            key={space.id} 
-                            value={space.id.toString()}
-                            className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100"
-                          >
-                            {`${space.name}${space.candidate_profile_count !== undefined ? ` (${space.candidate_profile_count} candidates)` : ''}`}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuSeparator />
+                      {spaces.map((space) => (
+                        <DropdownMenuCheckboxItem
+                          key={space.id}
+                          checked={selectedSpaceIds.length === 0 || selectedSpaceIds.includes(space.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              // Add space to selection
+                              if (selectedSpaceIds.length === 0) {
+                                // If no spaces selected (empty array means "all"), explicitly select this one
+                                onSpaceChange([space.id]);
+                              } else {
+                                // Add to existing selection
+                                onSpaceChange([...selectedSpaceIds, space.id]);
+                              }
+                            } else {
+                              // Remove space from selection, but enforce at least one remains
+                              const newSelection = selectedSpaceIds.filter(id => id !== space.id);
+                              if (newSelection.length === 0) {
+                                // Don't allow empty selection - keep at least one other space
+                                const otherSpaces = spaces.filter(s => s.id !== space.id);
+                                if (otherSpaces.length > 0) {
+                                  onSpaceChange([otherSpaces[0].id]);
+                                } else {
+                                  // Only one space exists, can't deselect it
+                                  return;
+                                }
+                              } else {
+                                onSpaceChange(newSelection);
+                              }
+                            }
+                          }}
+                          className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100"
+                        >
+                          {`${space.name}${space.candidate_profile_count !== undefined ? ` (${space.candidate_profile_count} candidates)` : ''}`}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
               {/* Search Component */}

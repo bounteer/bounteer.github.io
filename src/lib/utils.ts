@@ -471,7 +471,7 @@ export type OrbitCandidateSearchRequest = {
   job_enrichment_session: string; // Renamed from 'session' - references orbit_job_description_enrichment_session
   job_description_snapshot: any;
   status?: 'pending' | 'processing' | 'completed' | 'failed' | 'listed';
-  space?: number | null; // Reference to space table
+  space?: number[] | null; // Array of space IDs - Directus handles junction table automatically
 }
 
 // Create orbit candidate search request in Directus
@@ -479,7 +479,7 @@ export async function createOrbitCandidateSearchRequest(
   jobEnrichmentSessionId: string,
   jobDescriptionSnapshot: any,
   directusUrl: string,
-  spaceId?: number | null
+  spaceIds?: number[]
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
@@ -489,7 +489,7 @@ export async function createOrbitCandidateSearchRequest(
       job_enrichment_session: jobEnrichmentSessionId,
       job_description_snapshot: jobDescriptionSnapshot,
       status: 'pending',
-      space: spaceId || null
+      space: (spaceIds && spaceIds.length > 0) ? spaceIds : null
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_candidate_search_request`, {

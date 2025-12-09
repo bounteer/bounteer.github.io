@@ -24,7 +24,7 @@ interface Candidate {
 interface SearchRequest {
   job_description_enrichment_session: string; // orbit_job_description_enrichment_session ID
   jobDescription: JobDescriptionFormData;
-  spaceId?: number | null; // Selected space ID
+  spaceIds?: number[]; // Selected space IDs
 }
 
 interface CandidateSearchProps {
@@ -406,7 +406,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         request.job_description_enrichment_session,
         jobDescriptionSnapshot,
         EXTERNAL.directus_url,
-        request.spaceId
+        request.spaceIds
       );
 
       if (!result.success) {
