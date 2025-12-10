@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GlowCard } from "./GlowCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Job } from "@/types/models";
@@ -11,11 +11,54 @@ interface JobListProps {
   isSearching?: boolean;
 }
 
+interface JobWithPosition extends Job {
+  previousPosition?: number;
+  currentPosition: number;
+  isNew?: boolean;
+  scoreChange?: number;
+}
+
 export default function JobList({ jobs, searchComponent, isSearching = false }: JobListProps) {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobsWithPosition, setJobsWithPosition] = useState<JobWithPosition[]>([]);
+  const previousJobsRef = useRef<Map<string, { score: number; position: number }>>(new Map());
+
+  // Process jobs to track position changes
+  useEffect(() => {
+    if (jobs.length === 0) {
+      setJobsWithPosition([]);
+      return;
+    }
+
+    // Sort jobs by Job Fit Score in descending order (highest first)
+    const sortedJobs = [...jobs].sort((a, b) => b.jobFitScore - a.jobFitScore);
+
+    const newJobsWithPosition: JobWithPosition[] = sortedJobs.map((job, index) => {
+      const previousData = previousJobsRef.current.get(job.id);
+      const isNew = !previousData;
+      const scoreChange = previousData ? job.jobFitScore - previousData.score : 0;
+
+      return {
+        ...job,
+        currentPosition: index,
+        previousPosition: previousData?.position,
+        isNew,
+        scoreChange
+      };
+    });
+
+    setJobsWithPosition(newJobsWithPosition);
+
+    // Update the reference for next comparison
+    const newMap = new Map<string, { score: number; position: number }>();
+    sortedJobs.forEach((job, index) => {
+      newMap.set(job.id, { score: job.jobFitScore, position: index });
+    });
+    previousJobsRef.current = newMap;
+  }, [jobs]);
 
   // Sort jobs by Job Fit Score in descending order (highest first)
-  const sortedJobs = [...jobs].sort((a, b) => b.jobFitScore - a.jobFitScore);
+  const sortedJobs = jobsWithPosition;
 
   // Auto-select first job when jobs change
   useEffect(() => {
@@ -43,20 +86,55 @@ export default function JobList({ jobs, searchComponent, isSearching = false }: 
     return colors[index % colors.length];
   };
 
-  const renderJobListItem = (job: Job) => {
+  const renderJobListItem = (job: JobWithPosition) => {
     const scoreColors = getScoreColor(job.jobFitScore);
     const isSelected = selectedJob?.id === job.id;
+
+    // Calculate position change
+    const positionChange = job.previousPosition !== undefined
+      ? job.previousPosition - job.currentPosition
+      : 0;
+
+    // Determine animation state
+    let animationClass = '';
+    let positionIndicator = null;
+
+    if (job.isNew) {
+      animationClass = 'animate-slide-in-left';
+    } else if (positionChange > 0) {
+      // Moved up
+      animationClass = 'animate-bounce-subtle';
+      positionIndicator = (
+        <div className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
+          ↑
+        </div>
+      );
+    } else if (positionChange < 0) {
+      // Moved down
+      animationClass = 'animate-shake';
+      positionIndicator = (
+        <div className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full">
+          ↓
+        </div>
+      );
+    }
 
     return (
       <div
         key={job.id}
         onClick={() => setSelectedJob(job)}
-        className={`p-3 border rounded-lg cursor-pointer transition-all ${
+        className={`relative p-3 border rounded-lg cursor-pointer transition-all duration-300 ${animationClass} ${
           isSelected
             ? 'border-primary-500 bg-primary-50'
             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
         }`}
+        style={{
+          transitionProperty: 'all',
+          transitionDuration: '500ms',
+          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
       >
+        {positionIndicator}
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <h3 className={`font-medium text-sm truncate ${
@@ -71,10 +149,15 @@ export default function JobList({ jobs, searchComponent, isSearching = false }: 
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className={`text-xs font-bold ${scoreColors.text}`}>
+            <div className={`text-xs font-bold ${scoreColors.text} transition-all duration-300`}>
               {job.jobFitScore}
+              {job.scoreChange !== undefined && job.scoreChange !== 0 && (
+                <span className={`ml-1 text-[10px] ${job.scoreChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {job.scoreChange > 0 ? '+' : ''}{job.scoreChange.toFixed(1)}
+                </span>
+              )}
             </div>
-            <div className={`w-2 h-6 ${scoreColors.bg} rounded-full`}></div>
+            <div className={`w-2 h-6 ${scoreColors.bg} rounded-full transition-all duration-300`}></div>
           </div>
         </div>
       </div>
