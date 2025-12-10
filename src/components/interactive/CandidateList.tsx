@@ -301,7 +301,14 @@ export default function CandidateList({ candidates, searchComponent, isSearching
         <div className="pb-3 border-b border-gray-200">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 mb-1">{name}</h3>
+              <a
+                href={`/role-fit-index/candidate-profile?id=${selectedCandidate.profile_id}`}
+                className="text-base font-semibold text-primary-600 hover:text-primary-800 underline mb-1 inline-block transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {name}
+              </a>
               <p className="text-sm text-gray-600">{selectedCandidate.title || selectedCandidate.source || 'Candidate'}</p>
               {selectedCandidate.company && (
                 <p className="text-sm text-gray-500 mt-1">{selectedCandidate.company}</p>
