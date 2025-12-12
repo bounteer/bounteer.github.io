@@ -939,6 +939,52 @@ export async function createSpace(
   }
 }
 
+// Search for a user by email
+export async function searchUserByEmail(
+  email: string,
+  directusUrl: string
+): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
+  try {
+    const response = await fetch(`${directusUrl}/users?filter[email][_eq]=${encodeURIComponent(email)}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('searchUserByEmail: Error response:', errorText);
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    const users = result.data || [];
+
+    if (users.length === 0) {
+      return {
+        success: false,
+        error: 'User does not exist'
+      };
+    }
+
+    return {
+      success: true,
+      user: users[0]
+    };
+  } catch (error) {
+    console.error('Error searching user by email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 // Add user to space (create space_user record)
 export async function addUserToSpace(
   spaceId: number, 
@@ -1254,6 +1300,154 @@ export async function getUserPermissionInSpace(spaceId: number, directusUrl: str
     };
   } catch (error) {
     console.error('Error fetching user permission in space:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Get all users in a space with their details
+export type SpaceUserDetail = {
+  id: number;
+  user: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  };
+  permission: string[];
+  date_created: string;
+};
+
+export async function getSpaceUsers(
+  spaceId: number,
+  directusUrl: string
+): Promise<{ success: boolean; users?: SpaceUserDetail[]; error?: string }> {
+  try {
+    const response = await fetch(
+      `${directusUrl}/items/space_user?filter[space][_eq]=${spaceId}&fields=id,user.id,user.first_name,user.last_name,user.email,permission,date_created`,
+      {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    const users = result.data || [];
+
+    return {
+      success: true,
+      users
+    };
+  } catch (error) {
+    console.error('Error fetching space users:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Update user permission in a space
+export async function updateUserPermissionInSpace(
+  spaceUserId: number,
+  permissions: string[],
+  directusUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(
+      `${directusUrl}/items/space_user/${spaceUserId}`,
+      {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          permission: permissions
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('Error updating user permission:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Delete a space and all its associated space_user records
+export async function deleteSpace(
+  spaceId: number,
+  directusUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // First, delete all space_user records for this space
+    const spaceUsersResponse = await fetch(
+      `${directusUrl}/items/space_user?filter[space][_eq]=${spaceId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Note: Directus may return 204 No Content for successful deletions
+    if (!spaceUsersResponse.ok && spaceUsersResponse.status !== 204) {
+      console.warn('Failed to delete space_user records, continuing with space deletion');
+    }
+
+    // Then delete the space itself
+    const spaceResponse = await fetch(
+      `${directusUrl}/items/space/${spaceId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!spaceResponse.ok && spaceResponse.status !== 204) {
+      const errorText = await spaceResponse.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `Failed to delete space: HTTP ${spaceResponse.status}: ${errorText}`
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('Error deleting space:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
