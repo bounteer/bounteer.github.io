@@ -26,7 +26,7 @@ This is the official website code of [Bounteer](https://bounteer.com).
 
 ### OrbitCallDashboard Component
 
-The main dashboard component for managing Bounteer Orbit calls, located at `src/components/interactive/OrbitCallDashboard.tsx`.
+The main dashboard component for managing Bounteer orbit call, located at `src/components/interactive/OrbitCallDashboard.tsx`.
 
 **Key Features:**
 - 3-stage workflow: `not_linked` → `ai_enrichment` → `manual_enrichment`

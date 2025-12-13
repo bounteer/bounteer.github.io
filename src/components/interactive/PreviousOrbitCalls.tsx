@@ -42,7 +42,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
   const [sessions, setSessions] = useState<{[requestId: string]: OrbitCallSession}>({});
 
   /**
-   * Fetch previous orbit calls from Directus
+   * Fetch previous orbit call from Directus
    */
   const fetchPreviousCalls = async () => {
     try {
@@ -299,7 +299,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     return (
       <Card className="w-full mt-6">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Previous Orbit Calls</CardTitle>
+          <CardTitle className="text-lg font-semibold">Previous Orbit Call</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -320,7 +320,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     return (
       <Card className="w-full mt-6">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Previous Orbit Calls</CardTitle>
+          <CardTitle className="text-lg font-semibold">Previous Orbit Call</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
@@ -348,7 +348,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     return (
       <Card className="w-full mt-6">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Previous Orbit Calls</CardTitle>
+          <CardTitle className="text-lg font-semibold">Previous Orbit Call</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
@@ -369,7 +369,7 @@ export default function PreviousOrbitCalls({ onCallSelect }: PreviousOrbitCallsP
     <Card className="w-full mt-6">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Previous Orbit Calls</CardTitle>
+          <CardTitle className="text-lg font-semibold">Previous Orbit Call</CardTitle>
           <Button
             onClick={fetchPreviousCalls}
             variant="ghost"

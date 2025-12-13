@@ -120,11 +120,11 @@ Based on package.json, these ShadCN components are available:
 
 ### Bounteer Orbit Call Enhancements
 - **Space Selector**: Integrated space selection in orbit call setup
-- **Space Filtering**: Previous orbit calls can be filtered by space and call type
-- **Validation**: Orbit calls require space selection before deployment
+- **Space Filtering**: Previous orbit call can be filtered by space and call type
+- **Validation**: orbit call require space selection before deployment
 - **Database Schema**: Proper space relationships in orbit_call_request table
 
-### Previous Orbit Calls
+### Previous Orbit Call
 - **Enhanced Filtering**: Added space and call type filters with "All" options
 - **Improved UI**: Consistent styling between filter dropdowns
 - **Real-time Updates**: Filters update call list dynamically

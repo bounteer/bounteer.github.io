@@ -31,7 +31,7 @@
 
 ## [0.6.0] - 2025-12-01
 ### Added
-- Previous Orbit Calls history list on dashboard when not-linked
+- Previous Orbit Call history list on dashboard when not-linked
 - Company call selection and loading functionality to manual enrichment mode
 - WebSocket heartbeat implementation (30-second intervals) to prevent disconnections
 - Debug information section showing request ID and status in Potential Candidates card

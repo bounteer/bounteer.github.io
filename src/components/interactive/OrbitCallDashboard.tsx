@@ -382,7 +382,7 @@ export default function OrbitCallDashboard() {
         {renderNotLinkedStage()}
       </div>
       
-      {/* Show previous orbit calls for navigation */}
+      {/* Show previous orbit call for navigation */}
       <PreviousOrbitCalls />
     </div>
   );
