@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDownIcon } from "lucide-react";
-import { getUserSpaces, type Space } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronDownIcon, SettingsIcon, ChevronUpIcon } from "lucide-react";
+import { getUserSpaces, getSetting, setSetting, getUserProfile, type Space } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
 interface Candidate {
@@ -57,6 +58,20 @@ export default function CandidateList({ candidates, searchComponent, isSearching
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [isLoadingSpaces, setIsLoadingSpaces] = useState(false);
 
+  // Settings collapse state
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+
+  // Custom prompt from settings
+  const [customPrompt, setCustomPrompt] = useState<string | null>(null);
+  const [customPromptLoading, setCustomPromptLoading] = useState(false);
+  const [customPromptError, setCustomPromptError] = useState<string | null>(null);
+  const [promptScope, setPromptScope] = useState<'global' | 'user' | null>(null); // Track which scope was found
+  
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
   // Helper function to get candidate score (backward compatibility)
   const getCandidateScore = (candidate: Candidate): number => {
     return candidate.rag_match_score ?? candidate.ragScore ?? 0;
@@ -70,6 +85,121 @@ export default function CandidateList({ candidates, searchComponent, isSearching
   // Helper function to get candidate ID (using profile_id as primary)
   const getCandidateId = (candidate: Candidate): string => {
     return candidate.profile_id?.toString() ?? candidate.id ?? '0';
+  };
+
+  /**
+   * Fetch the custom candidate search prompt from settings
+   * Priority: user scope -> global scope -> default
+   */
+  const fetchCustomPrompt = async () => {
+    try {
+      setCustomPromptLoading(true);
+      setCustomPromptError(null);
+      setPromptScope(null);
+      
+      // Get current user for scope checking
+      const user = await getUserProfile(EXTERNAL.directus_url);
+      
+      let foundPrompt = null;
+      let foundScope: 'global' | 'user' | null = null;
+      
+      // First, try to get user-specific setting
+      if (user?.id) {
+        console.log("Checking for user-specific prompt for user:", user.id);
+        // For user scope, pass scope as "user" and scope_id as the user's UUID
+        const userResult = await getSetting("candidate_search_prompt", EXTERNAL.directus_url, "user", user.id);
+        if (userResult.success && userResult.value) {
+          foundPrompt = userResult.value;
+          foundScope = 'user';
+          console.log("Found user-specific prompt:", foundPrompt);
+        }
+      }
+      
+      // If no user-specific setting, try global setting
+      if (!foundPrompt) {
+        console.log("Checking for global prompt");
+        const globalResult = await getSetting("candidate_search_prompt", EXTERNAL.directus_url, "global");
+        if (globalResult.success && globalResult.value) {
+          foundPrompt = globalResult.value;
+          foundScope = 'global';
+          console.log("Found global prompt:", foundPrompt);
+        }
+      }
+      
+      if (foundPrompt) {
+        setCustomPrompt(foundPrompt);
+        setPromptScope(foundScope);
+        setEditPrompt(foundPrompt); // Initialize edit state with current value
+        console.log(`Loaded ${foundScope} candidate search prompt:`, foundPrompt);
+      } else {
+        console.log("No custom candidate search prompt found, using default");
+        setCustomPrompt(null);
+        setPromptScope(null);
+        setEditPrompt(''); // Initialize with empty for new creation
+      }
+    } catch (error) {
+      console.error("Error fetching custom prompt:", error);
+      setCustomPrompt(null);
+      setPromptScope(null);
+      setCustomPromptError("Failed to fetch custom prompt");
+    } finally {
+      setCustomPromptLoading(false);
+    }
+  };
+
+  /**
+   * Save the custom prompt (always saves as user scope)
+   */
+  const saveCustomPrompt = async () => {
+    try {
+      setIsSaving(true);
+      
+      const user = await getUserProfile(EXTERNAL.directus_url);
+      if (!user?.id) {
+        setCustomPromptError("User not authenticated");
+        return;
+      }
+
+      const result = await setSetting(
+        "candidate_search_prompt",
+        editPrompt.trim(),
+        EXTERNAL.directus_url,
+        "user",
+        user.id, // Pass user ID as scope_id (now supports string type)
+        "string"
+      );
+
+      if (result.success) {
+        setCustomPrompt(editPrompt.trim());
+        setPromptScope('user');
+        setIsEditMode(false);
+        setCustomPromptError(null);
+        console.log("Successfully saved user-specific prompt");
+      } else {
+        setCustomPromptError(result.error || "Failed to save prompt");
+      }
+    } catch (error) {
+      console.error("Error saving prompt:", error);
+      setCustomPromptError("Failed to save prompt");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
+   * Cancel edit mode and revert changes
+   */
+  const cancelEdit = () => {
+    setEditPrompt(customPrompt || '');
+    setIsEditMode(false);
+  };
+
+  /**
+   * Start edit mode
+   */
+  const startEdit = () => {
+    setEditPrompt(customPrompt || '');
+    setIsEditMode(true);
   };
 
   // Sort candidates by RAG score in descending order (highest first)
@@ -137,6 +267,13 @@ export default function CandidateList({ candidates, searchComponent, isSearching
       onSpaceChange(spaces.map(s => s.id));
     }
   }, [spaces, selectedSpaceIds.length, onSpaceChange]);
+
+  // Fetch custom prompt when settings are first expanded
+  useEffect(() => {
+    if (isSettingsExpanded && !customPrompt && !customPromptLoading && !customPromptError) {
+      fetchCustomPrompt();
+    }
+  }, [isSettingsExpanded, customPrompt, customPromptLoading, customPromptError]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -423,6 +560,20 @@ export default function CandidateList({ candidates, searchComponent, isSearching
               <h2 className="text-lg font-semibold text-gray-900">
                 Potential Candidates ({sortedCandidates.length})
               </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <SettingsIcon className="w-4 h-4 mr-1" />
+                Settings
+                {isSettingsExpanded ? (
+                  <ChevronUpIcon className="w-4 h-4 ml-1" />
+                ) : (
+                  <ChevronDownIcon className="w-4 h-4 ml-1" />
+                )}
+              </Button>
               {/* Re-ranking indicator */}
               <AnimatePresence>
                 {isReranking && (
@@ -572,6 +723,153 @@ export default function CandidateList({ candidates, searchComponent, isSearching
             </div>
           </div>
         </div>
+
+        {/* Collapsible Settings Section */}
+        <AnimatePresence>
+          {isSettingsExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="border-b border-gray-200 overflow-hidden"
+            >
+              <div className="px-6 py-4 bg-gray-50">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">Search Configuration</h3>
+                
+                {/* Custom Prompt Configuration */}
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-700 mb-2">Custom Search Prompt</h4>
+                    {customPromptLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                        Loading custom search prompt...
+                      </div>
+                    ) : customPromptError ? (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0">
+                            <svg className="w-4 h-4 text-yellow-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-yellow-800">
+                              Using default search prompt
+                            </div>
+                            <div className="text-xs text-yellow-600 mt-1">
+                              {customPromptError}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : customPrompt || isEditMode ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0">
+                            <svg className="w-4 h-4 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-xs font-medium text-blue-800">
+                                {customPrompt ? 'Custom prompt active' : 'Create custom prompt'}
+                              </div>
+                              {!isEditMode && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={startEdit}
+                                  className="h-6 px-2 text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-100"
+                                >
+                                  Edit
+                                </Button>
+                              )}
+                            </div>
+                            <div className="text-xs text-blue-600 mb-2">
+                              Scope: <span className="font-medium">{promptScope || 'user'}</span> | 
+                              Key: <code className="bg-blue-100 text-blue-800 px-1 rounded text-xs">candidate_search_prompt</code>
+                            </div>
+                            
+                            {isEditMode ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editPrompt}
+                                  onChange={(e) => setEditPrompt(e.target.value)}
+                                  placeholder="Enter your custom candidate search prompt..."
+                                  className="text-xs font-mono resize-none"
+                                  rows={4}
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={saveCustomPrompt}
+                                    disabled={isSaving || editPrompt.trim() === (customPrompt || '')}
+                                    className="h-6 px-3 text-xs"
+                                  >
+                                    {isSaving ? 'Saving...' : 'Save'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={cancelEdit}
+                                    disabled={isSaving}
+                                    className="h-6 px-3 text-xs"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : customPrompt && (
+                              <div className="bg-white border border-blue-200 rounded p-2 max-h-24 overflow-y-auto">
+                                <div className="text-xs font-mono text-gray-800 whitespace-pre-wrap break-words">
+                                  {customPrompt}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-100 border border-gray-300 rounded p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0">
+                            <svg className="w-4 h-4 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-xs font-medium text-gray-700">
+                                Using default search prompt
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={startEdit}
+                                className="h-6 px-2 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-200"
+                              >
+                                Create Custom
+                              </Button>
+                            </div>
+                            <div className="text-xs text-gray-600 mb-2">
+                              No custom prompt configured. The system uses default search behavior.
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Key: <code className="bg-white border border-gray-300 rounded px-1 text-gray-700 font-mono">candidate_search_prompt</code>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Card Content */}
         <div className="p-6">

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { createOrbitCandidateSearchRequest, getUserProfile } from "@/lib/utils";
+import { createOrbitCandidateSearchRequest, getUserProfile, getSetting } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 import type { JobDescriptionFormData } from "@/types/models";
 
@@ -47,8 +47,41 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   const lastSearchedJDHash = useRef<number>(0);
   const [hasPendingSearch, setHasPendingSearch] = useState(false); // Track if there's a pending search after JD change
 
+  // Custom prompt from settings
+  const [customPrompt, setCustomPrompt] = useState<string | null>(null);
+  const [customPromptLoading, setCustomPromptLoading] = useState(true);
+  const [customPromptError, setCustomPromptError] = useState<string | null>(null);
+
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const jdPollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  /**
+   * Fetch the custom candidate search prompt from settings
+   */
+  const fetchCustomPrompt = async () => {
+    try {
+      setCustomPromptLoading(true);
+      setCustomPromptError(null);
+      
+      const result = await getSetting("candidate_search_prompt", EXTERNAL.directus_url);
+      if (result.success && result.value) {
+        setCustomPrompt(result.value);
+        console.log("Loaded custom candidate search prompt:", result.value);
+      } else {
+        console.log("No custom candidate search prompt found, using default");
+        setCustomPrompt(null);
+        if (!result.success && result.error) {
+          setCustomPromptError(result.error);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching custom prompt:", error);
+      setCustomPrompt(null);
+      setCustomPromptError("Failed to fetch custom prompt");
+    } finally {
+      setCustomPromptLoading(false);
+    }
+  };
 
   /**
    * Simple hash function for JD comparison
@@ -406,7 +439,8 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         request.job_description_enrichment_session,
         jobDescriptionSnapshot,
         EXTERNAL.directus_url,
-        request.spaceIds
+        request.spaceIds,
+        customPrompt || undefined
       );
 
       if (!result.success) {
@@ -483,6 +517,11 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
         jdPollingRef.current = null;
       }
     };
+  }, []);
+
+  // Fetch custom prompt on component mount
+  useEffect(() => {
+    fetchCustomPrompt();
   }, []);
 
   /**
@@ -605,15 +644,17 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
   }, [request?.job_description_enrichment_session]); // Only depend on session ID, not entire request object
 
   return (
-    <div className="flex items-center gap-4">
-      {/* Hide search button when realtime search is enabled */}
-      {!isPollingMode && (
-        <Button
-          onClick={handleSearchCandidate}
-          disabled={isSearching || !request?.job_description_enrichment_session}
-          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700"
-          size="sm"
-        >
+    <div className="space-y-4">
+      {/* Search Controls */}
+      <div className="flex items-center gap-4">
+        {/* Hide search button when realtime search is enabled */}
+        {!isPollingMode && (
+          <Button
+            onClick={handleSearchCandidate}
+            disabled={isSearching || !request?.job_description_enrichment_session}
+            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700"
+            size="sm"
+          >
         {isSearching ? (
           <>
             <svg
@@ -681,7 +722,7 @@ export default function CandidateSearch({ request, onResults, onError, onSearchi
           )}
         </Label>
       </div>
-
+      </div>
     </div>
   );
 }

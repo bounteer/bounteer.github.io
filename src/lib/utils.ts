@@ -472,6 +472,7 @@ export type OrbitCandidateSearchRequest = {
   job_description_snapshot: any;
   status?: 'pending' | 'processing' | 'completed' | 'failed' | 'listed';
   space?: number[] | null; // Array of space IDs - Directus handles junction table automatically
+  custom_prompt?: string; // Custom prompt for candidate search
 }
 
 // Create orbit candidate search request in Directus
@@ -479,7 +480,8 @@ export async function createOrbitCandidateSearchRequest(
   jobEnrichmentSessionId: string,
   jobDescriptionSnapshot: any,
   directusUrl: string,
-  spaceIds?: number[]
+  spaceIds?: number[],
+  customPrompt?: string
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
@@ -489,7 +491,8 @@ export async function createOrbitCandidateSearchRequest(
       job_enrichment_session: jobEnrichmentSessionId,
       job_description_snapshot: jobDescriptionSnapshot,
       status: 'pending',
-      space: (spaceIds && spaceIds.length > 0) ? spaceIds : null
+      space: (spaceIds && spaceIds.length > 0) ? spaceIds : null,
+      custom_prompt: customPrompt || null
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_candidate_search_request`, {
@@ -1463,5 +1466,240 @@ export async function getPackageVersion(): Promise<string> {
   } catch (error) {
     console.error("Error reading package.json version:", error);
     return "0.0.0";
+  }
+}
+
+// Setting types
+export type SettingItem = {
+  id: number;
+  key: string;
+  scope?: string;
+  scope_id?: string;
+  value_type?: string;
+  value_boolean?: boolean;
+  value_number?: number;
+  value_string?: string;
+  value_json?: any;
+}
+
+// Fetch a setting by key from the setting_item table
+export async function getSetting(
+  key: string,
+  directusUrl: string,
+  scope?: string,
+  scope_id?: string
+): Promise<{ success: boolean; setting?: SettingItem; value?: any; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    const authHeaders = getAuthHeaders(user);
+
+    // Build filter based on key and optional scope
+    let filter = `filter[key][_eq]=${encodeURIComponent(key)}`;
+    if (scope) {
+      filter += `&filter[scope][_eq]=${encodeURIComponent(scope)}`;
+    }
+    if (scope_id !== undefined && scope_id !== null) {
+      filter += `&filter[scope_id][_eq]=${encodeURIComponent(scope_id)}`;
+    }
+
+    const response = await fetch(
+      `${directusUrl}/items/setting_item?${filter}&limit=1&fields=*`,
+      {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    const setting = result.data?.[0];
+
+    if (!setting) {
+      return {
+        success: false,
+        error: `Setting with key '${key}' not found`
+      };
+    }
+
+    // Extract the actual value based on value_type
+    let value = null;
+    switch (setting.value_type) {
+      case 'boolean':
+        value = setting.value_boolean;
+        break;
+      case 'number':
+        value = setting.value_number;
+        break;
+      case 'string':
+        value = setting.value_string;
+        break;
+      case 'json':
+        value = setting.value_json;
+        break;
+      default:
+        // If no value_type specified, try to determine the appropriate value
+        if (setting.value_boolean !== null) value = setting.value_boolean;
+        else if (setting.value_number !== null) value = setting.value_number;
+        else if (setting.value_string !== null) value = setting.value_string;
+        else if (setting.value_json !== null) value = setting.value_json;
+        break;
+    }
+
+    return {
+      success: true,
+      setting,
+      value
+    };
+  } catch (error) {
+    console.error('Error fetching setting:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Create or update a setting by key
+export async function setSetting(
+  key: string,
+  value: any,
+  directusUrl: string,
+  scope?: string,
+  scope_id?: string,
+  value_type?: 'string' | 'number' | 'boolean' | 'json'
+): Promise<{ success: boolean; setting?: SettingItem; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    const authHeaders = getAuthHeaders(user);
+
+    // Determine value_type if not specified
+    if (!value_type) {
+      if (typeof value === 'boolean') {
+        value_type = 'boolean';
+      } else if (typeof value === 'number') {
+        value_type = 'number';
+      } else if (typeof value === 'object') {
+        value_type = 'json';
+      } else {
+        value_type = 'string';
+      }
+    }
+
+    // Prepare the setting data
+    const settingData: any = {
+      key,
+      value_type,
+      scope,
+      scope_id
+    };
+
+    // Set the appropriate value field based on type
+    switch (value_type) {
+      case 'boolean':
+        settingData.value_boolean = value;
+        break;
+      case 'number':
+        settingData.value_number = value;
+        break;
+      case 'json':
+        settingData.value_json = value;
+        break;
+      default:
+        settingData.value_string = value;
+        break;
+    }
+
+    // First, try to find existing setting with same key, scope, and scope_id
+    let filter = `filter[key][_eq]=${encodeURIComponent(key)}`;
+    if (scope) {
+      filter += `&filter[scope][_eq]=${encodeURIComponent(scope)}`;
+    }
+    if (scope_id !== undefined && scope_id !== null) {
+      filter += `&filter[scope_id][_eq]=${encodeURIComponent(scope_id)}`;
+    }
+
+    const existingResponse = await fetch(
+      `${directusUrl}/items/setting_item?${filter}&limit=1&fields=id`,
+      {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        }
+      }
+    );
+
+    let response;
+    let isUpdate = false;
+
+    if (existingResponse.ok) {
+      const existingResult = await existingResponse.json();
+      const existingSetting = existingResult.data?.[0];
+
+      if (existingSetting) {
+        // Update existing setting
+        isUpdate = true;
+        response = await fetch(
+          `${directusUrl}/items/setting_item/${existingSetting.id}`,
+          {
+            method: 'PATCH',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...authHeaders
+            },
+            body: JSON.stringify(settingData)
+          }
+        );
+      }
+    }
+
+    if (!isUpdate) {
+      // Create new setting
+      response = await fetch(
+        `${directusUrl}/items/setting_item`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify(settingData)
+        }
+      );
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      setting: result.data || result
+    };
+  } catch (error) {
+    console.error('Error saving setting:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
 }

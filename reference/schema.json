@@ -2943,83 +2943,6 @@
     },
     "x-collection": "referral_code_directus_users"
   },
-  "ItemsOrbitCandidateSearchRequest": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "job_description_snapshot": {
-        "nullable": true
-      },
-      "status": {
-        "nullable": true,
-        "description": "options: [\"pending\", \"processing\", \"completed\", \"failed\"]",
-        "type": "string"
-      },
-      "job_description_enrichment_session": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
-          }
-        ]
-      },
-      "space": {
-        "nullable": true,
-        "type": "array",
-        "items": {
-          "oneOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "$ref": "#/components/schemas/ItemsOrbitCandidateSearchRequestSpace"
-            }
-          ]
-        }
-      }
-    },
-    "x-collection": "orbit_candidate_search_request"
-  },
   "ItemsOrbitSearchResultRoleFitIndexSubmission": {
     "type": "object",
     "properties": {
@@ -3263,6 +3186,72 @@
       }
     },
     "x-collection": "orbit_call_request"
+  },
+  "ItemsOrbitCandidateSearchRequest": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "job_description_snapshot": {
+        "nullable": true
+      },
+      "status": {
+        "nullable": true,
+        "description": "options: [\"pending\", \"processing\", \"completed\", \"failed\"]",
+        "type": "string"
+      },
+      "job_description_enrichment_session": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsOrbitJobDescriptionEnrichmentSession"
+          }
+        ]
+      },
+      "space": {
+        "nullable": true
+      }
+    },
+    "x-collection": "orbit_candidate_search_request"
   },
   "ItemsOrbitJobSearchResult": {
     "type": "object",
@@ -3932,36 +3921,80 @@
     },
     "x-collection": "generic_request"
   },
-  "ItemsOrbitCandidateSearchRequestSpace": {
+  "ItemsSettingItem": {
     "type": "object",
     "properties": {
       "id": {
         "nullable": false,
         "type": "integer"
       },
-      "orbit_candidate_search_request_id": {
+      "user_created": {
         "nullable": true,
         "oneOf": [
           {
-            "type": "integer"
+            "type": "string",
+            "format": "uuid"
           },
           {
-            "$ref": "#/components/schemas/ItemsOrbitCandidateSearchRequest"
+            "$ref": "#/components/schemas/Users"
           }
         ]
       },
-      "space_id": {
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
         "nullable": true,
         "oneOf": [
           {
-            "type": "integer"
+            "type": "string",
+            "format": "uuid"
           },
           {
-            "$ref": "#/components/schemas/ItemsSpace"
+            "$ref": "#/components/schemas/Users"
           }
         ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "key": {
+        "nullable": true,
+        "type": "string"
+      },
+      "scope": {
+        "nullable": true,
+        "type": "string"
+      },
+      "value_type": {
+        "nullable": true,
+        "type": "string"
+      },
+      "value_boolean": {
+        "nullable": true,
+        "type": "boolean"
+      },
+      "value_number": {
+        "nullable": true,
+        "type": "number",
+        "format": "float"
+      },
+      "value_string": {
+        "nullable": true,
+        "type": "string"
+      },
+      "value_json": {
+        "nullable": true
+      },
+      "scope_id": {
+        "nullable": true,
+        "type": "string"
       }
     },
-    "x-collection": "orbit_candidate_search_request_space"
+    "x-collection": "setting_item"
   }
 }
