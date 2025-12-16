@@ -568,27 +568,6 @@ export default function JobDescriptionEnrichment({
         <div className="relative p-6 h-full flex items-center">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
-              <Button
-                onClick={() => onStageChange("not_linked")}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/10 hover:text-white p-2 h-8 w-8"
-                title="Back to setup"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
-              </Button>
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-semibold text-white">Job Description Enrichment</h3>
