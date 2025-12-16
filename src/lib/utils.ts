@@ -1478,7 +1478,7 @@ export type SettingItem = {
   value_type?: string;
   value_boolean?: boolean;
   value_number?: number;
-  value_string?: string;
+  value_text?: string;
   value_json?: any;
 }
 
@@ -1502,8 +1502,12 @@ export async function getSetting(
       filter += `&filter[scope_id][_eq]=${encodeURIComponent(scope_id)}`;
     }
 
+    const fullUrl = `${directusUrl}/items/setting_item?${filter}&limit=1&fields=*`;
+    console.log('[getSetting] Fetching:', fullUrl);
+    console.log('[getSetting] Parameters:', { key, scope, scope_id });
+
     const response = await fetch(
-      `${directusUrl}/items/setting_item?${filter}&limit=1&fields=*`,
+      fullUrl,
       {
         method: 'GET',
         credentials: 'include',
@@ -1516,6 +1520,7 @@ export async function getSetting(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('[getSetting] HTTP error:', response.status, errorText);
       return {
         success: false,
         error: `HTTP ${response.status}: ${errorText}`
@@ -1523,14 +1528,18 @@ export async function getSetting(
     }
 
     const result = await response.json();
+    console.log('[getSetting] Response:', result);
     const setting = result.data?.[0];
 
     if (!setting) {
+      console.log('[getSetting] No setting found with filter:', filter);
       return {
         success: false,
         error: `Setting with key '${key}' not found`
       };
     }
+
+    console.log('[getSetting] Found setting:', setting);
 
     // Extract the actual value based on value_type
     let value = null;
@@ -1541,8 +1550,8 @@ export async function getSetting(
       case 'number':
         value = setting.value_number;
         break;
-      case 'string':
-        value = setting.value_string;
+      case 'text':
+        value = setting.value_text;
         break;
       case 'json':
         value = setting.value_json;
@@ -1551,7 +1560,7 @@ export async function getSetting(
         // If no value_type specified, try to determine the appropriate value
         if (setting.value_boolean !== null) value = setting.value_boolean;
         else if (setting.value_number !== null) value = setting.value_number;
-        else if (setting.value_string !== null) value = setting.value_string;
+        else if (setting.value_text !== null) value = setting.value_text;
         else if (setting.value_json !== null) value = setting.value_json;
         break;
     }
@@ -1577,7 +1586,7 @@ export async function setSetting(
   directusUrl: string,
   scope?: string,
   scope_id?: string,
-  value_type?: 'string' | 'number' | 'boolean' | 'json'
+  value_type?: 'text' | 'number' | 'boolean' | 'json'
 ): Promise<{ success: boolean; setting?: SettingItem; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
@@ -1592,7 +1601,7 @@ export async function setSetting(
       } else if (typeof value === 'object') {
         value_type = 'json';
       } else {
-        value_type = 'string';
+        value_type = 'text';
       }
     }
 
@@ -1615,8 +1624,8 @@ export async function setSetting(
       case 'json':
         settingData.value_json = value;
         break;
-      default:
-        settingData.value_string = value;
+      case 'text':
+        settingData.value_text = value;
         break;
     }
 
@@ -1641,8 +1650,7 @@ export async function setSetting(
       }
     );
 
-    let response;
-    let isUpdate = false;
+    let response: Response;
 
     if (existingResponse.ok) {
       const existingResult = await existingResponse.json();
@@ -1650,7 +1658,6 @@ export async function setSetting(
 
       if (existingSetting) {
         // Update existing setting
-        isUpdate = true;
         response = await fetch(
           `${directusUrl}/items/setting_item/${existingSetting.id}`,
           {
@@ -1663,11 +1670,23 @@ export async function setSetting(
             body: JSON.stringify(settingData)
           }
         );
+      } else {
+        // No existing setting found, create new one
+        response = await fetch(
+          `${directusUrl}/items/setting_item`,
+          {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...authHeaders
+            },
+            body: JSON.stringify(settingData)
+          }
+        );
       }
-    }
-
-    if (!isUpdate) {
-      // Create new setting
+    } else {
+      // Create new setting if existingResponse was not ok
       response = await fetch(
         `${directusUrl}/items/setting_item`,
         {

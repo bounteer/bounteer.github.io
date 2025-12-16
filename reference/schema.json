@@ -3983,14 +3983,14 @@
         "type": "number",
         "format": "float"
       },
-      "value_string": {
-        "nullable": true,
-        "type": "string"
-      },
       "value_json": {
         "nullable": true
       },
       "scope_id": {
+        "nullable": true,
+        "type": "string"
+      },
+      "value_text": {
         "nullable": true,
         "type": "string"
       }

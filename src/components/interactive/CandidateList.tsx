@@ -66,7 +66,8 @@ export default function CandidateList({ candidates, searchComponent, isSearching
   const [customPromptLoading, setCustomPromptLoading] = useState(false);
   const [customPromptError, setCustomPromptError] = useState<string | null>(null);
   const [promptScope, setPromptScope] = useState<'global' | 'user' | null>(null); // Track which scope was found
-  
+  const [hasFetchedPrompt, setHasFetchedPrompt] = useState(false); // Track if we've already attempted to fetch
+
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
   const [editPrompt, setEditPrompt] = useState('');
@@ -96,13 +97,13 @@ export default function CandidateList({ candidates, searchComponent, isSearching
       setCustomPromptLoading(true);
       setCustomPromptError(null);
       setPromptScope(null);
-      
+
       // Get current user for scope checking
       const user = await getUserProfile(EXTERNAL.directus_url);
-      
+
       let foundPrompt = null;
       let foundScope: 'global' | 'user' | null = null;
-      
+
       // First, try to get user-specific setting
       if (user?.id) {
         console.log("Checking for user-specific prompt for user:", user.id);
@@ -114,18 +115,22 @@ export default function CandidateList({ candidates, searchComponent, isSearching
           console.log("Found user-specific prompt:", foundPrompt);
         }
       }
-      
+
       // If no user-specific setting, try global setting
       if (!foundPrompt) {
         console.log("Checking for global prompt");
         const globalResult = await getSetting("candidate_search_prompt", EXTERNAL.directus_url, "global");
-        if (globalResult.success && globalResult.value) {
+        console.log("Global result:", globalResult);
+        console.log("Global result.success:", globalResult.success);
+        console.log("Global result.value:", globalResult.value);
+        console.log("Global result.value type:", typeof globalResult.value);
+        if (globalResult.success && globalResult.value !== null && globalResult.value !== undefined) {
           foundPrompt = globalResult.value;
           foundScope = 'global';
           console.log("Found global prompt:", foundPrompt);
         }
       }
-      
+
       if (foundPrompt) {
         setCustomPrompt(foundPrompt);
         setPromptScope(foundScope);
@@ -133,6 +138,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
         console.log(`Loaded ${foundScope} candidate search prompt:`, foundPrompt);
       } else {
         console.log("No custom candidate search prompt found, using default");
+        console.log("foundPrompt value was:", foundPrompt);
         setCustomPrompt(null);
         setPromptScope(null);
         setEditPrompt(''); // Initialize with empty for new creation
@@ -144,6 +150,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
       setCustomPromptError("Failed to fetch custom prompt");
     } finally {
       setCustomPromptLoading(false);
+      setHasFetchedPrompt(true); // Mark that we've attempted to fetch
     }
   };
 
@@ -166,7 +173,7 @@ export default function CandidateList({ candidates, searchComponent, isSearching
         EXTERNAL.directus_url,
         "user",
         user.id, // Pass user ID as scope_id (now supports string type)
-        "string"
+        "text"
       );
 
       if (result.success) {
@@ -181,6 +188,67 @@ export default function CandidateList({ candidates, searchComponent, isSearching
     } catch (error) {
       console.error("Error saving prompt:", error);
       setCustomPromptError("Failed to save prompt");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
+   * Delete the user-scoped custom prompt
+   */
+  const deleteCustomPrompt = async () => {
+    // Confirm before deleting
+    if (!confirm("Are you sure you want to delete your custom prompt? This will revert to the global prompt if available.")) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const user = await getUserProfile(EXTERNAL.directus_url);
+      if (!user?.id) {
+        setCustomPromptError("User not authenticated");
+        return;
+      }
+
+      // Find the user-scoped setting
+      const result = await getSetting("candidate_search_prompt", EXTERNAL.directus_url, "user", user.id);
+
+      if (!result.success || !result.setting?.id) {
+        setCustomPromptError("No user prompt found to delete");
+        return;
+      }
+
+      // Delete the setting
+      const deleteResponse = await fetch(
+        `${EXTERNAL.directus_url}/items/setting_item/${result.setting.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${EXTERNAL.directus_key}`
+          }
+        }
+      );
+
+      if (deleteResponse.ok) {
+        console.log("Successfully deleted user-specific prompt");
+        // Reset state and re-fetch to get global or default
+        setCustomPrompt(null);
+        setPromptScope(null);
+        setEditPrompt('');
+        setIsEditMode(false);
+        setHasFetchedPrompt(false);
+        setCustomPromptError(null);
+        // Re-fetch to get global prompt if available
+        await fetchCustomPrompt();
+      } else {
+        setCustomPromptError("Failed to delete prompt");
+      }
+    } catch (error) {
+      console.error("Error deleting prompt:", error);
+      setCustomPromptError("Failed to delete prompt");
     } finally {
       setIsSaving(false);
     }
@@ -270,10 +338,10 @@ export default function CandidateList({ candidates, searchComponent, isSearching
 
   // Fetch custom prompt when settings are first expanded
   useEffect(() => {
-    if (isSettingsExpanded && !customPrompt && !customPromptLoading && !customPromptError) {
+    if (isSettingsExpanded && !hasFetchedPrompt && !customPromptLoading) {
       fetchCustomPrompt();
     }
-  }, [isSettingsExpanded, customPrompt, customPromptLoading, customPromptError]);
+  }, [isSettingsExpanded, hasFetchedPrompt, customPromptLoading]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -778,14 +846,27 @@ export default function CandidateList({ candidates, searchComponent, isSearching
                                 {customPrompt ? 'Custom prompt active' : 'Create custom prompt'}
                               </div>
                               {!isEditMode && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={startEdit}
-                                  className="h-6 px-2 text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-100"
-                                >
-                                  Edit
-                                </Button>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={startEdit}
+                                    className="h-6 px-2 text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-100"
+                                  >
+                                    Edit
+                                  </Button>
+                                  {customPrompt && promptScope === 'user' && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={deleteCustomPrompt}
+                                      disabled={isSaving}
+                                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      Delete
+                                    </Button>
+                                  )}
+                                </div>
                               )}
                             </div>
                             <div className="text-xs text-blue-600 mb-2">

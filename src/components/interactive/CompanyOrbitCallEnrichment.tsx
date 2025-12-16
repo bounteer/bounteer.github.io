@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 import type { JobDescriptionFormData } from "@/types/models";
 import { enrichAndValidateCallUrl } from "@/types/models";
-import { createOrbitCallRequest } from "@/lib/utils";
+import { createOrbitCallRequest, getUserProfile } from "@/lib/utils";
 import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_job_description_enrichment_session_by_public_key, type OrbitJobDescriptionEnrichmentSession } from "@/client_side/fetch/orbit_call_session";
 import { createGenericSaveRequestOnUnload } from "@/client_side/fetch/generic_request";
 import { EXTERNAL } from "@/constant";
@@ -240,6 +240,98 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
       if (sessionId) {
         await fetchCandidateSearchBySessionPublicKey(sessionId);
       }
+    }
+  };
+
+  /**
+   * Fetch candidates by search request ID
+   */
+  const fetchCandidatesByRequestId = async (requestId: string) => {
+    try {
+      console.log("Fetching candidates for request ID:", requestId);
+
+      // Ensure user is authenticated first
+      await getUserProfile(EXTERNAL.directus_url);
+
+      const searchResultsResponse = await fetch(
+        `${EXTERNAL.directus_url}/items/orbit_candidate_search_result?filter[request][_eq]=${encodeURIComponent(requestId)}&fields=*,candidate_profile.id,candidate_profile.name,candidate_profile.job_title,candidate_profile.year_of_experience,candidate_profile.location,candidate_profile.skills,pros,cons`,
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${EXTERNAL.directus_key}`
+          }
+        }
+      );
+
+      if (!searchResultsResponse.ok) {
+        console.log("No candidate search results found for request:", requestId);
+        return;
+      }
+
+      const searchResultsData = await searchResultsResponse.json();
+      const candidateResults = searchResultsData.data || [];
+
+      console.log(`Found ${candidateResults.length} candidate search results for request ${requestId}`);
+
+      // Transform results to match the Candidate interface (same as CandidateSearch.tsx)
+      const transformedCandidates: Candidate[] = candidateResults.map((result: any, index: number) => {
+        const candidateProfile = result.candidate_profile;
+        const name = candidateProfile?.name || `Candidate ${index + 1}`;
+
+        // Parse skills from candidate profile
+        let skills: string[] = [];
+        if (candidateProfile?.skills) {
+          try {
+            skills = Array.isArray(candidateProfile.skills)
+              ? candidateProfile.skills
+              : JSON.parse(candidateProfile.skills);
+          } catch (e) {
+            console.warn('Failed to parse candidate skills:', e);
+            skills = [];
+          }
+        }
+
+        // Parse pros and cons
+        let pros: string[] = [];
+        let cons: string[] = [];
+
+        if (result.pros) {
+          try {
+            pros = Array.isArray(result.pros) ? result.pros : JSON.parse(result.pros);
+          } catch (e) {
+            console.warn('Failed to parse candidate pros:', e);
+            pros = [];
+          }
+        }
+
+        if (result.cons) {
+          try {
+            cons = Array.isArray(result.cons) ? result.cons : JSON.parse(result.cons);
+          } catch (e) {
+            console.warn('Failed to parse candidate cons:', e);
+            cons = [];
+          }
+        }
+
+        return {
+          id: candidateProfile?.id || result.id || `candidate_${index}`,
+          name: name,
+          title: candidateProfile?.job_title || "Unknown Title",
+          experience: candidateProfile?.year_of_experience ? `${candidateProfile.year_of_experience} years experience` : "Experience not specified",
+          ragScore: result.rag_score || 0,
+          skills: skills,
+          company: candidateProfile?.location || "Unknown Location",
+          pros: pros,
+          cons: cons
+        };
+      });
+
+      setCandidates(transformedCandidates);
+      console.log("Loaded candidate search results:", transformedCandidates.length);
+    } catch (error) {
+      console.error("Error fetching candidates by request ID:", error);
     }
   };
 
@@ -626,6 +718,38 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
       clearTimeout(timeout);
     };
   }, [requestId, orbitJobDescriptionEnrichmentSession]);
+
+  /**
+   * Auto-load candidates when request status changes to processing or completed states
+   */
+  useEffect(() => {
+    console.log('[Auto-load] useEffect triggered:', { currentSearchRequestId, currentSearchRequestStatus });
+
+    if (!currentSearchRequestId || !currentSearchRequestStatus) {
+      console.log('[Auto-load] Missing required data, skipping');
+      return;
+    }
+
+    // Check for statuses that should trigger candidate loading:
+    // - "processing(8)", "processing(16)", etc. - candidates are being generated
+    // - "completed", "listed", "finished", "done" - final states
+    const statusLower = currentSearchRequestStatus.toLowerCase();
+    console.log('[Auto-load] Status (lowercase):', statusLower);
+    console.log('[Auto-load] Starts with "processing("?', statusLower.startsWith("processing("));
+
+    const shouldLoadCandidates =
+      statusLower.startsWith("processing(") ||
+      ["completed", "listed", "finished", "done"].includes(statusLower);
+
+    console.log('[Auto-load] Should load candidates?', shouldLoadCandidates);
+
+    if (shouldLoadCandidates) {
+      console.log(`[Auto-load] ✅ Status changed to ${currentSearchRequestStatus} - fetching candidates for request ${currentSearchRequestId}`);
+      fetchCandidatesByRequestId(currentSearchRequestId);
+    } else {
+      console.log('[Auto-load] ❌ Status does not match criteria for loading candidates');
+    }
+  }, [currentSearchRequestStatus, currentSearchRequestId]);
 
   /**
    * Save session data when user exits tab or shuts down browser
