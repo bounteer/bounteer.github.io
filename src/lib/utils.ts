@@ -487,11 +487,22 @@ export async function createOrbitCandidateSearchRequest(
     const user = await getUserProfile(directusUrl);
     const authHeaders = getAuthHeaders(user);
 
+    // If no spaceIds provided or empty array, fetch all available spaces
+    let finalSpaceIds = spaceIds && spaceIds.length > 0 ? spaceIds : null;
+
+    if (!finalSpaceIds || finalSpaceIds.length === 0) {
+      const spacesResult = await getUserSpaces(directusUrl);
+      if (spacesResult.success && spacesResult.spaces && spacesResult.spaces.length > 0) {
+        finalSpaceIds = spacesResult.spaces.map(s => s.id);
+        console.log("No spaces selected, using all available spaces:", finalSpaceIds);
+      }
+    }
+
     const requestData: OrbitCandidateSearchRequest = {
       job_enrichment_session: jobEnrichmentSessionId,
       job_description_snapshot: jobDescriptionSnapshot,
       status: 'pending',
-      space: (spaceIds && spaceIds.length > 0) ? spaceIds : null,
+      space: finalSpaceIds,
       custom_prompt: customPrompt || null
     };
 
