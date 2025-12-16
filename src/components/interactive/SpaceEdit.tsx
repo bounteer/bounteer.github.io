@@ -802,8 +802,8 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                             <tr key={jd.id} className="border-b hover:bg-gray-50">
                               <td className="py-3 px-4 text-gray-600">#{jd.id}</td>
                               <td className="py-3 px-4">
-                                <a 
-                                  href={`http://localhost:4321/role-fit-index/job-description?id=${jd.id}`}
+                                <a
+                                  href={`/role-fit-index/job-description?id=${jd.id}`}
                                   className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -849,7 +849,16 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                           {candidateProfiles.map((cp) => (
                             <tr key={cp.id} className="border-b hover:bg-gray-50">
                               <td className="py-3 px-4 text-gray-600">#{cp.id}</td>
-                              <td className="py-3 px-4 text-gray-900">{cp.name || 'Unknown'}</td>
+                              <td className="py-3 px-4">
+                                <a
+                                  href={`/role-fit-index/candidate-profile?id=${cp.id}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {cp.name || 'Unknown'}
+                                </a>
+                              </td>
                               <td className="py-3 px-4 text-gray-600">{cp.email || '-'}</td>
                               <td className="py-3 px-4 text-gray-600">{cp.phone || '-'}</td>
                               <td className="py-3 px-4 text-gray-600">
