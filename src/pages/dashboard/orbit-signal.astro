@@ -1,0 +1,36 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { Sidebar } from "@/components/interactive/Sidebar";
+import HiringIntentDashboard from "@/components/interactive/HiringIntentDashboard";
+import AuthGuard from "@/components/interactive/AuthGuard";
+---
+
+<Layout
+  name="Bounteer"
+  title="Orbit Signal - Bounteer"
+  description="Manage and review orbit signals from your organization."
+  url="https://bounteer.com/dashboard/orbit-signal"
+  image_url="https://bounteer.com/og.png"
+>
+  <AuthGuard client:load>
+    <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
+      <!-- Sidebar handles both mobile topbar + desktop sidebar -->
+      <Sidebar client:load />
+
+      <!-- Main content -->
+      <section class="flex-1 px-4 py-6 md:px-6 md:py-10">
+        <!-- Page Header -->
+        <div class="mb-6">
+          <h1 class="text-xl md:text-2xl font-semibold tracking-tight mb-2">
+            Orbit Signal
+          </h1>
+          <p class="text-xs md:text-sm text-muted-foreground">
+            Manage and review orbit signals from your organization.
+          </p>
+        </div>
+
+        <HiringIntentDashboard client:load />
+      </section>
+    </main>
+  </AuthGuard>
+</Layout>

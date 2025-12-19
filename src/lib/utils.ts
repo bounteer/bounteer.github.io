@@ -1469,6 +1469,72 @@ export async function deleteSpace(
   }
 }
 
+// Hiring Intent types
+export type HiringIntent = {
+  id: number;
+  user_created?: string;
+  date_created?: string;
+  user_updated?: string;
+  date_updated?: string;
+  company_profile?: any;
+  reason?: string;
+  potential_role?: any;
+  skill?: any;
+  category?: 'funding' | 'growth' | 'replacement';
+  space?: number;
+  confidence?: number;
+}
+
+// Fetch hiring intents by space
+export async function getHiringIntentsBySpace(
+  spaceId: number | null,
+  directusUrl: string
+): Promise<{ success: boolean; hiringIntents?: HiringIntent[]; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // Build URL with optional space filter
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=100&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence`;
+
+    if (spaceId) {
+      url += `&filter[space][_eq]=${spaceId}`;
+    }
+
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      hiringIntents: result.data || []
+    };
+  } catch (error) {
+    console.error('Error fetching hiring intents:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 // Get package version from package.json
 export async function getPackageVersion(): Promise<string> {
   try {
