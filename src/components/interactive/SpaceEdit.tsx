@@ -737,28 +737,32 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
       {selectedSpace && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle>Space Data</CardTitle>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   onClick={() => setTableView('job_descriptions')}
                   variant={tableView === 'job_descriptions' ? 'default' : 'outline'}
                   size="sm"
+                  className="w-full sm:w-auto"
                 >
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Job Descriptions ({jobDescriptions.length})
+                  <span className="hidden sm:inline">Job Descriptions ({jobDescriptions.length})</span>
+                  <span className="sm:hidden">Jobs ({jobDescriptions.length})</span>
                 </Button>
                 <Button
                   onClick={() => setTableView('candidate_profiles')}
                   variant={tableView === 'candidate_profiles' ? 'default' : 'outline'}
                   size="sm"
+                  className="w-full sm:w-auto"
                 >
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Candidate Profiles ({candidateProfiles.length})
+                  <span className="hidden sm:inline">Candidate Profiles ({candidateProfiles.length})</span>
+                  <span className="sm:hidden">Candidates ({candidateProfiles.length})</span>
                 </Button>
               </div>
             </div>
@@ -790,30 +794,30 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">ID</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Title</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Company</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Location</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">ID</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">Title</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden sm:table-cell">Company</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden md:table-cell">Location</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden lg:table-cell">Created</th>
                           </tr>
                         </thead>
                         <tbody>
                           {jobDescriptions.map((jd) => (
                             <tr key={jd.id} className="border-b hover:bg-gray-50">
-                              <td className="py-3 px-4 text-gray-600">#{jd.id}</td>
-                              <td className="py-3 px-4">
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm">#{jd.id}</td>
+                              <td className="py-2 px-2 md:py-3 md:px-4">
                                 <a
                                   href={`/role-fit-index/job-description?id=${jd.id}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-xs md:text-sm line-clamp-2"
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
                                   {jd.role_name || jd.title || 'Untitled'}
                                 </a>
                               </td>
-                              <td className="py-3 px-4 text-gray-600">{jd.company_name || jd.company || '-'}</td>
-                              <td className="py-3 px-4 text-gray-600">{jd.location || '-'}</td>
-                              <td className="py-3 px-4 text-gray-600">
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden sm:table-cell">{jd.company_name || jd.company || '-'}</td>
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden md:table-cell">{jd.location || '-'}</td>
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden lg:table-cell">
                                 {jd.date_created ? new Date(jd.date_created).toLocaleDateString() : '-'}
                               </td>
                             </tr>
@@ -838,30 +842,30 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">ID</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Email</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Phone</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">ID</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">Name</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden sm:table-cell">Email</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden md:table-cell">Phone</th>
+                            <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden lg:table-cell">Created</th>
                           </tr>
                         </thead>
                         <tbody>
                           {candidateProfiles.map((cp) => (
                             <tr key={cp.id} className="border-b hover:bg-gray-50">
-                              <td className="py-3 px-4 text-gray-600">#{cp.id}</td>
-                              <td className="py-3 px-4">
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm">#{cp.id}</td>
+                              <td className="py-2 px-2 md:py-3 md:px-4">
                                 <a
                                   href={`/role-fit-index/candidate-profile?id=${cp.id}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-xs md:text-sm"
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
                                   {cp.name || 'Unknown'}
                                 </a>
                               </td>
-                              <td className="py-3 px-4 text-gray-600">{cp.email || '-'}</td>
-                              <td className="py-3 px-4 text-gray-600">{cp.phone || '-'}</td>
-                              <td className="py-3 px-4 text-gray-600">
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden sm:table-cell">{cp.email || '-'}</td>
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden md:table-cell">{cp.phone || '-'}</td>
+                              <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden lg:table-cell">
                                 {cp.date_created ? new Date(cp.date_created).toLocaleDateString() : '-'}
                               </td>
                             </tr>
@@ -893,31 +897,31 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
           <CardContent>
             <div className="space-y-6">
               {/* Admin Welcome Section */}
-              <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 bg-purple-100 rounded-full flex-shrink-0">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-3 md:p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
+                <div className="flex items-start gap-2 md:gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-purple-100 rounded-full flex-shrink-0">
+                    <svg className="w-4 h-4 md:w-5 md:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">Administrator Access</h3>
-                    <p className="text-sm text-gray-600">You have full administrative permissions for this space. You can manage settings, view analytics, and control access.</p>
+                    <h3 className="font-semibold text-gray-900 mb-1 text-sm md:text-base">Administrator Access</h3>
+                    <p className="text-xs md:text-sm text-gray-600">You have full administrative permissions for this space. You can manage settings, view analytics, and control access.</p>
                   </div>
                 </div>
               </div>
 
               {/* Add User to Space Section */}
-              <div className="p-6 border-2 border-green-200 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-4 md:p-6 border-2 border-green-200 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50">
+                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                  <div className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 bg-green-100 rounded-full">
+                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-gray-900">Add User to Space</h3>
+                  <h3 className="font-semibold text-gray-900 text-sm md:text-base">Add User to Space</h3>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">Search for a user by email and add them to this space.</p>
+                <p className="text-xs md:text-sm text-gray-600 mb-3 md:mb-4">Search for a user by email and add them to this space.</p>
 
                 <div className="space-y-4">
                   <div className="flex gap-2">
@@ -1028,20 +1032,20 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
               </div>
 
               {/* Admin Actions Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {/* Space Settings */}
-                <div className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg flex-shrink-0">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-3 md:p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex-shrink-0">
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1">Space Settings</h4>
-                      <p className="text-sm text-gray-500 mb-3">Configure space preferences, visibility, and general settings</p>
-                      <Button variant="outline" size="sm" className="w-full" disabled>
+                      <h4 className="font-medium text-gray-900 mb-1 text-sm md:text-base">Space Settings</h4>
+                      <p className="text-xs md:text-sm text-gray-500 mb-2 md:mb-3">Configure space preferences, visibility, and general settings</p>
+                      <Button variant="outline" size="sm" className="w-full text-xs md:text-sm" disabled>
                         Manage Settings
                       </Button>
                     </div>
@@ -1049,17 +1053,17 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                 </div>
 
                 {/* User Permissions */}
-                <div className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg flex-shrink-0">
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-3 md:p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex-shrink-0">
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1">User Permissions</h4>
-                      <p className="text-sm text-gray-500 mb-3">Manage user roles, access levels, and permissions</p>
-                      <Button variant="outline" size="sm" className="w-full" disabled>
+                      <h4 className="font-medium text-gray-900 mb-1 text-sm md:text-base">User Permissions</h4>
+                      <p className="text-xs md:text-sm text-gray-500 mb-2 md:mb-3">Manage user roles, access levels, and permissions</p>
+                      <Button variant="outline" size="sm" className="w-full text-xs md:text-sm" disabled>
                         Manage Permissions
                       </Button>
                     </div>
@@ -1067,17 +1071,17 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                 </div>
 
                 {/* Space Analytics */}
-                <div className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-amber-100 rounded-lg flex-shrink-0">
-                      <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-3 md:p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-amber-100 rounded-lg flex-shrink-0">
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1">Analytics & Reports</h4>
-                      <p className="text-sm text-gray-500 mb-3">View usage statistics, activity logs, and insights</p>
-                      <Button variant="outline" size="sm" className="w-full" disabled>
+                      <h4 className="font-medium text-gray-900 mb-1 text-sm md:text-base">Analytics & Reports</h4>
+                      <p className="text-xs md:text-sm text-gray-500 mb-2 md:mb-3">View usage statistics, activity logs, and insights</p>
+                      <Button variant="outline" size="sm" className="w-full text-xs md:text-sm" disabled>
                         View Analytics
                       </Button>
                     </div>
@@ -1085,17 +1089,17 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                 </div>
 
                 {/* Integrations */}
-                <div className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-indigo-100 rounded-lg flex-shrink-0">
-                      <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-3 md:p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-indigo-100 rounded-lg flex-shrink-0">
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1">Integrations</h4>
-                      <p className="text-sm text-gray-500 mb-3">Connect with external tools and services</p>
-                      <Button variant="outline" size="sm" className="w-full" disabled>
+                      <h4 className="font-medium text-gray-900 mb-1 text-sm md:text-base">Integrations</h4>
+                      <p className="text-xs md:text-sm text-gray-500 mb-2 md:mb-3">Connect with external tools and services</p>
+                      <Button variant="outline" size="sm" className="w-full text-xs md:text-sm" disabled>
                         Manage Integrations
                       </Button>
                     </div>
@@ -1106,17 +1110,17 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
               {/* Quick Stats */}
               <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                 <h4 className="font-medium text-gray-900 mb-3">Quick Stats</h4>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{selectedSpace.job_description_count || 0}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="text-center p-3 bg-white rounded-lg sm:bg-transparent sm:p-0">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900">{selectedSpace.job_description_count || 0}</div>
                     <div className="text-xs text-gray-500 mt-1">Job Descriptions</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{selectedSpace.candidate_profile_count || 0}</div>
+                  <div className="text-center p-3 bg-white rounded-lg sm:bg-transparent sm:p-0">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900">{selectedSpace.candidate_profile_count || 0}</div>
                     <div className="text-xs text-gray-500 mt-1">Candidates</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{selectedSpace.user_count || 0}</div>
+                  <div className="text-center p-3 bg-white rounded-lg sm:bg-transparent sm:p-0">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900">{selectedSpace.user_count || 0}</div>
                     <div className="text-xs text-gray-500 mt-1">Team Members</div>
                   </div>
                 </div>
@@ -1156,34 +1160,37 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Member</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Permissions</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Joined</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">Member</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden sm:table-cell">Email</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">Permissions</th>
+                      <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700 hidden md:table-cell">Joined</th>
                       {hasAdminPermissions() && (
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                        <th className="text-left py-2 px-2 md:py-3 md:px-4 font-medium text-gray-700">Actions</th>
                       )}
                     </tr>
                   </thead>
                   <tbody>
                     {spaceUsers.map((spaceUser) => (
                       <tr key={spaceUser.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <td className="py-2 px-2 md:py-3 md:px-4">
+                          <div className="flex items-center gap-2 md:gap-3">
+                            <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-xs font-semibold text-white">
                                 {spaceUser.user.first_name?.[0] || spaceUser.user.email[0].toUpperCase()}
                               </span>
                             </div>
-                            <span className="font-medium text-gray-900">
-                              {spaceUser.user.first_name || spaceUser.user.last_name
-                                ? `${spaceUser.user.first_name || ''} ${spaceUser.user.last_name || ''}`.trim()
-                                : 'No name set'}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-900 text-xs md:text-sm">
+                                {spaceUser.user.first_name || spaceUser.user.last_name
+                                  ? `${spaceUser.user.first_name || ''} ${spaceUser.user.last_name || ''}`.trim()
+                                  : 'No name set'}
+                              </span>
+                              <span className="text-xs text-gray-500 sm:hidden">{spaceUser.user.email}</span>
+                            </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-gray-600">{spaceUser.user.email}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden sm:table-cell">{spaceUser.user.email}</td>
+                        <td className="py-2 px-2 md:py-3 md:px-4">
                           {editingUserId === spaceUser.id && hasAdminPermissions() ? (
                             <div className="flex items-center gap-2">
                               <div className="flex flex-wrap gap-1">
@@ -1197,7 +1204,7 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                                   return (
                                     <label
                                       key={perm}
-                                      className={`flex items-center gap-1 px-2 py-1 bg-gray-100 rounded ${
+                                      className={`flex items-center gap-1 px-1.5 md:px-2 py-0.5 md:py-1 bg-gray-100 rounded text-xs ${
                                         isDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-200'
                                       }`}
                                       title={isLastAdmin ? 'Space must have at least one admin' : isLastPermission ? 'User must have at least one permission' : ''}
@@ -1234,7 +1241,7 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                               {spaceUser.permission.map((perm, idx) => (
                                 <span
                                   key={idx}
-                                  className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  className={`px-1.5 md:px-2 py-0.5 md:py-1 text-[10px] md:text-xs font-medium rounded-full ${
                                     perm === 'read' ? 'bg-green-100 text-green-700' :
                                     perm === 'write' ? 'bg-blue-100 text-blue-700' :
                                     perm === 'delete' ? 'bg-red-100 text-red-700' :
@@ -1247,21 +1254,21 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-gray-600">
+                        <td className="py-2 px-2 md:py-3 md:px-4 text-gray-600 text-xs md:text-sm hidden md:table-cell">
                           {spaceUser.date_created ? new Date(spaceUser.date_created).toLocaleDateString() : '-'}
                         </td>
                         {hasAdminPermissions() && (
-                          <td className="py-3 px-4">
+                          <td className="py-2 px-2 md:py-3 md:px-4">
                             {editingUserId === spaceUser.id ? (
-                              <div className="flex gap-2">
+                              <div className="flex flex-col gap-1 md:flex-row md:gap-2">
                                 <Button
                                   onClick={() => handleUpdateUserPermission(spaceUser.id, spaceUser.permission)}
                                   disabled={updatingPermission}
                                   size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
+                                  className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1"
                                 >
                                   {updatingPermission ? (
-                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
@@ -1279,6 +1286,7 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                                   }}
                                   variant="outline"
                                   size="sm"
+                                  className="text-xs px-2 py-1"
                                 >
                                   Cancel
                                 </Button>
@@ -1288,9 +1296,9 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
                                 onClick={() => setEditingUserId(spaceUser.id)}
                                 variant="ghost"
                                 size="sm"
-                                className="text-gray-600 hover:text-gray-900"
+                                className="text-gray-600 hover:text-gray-900 p-1"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </Button>
