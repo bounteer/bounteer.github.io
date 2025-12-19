@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Home, FileText, ListChecks, Menu, LogOut, ChevronDown, ChevronRight, ChevronLeft, BarChart3, Settings, BarChart2, Building2 } from "lucide-react";
+import { Home, FileText, ListChecks, Menu, LogOut, ChevronDown, ChevronRight, ChevronLeft, BarChart3, Settings, BarChart2, Building2, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
   },
   { label: "Role Fit Studio", href: "/dashboard/role-fit-studio", icon: BarChart3 },
   { label: "Orbit Call", href: "/dashboard/orbit-call", icon: BarChart2 },
+  { label: "Orbit Signal", href: "/dashboard/orbit-signal", icon: Radio },
   { label: "Spaces", href: "/dashboard/spaces", icon: Building2 },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
   { label: "Logout", href: "/logout", icon: LogOut, isLogout: true },
