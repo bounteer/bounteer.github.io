@@ -2824,66 +2824,6 @@
     },
     "x-collection": "purchase"
   },
-  "ItemsCandidateReference": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "cv_file": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Files"
-          }
-        ]
-      },
-      "linkedin_handle": {
-        "nullable": true,
-        "type": "string"
-      }
-    },
-    "x-collection": "candidate_reference"
-  },
   "ItemsFileChecksum": {
     "type": "object",
     "properties": {
@@ -2942,6 +2882,70 @@
       }
     },
     "x-collection": "referral_code_directus_users"
+  },
+  "ItemsCandidateReference": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "cv_file": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Files"
+          }
+        ]
+      },
+      "linkedin_handle": {
+        "nullable": true,
+        "type": "string"
+      },
+      "email": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "candidate_reference"
   },
   "ItemsOrbitSearchResultRoleFitIndexSubmission": {
     "type": "object",
@@ -3921,6 +3925,201 @@
     },
     "x-collection": "generic_request"
   },
+  "ItemsHiringIntent": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "company_profile": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsCompanyProfile"
+          }
+        ]
+      },
+      "reason": {
+        "nullable": true,
+        "type": "string"
+      },
+      "potential_role": {
+        "nullable": true
+      },
+      "skill": {
+        "nullable": true
+      },
+      "category": {
+        "nullable": true,
+        "description": "options: [\"funding\", \"growth\", \"replacement\"]"
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      },
+      "confidence": {
+        "nullable": true,
+        "type": "integer"
+      }
+    },
+    "x-collection": "hiring_intent"
+  },
+  "ItemsCompanyReference": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "website_url": {
+        "nullable": true,
+        "type": "string"
+      },
+      "email": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "company_reference"
+  },
+  "ItemsCompanyProfile": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "reference": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsCompanyReference"
+          }
+        ]
+      },
+      "name": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "company_profile"
+  },
   "ItemsSettingItem": {
     "type": "object",
     "properties": {
@@ -3996,5 +4195,263 @@
       }
     },
     "x-collection": "setting_item"
+  },
+  "ItemsProductAccess": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "start_at": {
+        "nullable": true,
+        "type": "string",
+        "format": "date-time"
+      },
+      "end_at": {
+        "nullable": true,
+        "type": "string",
+        "format": "date-time"
+      },
+      "user": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "key": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "product_access"
+  },
+  "ItemsIngestedArticle": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "url": {
+        "nullable": true,
+        "type": "string"
+      },
+      "source": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "ingested_article"
+  },
+  "ItemsHiringIntentContact": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "name": {
+        "nullable": true,
+        "type": "string"
+      },
+      "email": {
+        "nullable": true,
+        "type": "string"
+      },
+      "linkedin_url": {
+        "nullable": true,
+        "type": "string"
+      },
+      "intent": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsHiringIntent"
+          }
+        ]
+      }
+    },
+    "x-collection": "hiring_intent_contact"
+  },
+  "ItemsHiringIntentAction": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "intent": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsHiringIntent"
+          }
+        ]
+      },
+      "category": {
+        "nullable": true,
+        "type": "string"
+      },
+      "status": {
+        "nullable": true,
+        "description": "options: [\"pending\", \"processing\", \"completed\", \"failed\"]",
+        "type": "string"
+      },
+      "execution_order": {
+        "nullable": true,
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "x-collection": "hiring_intent_action"
   }
 }

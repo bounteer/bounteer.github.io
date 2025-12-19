@@ -153,5 +153,17 @@ See [TODO.md](./TODO.md) for:
 - [Directus Documentation](https://directus.io/docs)
 
 
+# Orbit Signals – Final Model Summary
+The system is reference-centric, not entity-centric.
+Identity is handled by company_reference (stable, enrichable handle).
+Knowledge snapshots live in company_profile (replaceable, enrichable).
+Beliefs / hypotheses live in hiring_intent.
+Edit ownership is per space, so hiring_intent is owned by space.
+Duplication is allowed; no global dedup or reconciliation is required.
+hiring_intent → company_profile → company_reference is the core chain.
+Queries and UI can safely use intent.company_profile.*.
+Spaces organize and edit beliefs; they do not own identity or profiles.
+The resulting graph is a space-scoped belief graph, not a global truth graph.
+
 ## Dependencies
 - [Self-hosted Directus CMS](directus.bounteer.com)
