@@ -1483,6 +1483,7 @@ export type HiringIntent = {
   category?: 'funding' | 'growth' | 'replacement';
   space?: number;
   confidence?: number;
+  action_status?: 'pending' | 'added_to_actions' | 'ignored';
 }
 
 // Fetch hiring intents by space
@@ -1500,7 +1501,7 @@ export async function getHiringIntentsBySpace(
     }
 
     // Build URL with optional space filter
-    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=100&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence`;
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=100&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,action_status`;
 
     if (spaceId) {
       url += `&filter[space][_eq]=${spaceId}`;
@@ -1528,6 +1529,55 @@ export async function getHiringIntentsBySpace(
     };
   } catch (error) {
     console.error('Error fetching hiring intents:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Update hiring intent action status
+export async function updateHiringIntentActionStatus(
+  hiringIntentId: number,
+  actionStatus: 'pending' | 'added_to_actions' | 'ignored',
+  directusUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const response = await fetch(
+      `${directusUrl}/items/hiring_intent/${hiringIntentId}`,
+      {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action_status: actionStatus
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('Error updating hiring intent action status:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

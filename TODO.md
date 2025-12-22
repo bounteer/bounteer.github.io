@@ -723,3 +723,109 @@ Missing fields for better matching:
 **Last Updated**: 2025-11-27
 **Reviewer**: Claude Code
 **Priority**: P0 items are critical for bidirectional functionality
+
+---
+
+## Orbit Signal - Actions Feature
+
+### Overview
+Add action tracking to Orbit Signal dashboard, allowing users to mark signals as "add to actions" or "ignore", with automatic filtering and organization.
+
+### Implementation Status: ✅ COMPLETED (2025-12-22)
+
+### Features Implemented
+- ✅ Action status tracking (`pending`, `added_to_actions`, `ignored`)
+- ✅ "Add to Actions" and "Ignore" buttons on each signal card
+- ✅ Dedicated "Actions" section displaying signals marked for action
+- ✅ Automatic removal of ignored signals from UI
+- ✅ Real-time state updates when action status changes
+- ✅ Count badges for both Actions and Orbit Signals sections
+- ✅ Visual distinction between pending and actioned signals
+
+### Frontend Changes
+- **Type Updates**: `src/lib/utils.ts:1486`
+  - Added `action_status?: 'pending' | 'added_to_actions' | 'ignored'` to `HiringIntent` type
+
+- **API Functions**: `src/lib/utils.ts:1540-1586`
+  - Added `updateHiringIntentActionStatus()` for updating signal status
+  - Updated `getHiringIntentsBySpace()` to fetch `action_status` field
+
+- **Component Updates**: `src/components/interactive/HiringIntentDashboard.tsx`
+  - Added action buttons (Add to Actions, Ignore) with icons
+  - Implemented filtering logic for pending vs actioned signals
+  - Created separate sections: "Actions" and "Orbit Signals"
+  - Added real-time state management for action updates
+  - Implemented conditional rendering based on action status
+
+### Database Schema Required ⚠️
+
+**CRITICAL**: Add `action_status` field to `hiring_intent` collection in Directus
+
+```sql
+-- Add action_status field to hiring_intent table
+ALTER TABLE hiring_intent
+  ADD COLUMN action_status VARCHAR(20) DEFAULT 'pending'
+  CHECK (action_status IN ('pending', 'added_to_actions', 'ignored'));
+
+-- Create index for faster filtering
+CREATE INDEX idx_hiring_intent_action_status
+  ON hiring_intent(action_status);
+```
+
+**Directus Configuration**:
+- [ ] Add `action_status` field to `hiring_intent` collection
+  - Type: `string` or `dropdown`
+  - Default: `pending`
+  - Options: `pending`, `added_to_actions`, `ignored`
+  - Interface: Dropdown or Radio Buttons
+  - Required: NO (defaults to 'pending')
+
+### UI Design
+
+#### Actions Section (New)
+- Appears at the top when signals are added to actions
+- Green badge with count
+- Cards without action buttons (already actioned)
+- Visually separated from pending signals
+
+#### Orbit Signals Section
+- Shows pending/new signals only
+- Each card has "Add to Actions" (green) and "Ignore" (red) buttons
+- Badges show count of pending signals
+- Ignored signals are completely removed from view
+
+### Testing Checklist
+- [ ] Verify database field `action_status` exists in `hiring_intent`
+- [ ] Test "Add to Actions" button functionality
+- [ ] Test "Ignore" button functionality
+- [ ] Verify ignored signals disappear from UI
+- [ ] Verify actioned signals appear in Actions section
+- [ ] Test with multiple spaces
+- [ ] Test with space filter (All vs specific space)
+- [ ] Verify count badges update correctly
+- [ ] Test on mobile responsive layout
+
+### Future Enhancements (Optional)
+- [ ] Add "Undo" functionality for ignored signals
+- [ ] Add bulk actions (select multiple signals)
+- [ ] Add export functionality for actioned signals
+- [ ] Add filtering by action status
+- [ ] Add notes/comments on actioned signals
+- [ ] Add notification when new signals arrive
+- [ ] Add CRM integration for actioned signals
+
+### Files Modified
+- `src/lib/utils.ts` - Type and API updates
+- `src/components/interactive/HiringIntentDashboard.tsx` - UI and logic implementation
+
+### Dependencies
+- Lucide React icons: `CheckCircle2`, `XCircle` (already imported)
+- Button component from ShadCN (already available)
+- Badge component from ShadCN (already available)
+
+---
+
+**Feature Status**: ✅ Completed - Pending Database Schema Update
+**Implemented**: 2025-12-22
+**Developer**: Claude Code
+**Priority**: P1 - Requires database field addition to function

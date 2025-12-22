@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import SpaceSelector from "@/components/interactive/SpaceSelector";
-import { getHiringIntentsBySpace, type HiringIntent } from "@/lib/utils";
+import { getHiringIntentsBySpace, updateHiringIntentActionStatus, type HiringIntent } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function HiringIntentDashboard() {
   const [hiringIntents, setHiringIntents] = useState<HiringIntent[]>([]);
@@ -72,8 +74,138 @@ export default function HiringIntentDashboard() {
     setSelectedSpaceId(spaceId);
   };
 
+  const handleActionStatusUpdate = async (
+    hiringIntentId: number,
+    actionStatus: 'added_to_actions' | 'ignored'
+  ) => {
+    try {
+      const result = await updateHiringIntentActionStatus(
+        hiringIntentId,
+        actionStatus,
+        EXTERNAL.directus_url
+      );
+
+      if (result.success) {
+        // Update local state to reflect the change
+        setHiringIntents(prevIntents =>
+          prevIntents.map(intent =>
+            intent.id === hiringIntentId
+              ? { ...intent, action_status: actionStatus }
+              : intent
+          )
+        );
+      } else {
+        console.error('Failed to update action status:', result.error);
+        setError(result.error || 'Failed to update action status');
+      }
+    } catch (err) {
+      console.error('Error updating action status:', err);
+      setError('An error occurred while updating action status');
+    }
+  };
+
+  // Filter intents into different categories
+  const pendingIntents = hiringIntents.filter(
+    intent => !intent.action_status || intent.action_status === 'pending'
+  );
+  const actionIntents = hiringIntents.filter(
+    intent => intent.action_status === 'added_to_actions'
+  );
+  // Ignored intents are not displayed
+
+  const renderIntentCard = (intent: HiringIntent, showActions: boolean = true) => (
+    <Card key={intent.id} className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-lg">
+            {intent.company_profile?.name || "Unknown Company"}
+          </CardTitle>
+          {intent.category && (
+            <Badge className={getCategoryColor(intent.category)}>
+              {intent.category}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Reason */}
+        {intent.reason && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1">Reason</p>
+            <p className="text-sm text-gray-700 line-clamp-3">{intent.reason}</p>
+          </div>
+        )}
+
+        {/* Potential Role */}
+        {intent.potential_role && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1">Potential Role</p>
+            <p className="text-sm text-gray-700">
+              {typeof intent.potential_role === "string"
+                ? intent.potential_role
+                : JSON.stringify(intent.potential_role)}
+            </p>
+          </div>
+        )}
+
+        {/* Skills */}
+        {intent.skill && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1">Skills</p>
+            <p className="text-sm text-gray-700">
+              {typeof intent.skill === "string"
+                ? intent.skill
+                : JSON.stringify(intent.skill)}
+            </p>
+          </div>
+        )}
+
+        {/* Confidence Score */}
+        {intent.confidence !== undefined && intent.confidence !== null && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-gray-500">Confidence</p>
+            <Badge className={getConfidenceColor(intent.confidence)}>
+              {intent.confidence}%
+            </Badge>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {showActions && (!intent.action_status || intent.action_status === 'pending') && (
+          <div className="pt-3 border-t border-gray-100 flex gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              onClick={() => handleActionStatusUpdate(intent.id, 'added_to_actions')}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1" />
+              Add to Actions
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+              onClick={() => handleActionStatusUpdate(intent.id, 'ignored')}
+            >
+              <XCircle className="w-4 h-4 mr-1" />
+              Ignore
+            </Button>
+          </div>
+        )}
+
+        {/* Date Created */}
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-400">
+            Created {formatDate(intent.date_created)}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Space Selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -122,75 +254,33 @@ export default function HiringIntentDashboard() {
         </Card>
       )}
 
+      {/* Actions Section */}
+      {!isLoading && !error && actionIntents.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-gray-900">Actions</h2>
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              {actionIntents.length}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {actionIntents.map((intent) => renderIntentCard(intent, false))}
+          </div>
+        </div>
+      )}
+
       {/* Orbit Signals Grid */}
-      {!isLoading && !error && hiringIntents.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {hiringIntents.map((intent) => (
-            <Card key={intent.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">
-                    {intent.company_profile?.name || "Unknown Company"}
-                  </CardTitle>
-                  {intent.category && (
-                    <Badge className={getCategoryColor(intent.category)}>
-                      {intent.category}
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Reason */}
-                {intent.reason && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1">Reason</p>
-                    <p className="text-sm text-gray-700 line-clamp-3">{intent.reason}</p>
-                  </div>
-                )}
-
-                {/* Potential Role */}
-                {intent.potential_role && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1">Potential Role</p>
-                    <p className="text-sm text-gray-700">
-                      {typeof intent.potential_role === "string"
-                        ? intent.potential_role
-                        : JSON.stringify(intent.potential_role)}
-                    </p>
-                  </div>
-                )}
-
-                {/* Skills */}
-                {intent.skill && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1">Skills</p>
-                    <p className="text-sm text-gray-700">
-                      {typeof intent.skill === "string"
-                        ? intent.skill
-                        : JSON.stringify(intent.skill)}
-                    </p>
-                  </div>
-                )}
-
-                {/* Confidence Score */}
-                {intent.confidence !== undefined && intent.confidence !== null && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-gray-500">Confidence</p>
-                    <Badge className={getConfidenceColor(intent.confidence)}>
-                      {intent.confidence}%
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Date Created */}
-                <div className="pt-2 border-t border-gray-100">
-                  <p className="text-xs text-gray-400">
-                    Created {formatDate(intent.date_created)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {!isLoading && !error && pendingIntents.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-gray-900">Orbit Signals</h2>
+            <Badge variant="secondary">
+              {pendingIntents.length}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pendingIntents.map((intent) => renderIntentCard(intent, true))}
+          </div>
         </div>
       )}
     </div>
