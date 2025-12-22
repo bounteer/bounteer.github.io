@@ -1469,6 +1469,16 @@ export async function deleteSpace(
   }
 }
 
+// Hiring Intent Action types
+export type HiringIntentAction = {
+  id?: number;
+  intent?: number;
+  category?: string;
+  status?: 'pending' | 'completed' | 'skipped';
+  date_created?: string;
+  user_created?: string;
+}
+
 // Hiring Intent types
 export type HiringIntent = {
   id: number;
@@ -1483,7 +1493,7 @@ export type HiringIntent = {
   category?: 'funding' | 'growth' | 'replacement';
   space?: number;
   confidence?: number;
-  action_status?: 'pending' | 'added_to_actions' | 'ignored';
+  actions?: HiringIntentAction[];
 }
 
 // Fetch hiring intents by space
@@ -1500,8 +1510,8 @@ export async function getHiringIntentsBySpace(
       };
     }
 
-    // Build URL with optional space filter
-    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=100&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,action_status`;
+    // Build URL with optional space filter - include related actions
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=100&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,actions.id,actions.status,actions.category,actions.date_created`;
 
     if (spaceId) {
       url += `&filter[space][_eq]=${spaceId}`;
@@ -1536,12 +1546,13 @@ export async function getHiringIntentsBySpace(
   }
 }
 
-// Update hiring intent action status
-export async function updateHiringIntentActionStatus(
+// Create hiring intent action
+export async function createHiringIntentAction(
   hiringIntentId: number,
-  actionStatus: 'pending' | 'added_to_actions' | 'ignored',
+  actionStatus: 'completed' | 'skipped',
+  category: string = 'user_action',
   directusUrl: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; action?: HiringIntentAction; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
     if (!user) {
@@ -1551,17 +1562,21 @@ export async function updateHiringIntentActionStatus(
       };
     }
 
+    const actionData = {
+      intent: hiringIntentId,
+      category: category,
+      status: actionStatus
+    };
+
     const response = await fetch(
-      `${directusUrl}/items/hiring_intent/${hiringIntentId}`,
+      `${directusUrl}/items/hiring_intent_action`,
       {
-        method: 'PATCH',
+        method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          action_status: actionStatus
-        })
+        body: JSON.stringify(actionData)
       }
     );
 
@@ -1573,11 +1588,13 @@ export async function updateHiringIntentActionStatus(
       };
     }
 
+    const result = await response.json();
     return {
-      success: true
+      success: true,
+      action: result.data || result
     };
   } catch (error) {
-    console.error('Error updating hiring intent action status:', error);
+    console.error('Error creating hiring intent action:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

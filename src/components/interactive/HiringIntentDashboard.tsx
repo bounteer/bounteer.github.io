@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import SpaceSelector from "@/components/interactive/SpaceSelector";
-import { getHiringIntentsBySpace, updateHiringIntentActionStatus, type HiringIntent } from "@/lib/utils";
+import { getHiringIntentsBySpace, createHiringIntentAction, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 import { CheckCircle2, XCircle } from "lucide-react";
 
@@ -76,42 +76,51 @@ export default function HiringIntentDashboard() {
 
   const handleActionStatusUpdate = async (
     hiringIntentId: number,
-    actionStatus: 'added_to_actions' | 'ignored'
+    actionType: 'completed' | 'skipped'
   ) => {
     try {
-      const result = await updateHiringIntentActionStatus(
+      const result = await createHiringIntentAction(
         hiringIntentId,
-        actionStatus,
+        actionType,
+        'user_action',
         EXTERNAL.directus_url
       );
 
-      if (result.success) {
-        // Update local state to reflect the change
+      if (result.success && result.action) {
+        // Update local state to add the new action to the intent
         setHiringIntents(prevIntents =>
           prevIntents.map(intent =>
             intent.id === hiringIntentId
-              ? { ...intent, action_status: actionStatus }
+              ? {
+                  ...intent,
+                  actions: [...(intent.actions || []), result.action!]
+                }
               : intent
           )
         );
       } else {
-        console.error('Failed to update action status:', result.error);
-        setError(result.error || 'Failed to update action status');
+        console.error('Failed to create action:', result.error);
+        setError(result.error || 'Failed to create action');
       }
     } catch (err) {
-      console.error('Error updating action status:', err);
-      setError('An error occurred while updating action status');
+      console.error('Error creating action:', err);
+      setError('An error occurred while creating action');
     }
+  };
+
+  // Helper function to check if intent has a specific action status
+  const hasActionStatus = (intent: HiringIntent, status: 'completed' | 'skipped'): boolean => {
+    return intent.actions?.some(action => action.status === status) || false;
   };
 
   // Filter intents into different categories
   const pendingIntents = hiringIntents.filter(
-    intent => !intent.action_status || intent.action_status === 'pending'
+    intent => !hasActionStatus(intent, 'completed') && !hasActionStatus(intent, 'skipped')
   );
   const actionIntents = hiringIntents.filter(
-    intent => intent.action_status === 'added_to_actions'
+    intent => hasActionStatus(intent, 'completed')
   );
-  // Ignored intents are not displayed
+  // Skipped intents are not displayed
 
   const renderIntentCard = (intent: HiringIntent, showActions: boolean = true) => (
     <Card key={intent.id} className="hover:shadow-lg transition-shadow">
@@ -171,13 +180,13 @@ export default function HiringIntentDashboard() {
         )}
 
         {/* Action Buttons */}
-        {showActions && (!intent.action_status || intent.action_status === 'pending') && (
+        {showActions && !hasActionStatus(intent, 'completed') && !hasActionStatus(intent, 'skipped') && (
           <div className="pt-3 border-t border-gray-100 flex gap-2">
             <Button
               size="sm"
               variant="default"
               className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={() => handleActionStatusUpdate(intent.id, 'added_to_actions')}
+              onClick={() => handleActionStatusUpdate(intent.id, 'completed')}
             >
               <CheckCircle2 className="w-4 h-4 mr-1" />
               Add to Actions
@@ -186,10 +195,10 @@ export default function HiringIntentDashboard() {
               size="sm"
               variant="outline"
               className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-              onClick={() => handleActionStatusUpdate(intent.id, 'ignored')}
+              onClick={() => handleActionStatusUpdate(intent.id, 'skipped')}
             >
               <XCircle className="w-4 h-4 mr-1" />
-              Ignore
+              Skip
             </Button>
           </div>
         )}
