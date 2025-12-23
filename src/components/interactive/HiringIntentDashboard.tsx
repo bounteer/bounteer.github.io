@@ -214,7 +214,7 @@ export default function HiringIntentDashboard() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Space Selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -263,32 +263,120 @@ export default function HiringIntentDashboard() {
         </Card>
       )}
 
-      {/* Actions Section */}
-      {!isLoading && !error && actionIntents.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-gray-900">Actions</h2>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              {actionIntents.length}
-            </Badge>
+      {/* Kanban Layout */}
+      {!isLoading && !error && hiringIntents.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-250px)]">
+          {/* Left Column - Signals */}
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Signals</h2>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                {pendingIntents.length}
+              </Badge>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {pendingIntents.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No pending signals</p>
+                      <p className="text-gray-400 text-sm mt-2">
+                        All signals have been processed
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                pendingIntents.map((intent) => renderIntentCard(intent, true))
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {actionIntents.map((intent) => renderIntentCard(intent, false))}
-          </div>
-        </div>
-      )}
 
-      {/* Orbit Signals Grid */}
-      {!isLoading && !error && pendingIntents.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-gray-900">Orbit Signals</h2>
-            <Badge variant="secondary">
-              {pendingIntents.length}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pendingIntents.map((intent) => renderIntentCard(intent, true))}
+          {/* Right Column - Actions */}
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Actions</h2>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                {actionIntents.length}
+              </Badge>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+              {actionIntents.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No actions yet</p>
+                      <p className="text-gray-400 text-sm mt-2">
+                        Add signals to actions to see them here
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                actionIntents.map((intent) => (
+                  <Card key={intent.id} className="hover:shadow-md transition-shadow border-l-4 border-l-green-500">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-gray-900 truncate">
+                              {intent.company_profile?.name || "Unknown Company"}
+                            </h3>
+                            {intent.category && (
+                              <Badge className={getCategoryColor(intent.category)} variant="secondary">
+                                {intent.category}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Potential Role */}
+                          {intent.potential_role && (
+                            <div className="mb-2">
+                              <p className="text-xs font-medium text-gray-500 mb-0.5">Role</p>
+                              <p className="text-sm text-gray-700">
+                                {typeof intent.potential_role === "string"
+                                  ? intent.potential_role
+                                  : JSON.stringify(intent.potential_role)}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Reason */}
+                          {intent.reason && (
+                            <div className="mb-2">
+                              <p className="text-xs font-medium text-gray-500 mb-0.5">Reason</p>
+                              <p className="text-sm text-gray-600 line-clamp-2">{intent.reason}</p>
+                            </div>
+                          )}
+
+                          {/* Skills */}
+                          {intent.skill && (
+                            <div className="mb-2">
+                              <p className="text-xs font-medium text-gray-500 mb-0.5">Skills</p>
+                              <p className="text-sm text-gray-600 line-clamp-1">
+                                {typeof intent.skill === "string"
+                                  ? intent.skill
+                                  : JSON.stringify(intent.skill)}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Actions metadata */}
+                          {intent.actions && intent.actions.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <p className="text-xs text-gray-400">
+                                Added {formatDate(intent.actions[0].date_created)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}

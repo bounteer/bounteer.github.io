@@ -3925,90 +3925,6 @@
     },
     "x-collection": "generic_request"
   },
-  "ItemsHiringIntent": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "company_profile": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsCompanyProfile"
-          }
-        ]
-      },
-      "reason": {
-        "nullable": true,
-        "type": "string"
-      },
-      "potential_role": {
-        "nullable": true
-      },
-      "skill": {
-        "nullable": true
-      },
-      "category": {
-        "nullable": true,
-        "description": "options: [\"funding\", \"growth\", \"replacement\"]"
-      },
-      "space": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsSpace"
-          }
-        ]
-      },
-      "confidence": {
-        "nullable": true,
-        "type": "integer"
-      }
-    },
-    "x-collection": "hiring_intent"
-  },
   "ItemsCompanyReference": {
     "type": "object",
     "properties": {
@@ -4384,6 +4300,94 @@
       }
     },
     "x-collection": "hiring_intent_contact"
+  },
+  "ItemsHiringIntent": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "company_profile": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsCompanyProfile"
+          }
+        ]
+      },
+      "reason": {
+        "nullable": true,
+        "type": "string"
+      },
+      "potential_role": {
+        "nullable": true
+      },
+      "skill": {
+        "nullable": true
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      },
+      "confidence": {
+        "nullable": true,
+        "type": "integer"
+      },
+      "category": {
+        "nullable": true,
+        "type": "string"
+      },
+      "url": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "hiring_intent"
   },
   "ItemsHiringIntentAction": {
     "type": "object",
