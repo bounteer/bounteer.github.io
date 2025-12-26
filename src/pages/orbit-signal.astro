@@ -1,0 +1,360 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { Bell, LayoutGrid, Filter, TrendingUp, Zap, Eye } from "lucide-react";
+---
+
+<Layout title="Orbit Signal - Never miss a company that's about to hire">
+  <Header />
+
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-br from-primary-50 via-orange-50 to-red-50 pt-32 pb-20 overflow-hidden">
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <!-- Status Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-md mb-6 animate-slide-down">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+          </span>
+          <span class="text-sm font-semibold text-gray-700">Real-time Hiring Intent Tracking</span>
+        </div>
+
+        <!-- Hero Title -->
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 animate-slide-up leading-tight">
+          Never miss a company<br />
+          <span class="bg-gradient-to-r from-primary-600 to-orange-600 bg-clip-text text-transparent">
+            that's about to hire.
+          </span>
+        </h1>
+
+        <!-- Hero Subtitle -->
+        <p class="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto animate-slide-up" style="animation-delay: 0.1s;">
+          Orbit Signal transforms hiring intent data into an organized, actionable kanban dashboard.
+          Capture signals, take action, and never let an opportunity slip through the cracks.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up" style="animation-delay: 0.2s;">
+          <a
+            href="/dashboard/orbit-signal"
+            class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-2xl"
+          >
+            Launch Orbit Signal
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </a>
+          <a
+            href="#how-it-works"
+            class="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:scale-105 transition-all duration-300 shadow-md hover:shadow-xl border border-primary-200"
+          >
+            See How It Works
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decorative Elements -->
+    <div class="absolute top-20 left-10 w-72 h-72 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+    <div class="absolute top-40 right-10 w-72 h-72 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-20 left-1/2 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Your hiring intelligence, <span class="text-primary-600">organized</span>
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Orbit Signal gives you a clear, visual workflow to manage every hiring intent signal that comes your way.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <!-- Feature 1: Kanban Board -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <LayoutGrid class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Visual Kanban Board</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Drag and drop signals between Signals, Actions, and Hidden columns. Organize your hiring pipeline at a glance.
+          </p>
+        </div>
+
+        <!-- Feature 2: Real-time Signals -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Bell class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Live Intent Signals</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Receive real-time notifications when companies show hiring intent. Catch opportunities the moment they appear.
+          </p>
+        </div>
+
+        <!-- Feature 3: Space Filtering -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Filter class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Workspace Filtering</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Filter signals by your workspaces. Keep different hiring campaigns organized and separate.
+          </p>
+        </div>
+
+        <!-- Feature 4: Signal Tracking -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <TrendingUp class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Progress Tracking</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Monitor which signals you've actioned and which are still pending. Never lose track of an opportunity.
+          </p>
+        </div>
+
+        <!-- Feature 5: Quick Actions -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Zap class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">One-Click Actions</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Move signals between states with a simple drag. Mark as actioned, hide irrelevant signals, or bring them back.
+          </p>
+        </div>
+
+        <!-- Feature 6: Smart Pagination -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Eye class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Browse Effortlessly</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Navigate through your signals with intuitive pagination. Focus on what matters without information overload.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="py-20 bg-gradient-to-br from-gray-50 to-primary-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          How Orbit Signal Works
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          A simple, three-stage workflow to manage every hiring opportunity
+        </p>
+      </div>
+
+      <div class="max-w-4xl mx-auto space-y-12">
+        <!-- Step 1 -->
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl font-bold text-white">1</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Capture Signals</h3>
+            <p class="text-lg text-gray-600 leading-relaxed">
+              Hiring intent signals appear in your <strong>Signals</strong> column automatically.
+              Each card shows company information, role details, and why they're showing hiring intent.
+              Review new signals as they come in and decide which ones deserve your attention.
+            </p>
+          </div>
+        </div>
+
+        <!-- Connector Line -->
+        <div class="hidden md:block w-px h-12 bg-gradient-to-b from-primary-300 to-primary-400 ml-8"></div>
+
+        <!-- Step 2 -->
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl font-bold text-white">2</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Organize & Act</h3>
+            <p class="text-lg text-gray-600 leading-relaxed">
+              Drag signals to the <strong>Actions</strong> column when you've taken action on them—whether that's reaching out,
+              scheduling a call, or adding them to your pipeline. Hide irrelevant signals in the <strong>Hidden</strong> column
+              to keep your board clean and focused.
+            </p>
+          </div>
+        </div>
+
+        <!-- Connector Line -->
+        <div class="hidden md:block w-px h-12 bg-gradient-to-b from-orange-300 to-red-400 ml-8"></div>
+
+        <!-- Step 3 -->
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl font-bold text-white">3</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Track Progress</h3>
+            <p class="text-lg text-gray-600 leading-relaxed">
+              Your kanban board gives you a bird's-eye view of your entire hiring intelligence pipeline.
+              See at a glance what's new, what's in progress, and what's been handled.
+              Filter by workspace to manage different campaigns separately.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benefits Section -->
+  <section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Why recruiters love Orbit Signal
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Turn hiring intent data into actionable insights with a workflow that actually works
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <!-- Benefit 1 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Zero opportunities lost</h3>
+              <p class="text-gray-600">
+                Every hiring signal is captured and tracked. No more missed opportunities buried in emails or forgotten tabs.
+              </p>
+            </div>
+          </div>
+
+          <!-- Benefit 2 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Crystal-clear workflow</h3>
+              <p class="text-gray-600">
+                See exactly what needs your attention, what's in progress, and what's done. No confusion, no clutter.
+              </p>
+            </div>
+          </div>
+
+          <!-- Benefit 3 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Faster response time</h3>
+              <p class="text-gray-600">
+                Act on hiring intent signals the moment they appear. Be the first recruiter to reach out and win the placement.
+              </p>
+            </div>
+          </div>
+
+          <!-- Benefit 4 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Multi-workspace organization</h3>
+              <p class="text-gray-600">
+                Manage different hiring campaigns, clients, or regions in separate workspaces. Keep everything organized.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 bg-gradient-to-br from-primary-600 via-primary-700 to-orange-600 relative overflow-hidden">
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+          Ready to capture every hiring opportunity?
+        </h2>
+        <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+          Start using Orbit Signal today and never miss a company that's about to hire.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="/dashboard/orbit-signal"
+            class="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-2xl"
+          >
+            Launch Orbit Signal Now
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </a>
+          <a
+            href="/dashboard/spaces"
+            class="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/30"
+          >
+            Manage Workspaces
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decorative Elements -->
+    <div class="absolute top-10 left-10 w-64 h-64 bg-white/10 rounded-full filter blur-3xl"></div>
+    <div class="absolute bottom-10 right-10 w-64 h-64 bg-orange-400/20 rounded-full filter blur-3xl"></div>
+  </section>
+
+  <Footer />
+</Layout>
+
+<style>
+  @keyframes blob {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+</style>
