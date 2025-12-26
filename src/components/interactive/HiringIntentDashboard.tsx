@@ -1,13 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import SpaceSelector from "@/components/interactive/SpaceSelector";
+import { SignalCard } from "@/components/interactive/SignalCard";
+import { ActionCard } from "@/components/interactive/ActionCard";
+import {
+  KanbanBoard,
+  KanbanBoardProvider,
+  KanbanBoardColumn,
+  KanbanBoardColumnHeader,
+  KanbanBoardColumnTitle,
+  KanbanBoardColumnList,
+  KanbanBoardColumnListItem,
+  KanbanBoardCard,
+  KanbanColorCircle,
+} from "@/components/ui/kanban";
 import { getHiringIntentsBySpace, createHiringIntentAction, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
-import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function HiringIntentDashboard() {
   const [hiringIntents, setHiringIntents] = useState<HiringIntent[]>([]);
@@ -40,38 +51,37 @@ export default function HiringIntentDashboard() {
     }
   };
 
-  const getCategoryColor = (category?: string) => {
-    switch (category) {
-      case "funding":
-        return "bg-blue-100 text-blue-800";
-      case "growth":
-        return "bg-green-100 text-green-800";
-      case "replacement":
-        return "bg-amber-100 text-amber-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getConfidenceColor = (confidence?: number) => {
-    if (!confidence) return "bg-gray-100 text-gray-800";
-    if (confidence >= 80) return "bg-green-100 text-green-800";
-    if (confidence >= 50) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const handleSpaceChange = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
+  };
+
+  const handleDropOverColumn = async (columnId: string, dataTransferData: string) => {
+    try {
+      const data = JSON.parse(dataTransferData);
+      const hiringIntentId = parseInt(data.id);
+      const fromColumn = data.columnId;
+
+      // Moving from Signals to Actions
+      if (fromColumn === "signals" && columnId === "actions") {
+        await handleActionStatusUpdate(hiringIntentId, 'completed');
+      }
+      // Moving from Actions back to Signals (undo)
+      else if (fromColumn === "actions" && columnId === "signals") {
+        // Remove the completed action to move it back to signals
+        setHiringIntents(prevIntents =>
+          prevIntents.map(intent =>
+            intent.id === hiringIntentId
+              ? {
+                  ...intent,
+                  actions: intent.actions?.filter(action => action.status !== 'completed') || []
+                }
+              : intent
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Error handling drop:', err);
+    }
   };
 
   const handleActionStatusUpdate = async (
@@ -121,97 +131,6 @@ export default function HiringIntentDashboard() {
     intent => hasActionStatus(intent, 'completed')
   );
   // Skipped intents are not displayed
-
-  const renderIntentCard = (intent: HiringIntent, showActions: boolean = true) => (
-    <Card key={intent.id} className="hover:shadow-lg transition-shadow">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg">
-            {intent.company_profile?.name || "Unknown Company"}
-          </CardTitle>
-          {intent.category && (
-            <Badge className={getCategoryColor(intent.category)}>
-              {intent.category}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Reason */}
-        {intent.reason && (
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1">Reason</p>
-            <p className="text-sm text-gray-700 line-clamp-3">{intent.reason}</p>
-          </div>
-        )}
-
-        {/* Potential Role */}
-        {intent.potential_role && (
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1">Potential Role</p>
-            <p className="text-sm text-gray-700">
-              {typeof intent.potential_role === "string"
-                ? intent.potential_role
-                : JSON.stringify(intent.potential_role)}
-            </p>
-          </div>
-        )}
-
-        {/* Skills */}
-        {intent.skill && (
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1">Skills</p>
-            <p className="text-sm text-gray-700">
-              {typeof intent.skill === "string"
-                ? intent.skill
-                : JSON.stringify(intent.skill)}
-            </p>
-          </div>
-        )}
-
-        {/* Confidence Score */}
-        {intent.confidence !== undefined && intent.confidence !== null && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-gray-500">Confidence</p>
-            <Badge className={getConfidenceColor(intent.confidence)}>
-              {intent.confidence}%
-            </Badge>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        {showActions && !hasActionStatus(intent, 'completed') && !hasActionStatus(intent, 'skipped') && (
-          <div className="pt-3 border-t border-gray-100 flex gap-2">
-            <Button
-              size="sm"
-              variant="default"
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={() => handleActionStatusUpdate(intent.id, 'completed')}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-1" />
-              Add to Actions
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-              onClick={() => handleActionStatusUpdate(intent.id, 'skipped')}
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              Skip
-            </Button>
-          </div>
-        )}
-
-        {/* Date Created */}
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs text-gray-400">
-            Created {formatDate(intent.date_created)}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="space-y-6">
@@ -263,122 +182,88 @@ export default function HiringIntentDashboard() {
         </Card>
       )}
 
-      {/* Kanban Layout */}
+      {/* Kanban Board */}
       {!isLoading && !error && hiringIntents.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-250px)]">
-          {/* Left Column - Signals */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Signals</h2>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {pendingIntents.length}
-              </Badge>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-              {pendingIntents.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No pending signals</p>
-                      <p className="text-gray-400 text-sm mt-2">
-                        All signals have been processed
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                pendingIntents.map((intent) => renderIntentCard(intent, true))
-              )}
-            </div>
-          </div>
+        <KanbanBoardProvider>
+          <KanbanBoard className="min-h-[500px] md:h-[calc(100vh-250px)] gap-4 flex-col md:flex-row">
+            {/* Signals Column */}
+            <KanbanBoardColumn
+              columnId="signals"
+              onDropOverColumn={(data) => handleDropOverColumn("signals", data)}
+              className="w-full md:flex-1 md:min-w-0"
+            >
+              <KanbanBoardColumnHeader className="px-3 py-2">
+                <KanbanBoardColumnTitle columnId="signals" className="text-base md:text-sm">
+                  <KanbanColorCircle color="blue" />
+                  Signals
+                  <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
+                    {pendingIntents.length}
+                  </Badge>
+                </KanbanBoardColumnTitle>
+              </KanbanBoardColumnHeader>
+              <KanbanBoardColumnList className="px-1 md:px-0">
+                {pendingIntents.length === 0 ? (
+                  <div className="px-2 py-8 text-center">
+                    <p className="text-sm text-gray-500">
+                      No pending signals. All signals have been processed.
+                    </p>
+                  </div>
+                ) : (
+                  pendingIntents.map((intent) => (
+                    <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
+                      <KanbanBoardCard
+                        data={{ id: intent.id.toString(), columnId: "signals" }}
+                      >
+                        <SignalCard
+                          intent={intent}
+                          onAddToActions={(id) => handleActionStatusUpdate(id, 'completed')}
+                          onSkip={(id) => handleActionStatusUpdate(id, 'skipped')}
+                          showActionButtons={true}
+                        />
+                      </KanbanBoardCard>
+                    </KanbanBoardColumnListItem>
+                  ))
+                )}
+              </KanbanBoardColumnList>
+            </KanbanBoardColumn>
 
-          {/* Right Column - Actions */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Actions</h2>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {actionIntents.length}
-              </Badge>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-              {actionIntents.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No actions yet</p>
-                      <p className="text-gray-400 text-sm mt-2">
-                        Add signals to actions to see them here
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                actionIntents.map((intent) => (
-                  <Card key={intent.id} className="hover:shadow-md transition-shadow border-l-4 border-l-green-500">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-gray-900 truncate">
-                              {intent.company_profile?.name || "Unknown Company"}
-                            </h3>
-                            {intent.category && (
-                              <Badge className={getCategoryColor(intent.category)} variant="secondary">
-                                {intent.category}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Potential Role */}
-                          {intent.potential_role && (
-                            <div className="mb-2">
-                              <p className="text-xs font-medium text-gray-500 mb-0.5">Role</p>
-                              <p className="text-sm text-gray-700">
-                                {typeof intent.potential_role === "string"
-                                  ? intent.potential_role
-                                  : JSON.stringify(intent.potential_role)}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Reason */}
-                          {intent.reason && (
-                            <div className="mb-2">
-                              <p className="text-xs font-medium text-gray-500 mb-0.5">Reason</p>
-                              <p className="text-sm text-gray-600 line-clamp-2">{intent.reason}</p>
-                            </div>
-                          )}
-
-                          {/* Skills */}
-                          {intent.skill && (
-                            <div className="mb-2">
-                              <p className="text-xs font-medium text-gray-500 mb-0.5">Skills</p>
-                              <p className="text-sm text-gray-600 line-clamp-1">
-                                {typeof intent.skill === "string"
-                                  ? intent.skill
-                                  : JSON.stringify(intent.skill)}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Actions metadata */}
-                          {intent.actions && intent.actions.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-gray-100">
-                              <p className="text-xs text-gray-400">
-                                Added {formatDate(intent.actions[0].date_created)}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+            {/* Actions Column */}
+            <KanbanBoardColumn
+              columnId="actions"
+              onDropOverColumn={(data) => handleDropOverColumn("actions", data)}
+              className="w-full md:flex-1 md:min-w-0"
+            >
+              <KanbanBoardColumnHeader className="px-3 py-2">
+                <KanbanBoardColumnTitle columnId="actions" className="text-base md:text-sm">
+                  <KanbanColorCircle color="green" />
+                  Actions
+                  <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
+                    {actionIntents.length}
+                  </Badge>
+                </KanbanBoardColumnTitle>
+              </KanbanBoardColumnHeader>
+              <KanbanBoardColumnList className="px-1 md:px-0">
+                {actionIntents.length === 0 ? (
+                  <div className="px-2 py-8 text-center">
+                    <p className="text-sm text-gray-500">
+                      No actions yet. Drag signals here to add them to actions.
+                    </p>
+                  </div>
+                ) : (
+                  actionIntents.map((intent) => (
+                    <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
+                      <KanbanBoardCard
+                        data={{ id: intent.id.toString(), columnId: "actions" }}
+                      >
+                        <ActionCard intent={intent} />
+                      </KanbanBoardCard>
+                    </KanbanBoardColumnListItem>
+                  ))
+                )}
+              </KanbanBoardColumnList>
+            </KanbanBoardColumn>
+          </KanbanBoard>
+        </KanbanBoardProvider>
       )}
     </div>
   );
