@@ -18,12 +18,14 @@ import {
   KanbanBoardCard,
   KanbanColorCircle,
 } from "@/components/ui/kanban";
-import { getHiringIntentsBySpace, createHiringIntentAction, getUserProfile, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
+import { getHiringIntentsBySpace, getUserHiringIntentStates, updateHiringIntentUserState, deleteHiringIntentUserState, createHiringIntentAction, getUserProfile, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
 import { createGenericSaveRequest } from "@/client_side/fetch/generic_request";
 import { EXTERNAL } from "@/constant";
 
 export default function HiringIntentDashboard() {
-  const [hiringIntents, setHiringIntents] = useState<HiringIntent[]>([]);
+  const [signalIntents, setSignalIntents] = useState<HiringIntent[]>([]);
+  const [actionIntents, setActionIntents] = useState<HiringIntent[]>([]);
+  const [hiddenIntents, setHiddenIntents] = useState<HiringIntent[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,20 +45,40 @@ export default function HiringIntentDashboard() {
       const spaceIdNumber = selectedSpaceId && selectedSpaceId !== "all" ? parseInt(selectedSpaceId) : null;
       const offset = (currentPage - 1) * itemsPerPage;
 
-      const result = await getHiringIntentsBySpace(
-        spaceIdNumber,
-        EXTERNAL.directus_url,
-        {
+      // Fetch all three columns in parallel
+      const [signalsResult, actionsResult, hiddenResult] = await Promise.all([
+        getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
-          offset: offset
-        }
-      );
+          offset: offset,
+          columnType: 'signals'
+        }),
+        getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
+          limit: itemsPerPage,
+          offset: offset,
+          columnType: 'actions'
+        }),
+        getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
+          limit: itemsPerPage,
+          offset: offset,
+          columnType: 'hidden'
+        })
+      ]);
 
-      if (result.success && result.hiringIntents) {
-        setHiringIntents(result.hiringIntents);
-        setTotalCount(result.totalCount || 0);
+      if (signalsResult.success && actionsResult.success && hiddenResult.success) {
+        setSignalIntents(signalsResult.hiringIntents || []);
+        setActionIntents(actionsResult.hiringIntents || []);
+        setHiddenIntents(hiddenResult.hiringIntents || []);
+        // Total count is sum of all three columns
+        setTotalCount(
+          (signalsResult.totalCount || 0) +
+          (actionsResult.totalCount || 0) +
+          (hiddenResult.totalCount || 0)
+        );
       } else {
-        setError(result.error || "Failed to fetch orbit signals");
+        setError(
+          signalsResult.error || actionsResult.error || hiddenResult.error ||
+          "Failed to fetch orbit signals"
+        );
       }
     } catch (err) {
       setError("An error occurred while fetching orbit signals");
@@ -88,24 +110,86 @@ export default function HiringIntentDashboard() {
 
       // Moving from Signals to Actions
       if (fromColumn === "signals" && columnId === "actions") {
-        await handleActionStatusUpdate(hiringIntentId, 'completed');
+        const result = await updateHiringIntentUserState(hiringIntentId, 'actioned', EXTERNAL.directus_url);
+        if (result.success) {
+          // Optimistically update the UI
+          const movedIntent = signalIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setSignalIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setActionIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move signal to actions');
+        }
       }
-      // Moving from Actions back to Signals (undo)
+      // Moving from Signals to Hidden
+      else if (fromColumn === "signals" && columnId === "hidden") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'hidden', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = signalIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setSignalIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setHiddenIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move signal to hidden');
+        }
+      }
+      // Moving from Actions to Signals
       else if (fromColumn === "actions" && columnId === "signals") {
-        // Remove the completed action to move it back to signals
-        setHiringIntents(prevIntents =>
-          prevIntents.map(intent =>
-            intent.id === hiringIntentId
-              ? {
-                  ...intent,
-                  actions: intent.actions?.filter(action => action.status !== 'completed') || []
-                }
-              : intent
-          )
-        );
+        const result = await deleteHiringIntentUserState(hiringIntentId, EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = actionIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setActionIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setSignalIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move action to signals');
+        }
+      }
+      // Moving from Actions to Hidden
+      else if (fromColumn === "actions" && columnId === "hidden") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'hidden', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = actionIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setActionIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setHiddenIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move action to hidden');
+        }
+      }
+      // Moving from Hidden to Signals
+      else if (fromColumn === "hidden" && columnId === "signals") {
+        const result = await deleteHiringIntentUserState(hiringIntentId, EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = hiddenIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setHiddenIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setSignalIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move hidden to signals');
+        }
+      }
+      // Moving from Hidden to Actions
+      else if (fromColumn === "hidden" && columnId === "actions") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'actioned', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = hiddenIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setHiddenIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setActionIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move hidden to actions');
+        }
       }
     } catch (err) {
       console.error('Error handling drop:', err);
+      setError('An error occurred while moving the signal');
     }
   };
 
@@ -114,69 +198,55 @@ export default function HiringIntentDashboard() {
     actionType: 'completed' | 'skipped'
   ) => {
     try {
-      // Get current user profile
-      const user = await getUserProfile(EXTERNAL.directus_url);
+      // Update user state based on action type
+      if (actionType === 'completed') {
+        // Move to Actions column
+        const result = await updateHiringIntentUserState(hiringIntentId, 'actioned', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = signalIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setSignalIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setActionIntents(prev => [...prev, movedIntent]);
+          }
 
-      // Create hiring intent action
-      const result = await createHiringIntentAction(
-        hiringIntentId,
-        actionType,
-        'user_action',
-        EXTERNAL.directus_url
-      );
+          // Get current user profile for generic request
+          const user = await getUserProfile(EXTERNAL.directus_url);
+          if (user) {
+            const payload = {
+              intent: hiringIntentId,
+              user: user.id
+            };
 
-      if (result.success && result.action) {
-        // If action is completed, send generic request
-        if (actionType === 'completed' && user) {
-          const payload = {
-            intent: hiringIntentId,
-            user: user.id
-          };
-
-          // Send generic request in the background (don't await)
-          createGenericSaveRequest(
-            "create_hiring_intent_action",
-            payload,
-            EXTERNAL.directus_url
-          ).catch(err => {
-            console.error('Error creating generic request:', err);
-          });
+            // Send generic request in the background (don't await)
+            createGenericSaveRequest(
+              "create_hiring_intent_action",
+              payload,
+              EXTERNAL.directus_url
+            ).catch(err => {
+              console.error('Error creating generic request:', err);
+            });
+          }
+        } else {
+          setError(result.error || 'Failed to mark as actioned');
         }
-
-        // Update local state to add the new action to the intent
-        setHiringIntents(prevIntents =>
-          prevIntents.map(intent =>
-            intent.id === hiringIntentId
-              ? {
-                  ...intent,
-                  actions: [...(intent.actions || []), result.action!]
-                }
-              : intent
-          )
-        );
-      } else {
-        console.error('Failed to create action:', result.error);
-        setError(result.error || 'Failed to create action');
+      } else if (actionType === 'skipped') {
+        // Move to Hidden column
+        const result = await updateHiringIntentUserState(hiringIntentId, 'hidden', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = signalIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            setSignalIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setHiddenIntents(prev => [...prev, movedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to mark as hidden');
+        }
       }
     } catch (err) {
-      console.error('Error creating action:', err);
-      setError('An error occurred while creating action');
+      console.error('Error updating action status:', err);
+      setError('An error occurred while updating action status');
     }
   };
-
-  // Helper function to check if intent has a specific action status
-  const hasActionStatus = (intent: HiringIntent, status: 'completed' | 'skipped'): boolean => {
-    return intent.actions?.some(action => action.status === status) || false;
-  };
-
-  // Filter intents into different categories
-  const pendingIntents = hiringIntents.filter(
-    intent => !hasActionStatus(intent, 'completed') && !hasActionStatus(intent, 'skipped')
-  );
-  const actionIntents = hiringIntents.filter(
-    intent => hasActionStatus(intent, 'completed')
-  );
-  // Skipped intents are not displayed
 
   return (
     <div className="space-y-6">
@@ -213,7 +283,7 @@ export default function HiringIntentDashboard() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && hiringIntents.length === 0 && (
+      {!isLoading && !error && signalIntents.length === 0 && actionIntents.length === 0 && hiddenIntents.length === 0 && (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -229,7 +299,7 @@ export default function HiringIntentDashboard() {
       )}
 
       {/* Kanban Board */}
-      {!isLoading && !error && hiringIntents.length > 0 && (
+      {!isLoading && !error && (signalIntents.length > 0 || actionIntents.length > 0 || hiddenIntents.length > 0) && (
         <KanbanBoardProvider>
           <KanbanBoard className="min-h-[500px] md:h-[calc(100vh-250px)] gap-4 flex-col md:flex-row">
             {/* Signals Column */}
@@ -243,32 +313,33 @@ export default function HiringIntentDashboard() {
                   <KanbanColorCircle color="blue" />
                   Signals
                   <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
-                    {pendingIntents.length}
+                    {signalIntents.length}
                   </Badge>
                 </KanbanBoardColumnTitle>
               </KanbanBoardColumnHeader>
               <KanbanBoardColumnList className="px-1 md:px-0">
-                {pendingIntents.length === 0 ? (
+                {signalIntents.length === 0 ? (
                   <div className="px-2 py-8 text-center">
                     <p className="text-sm text-gray-500">
                       No pending signals. All signals have been processed.
                     </p>
                   </div>
                 ) : (
-                  pendingIntents.map((intent) => (
-                    <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
-                      <KanbanBoardCard
-                        data={{ id: intent.id.toString(), columnId: "signals" }}
-                      >
-                        <SignalCard
-                          intent={intent}
-                          onAddToActions={(id) => handleActionStatusUpdate(id, 'completed')}
-                          onSkip={(id) => handleActionStatusUpdate(id, 'skipped')}
-                          showActionButtons={true}
-                        />
-                      </KanbanBoardCard>
-                    </KanbanBoardColumnListItem>
-                  ))
+                  signalIntents.map((intent) => {
+                    const cardData = { id: intent.id.toString(), columnId: "signals" };
+                    return (
+                      <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
+                        <KanbanBoardCard data={cardData}>
+                          <SignalCard
+                            intent={intent}
+                            onAddToActions={(id) => handleActionStatusUpdate(id, 'completed')}
+                            onSkip={(id) => handleActionStatusUpdate(id, 'skipped')}
+                            showActionButtons={true}
+                          />
+                        </KanbanBoardCard>
+                      </KanbanBoardColumnListItem>
+                    );
+                  })
                 )}
               </KanbanBoardColumnList>
             </KanbanBoardColumn>
@@ -296,15 +367,58 @@ export default function HiringIntentDashboard() {
                     </p>
                   </div>
                 ) : (
-                  actionIntents.map((intent) => (
-                    <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
-                      <KanbanBoardCard
-                        data={{ id: intent.id.toString(), columnId: "actions" }}
-                      >
-                        <ActionCard intent={intent} />
-                      </KanbanBoardCard>
-                    </KanbanBoardColumnListItem>
-                  ))
+                  actionIntents.map((intent) => {
+                    const cardData = { id: intent.id.toString(), columnId: "actions" };
+                    return (
+                      <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
+                        <KanbanBoardCard data={cardData}>
+                          <ActionCard intent={intent} />
+                        </KanbanBoardCard>
+                      </KanbanBoardColumnListItem>
+                    );
+                  })
+                )}
+              </KanbanBoardColumnList>
+            </KanbanBoardColumn>
+
+            {/* Hidden Column */}
+            <KanbanBoardColumn
+              columnId="hidden"
+              onDropOverColumn={(data) => handleDropOverColumn("hidden", data)}
+              className="w-full md:flex-1 md:min-w-0"
+            >
+              <KanbanBoardColumnHeader className="px-3 py-2">
+                <KanbanBoardColumnTitle columnId="hidden" className="text-base md:text-sm">
+                  <KanbanColorCircle color="gray" />
+                  Hidden
+                  <Badge className="ml-2 bg-gray-100 text-gray-800 text-xs">
+                    {hiddenIntents.length}
+                  </Badge>
+                </KanbanBoardColumnTitle>
+              </KanbanBoardColumnHeader>
+              <KanbanBoardColumnList className="px-1 md:px-0">
+                {hiddenIntents.length === 0 ? (
+                  <div className="px-2 py-8 text-center">
+                    <p className="text-sm text-gray-500">
+                      No hidden signals. Drag signals here to hide them.
+                    </p>
+                  </div>
+                ) : (
+                  hiddenIntents.map((intent) => {
+                    const cardData = { id: intent.id.toString(), columnId: "hidden" };
+                    return (
+                      <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
+                        <KanbanBoardCard data={cardData}>
+                          <SignalCard
+                            intent={intent}
+                            onAddToActions={(id) => handleActionStatusUpdate(id, 'completed')}
+                            onSkip={(id) => handleActionStatusUpdate(id, 'skipped')}
+                            showActionButtons={false}
+                          />
+                        </KanbanBoardCard>
+                      </KanbanBoardColumnListItem>
+                    );
+                  })
                 )}
               </KanbanBoardColumnList>
             </KanbanBoardColumn>

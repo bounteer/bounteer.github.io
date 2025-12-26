@@ -304,7 +304,6 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
       const result = await addUserToSpace(
         selectedSpace.id,
         foundUser.id,
-        'read',
         EXTERNAL.directus_url
       );
 
@@ -434,9 +433,8 @@ export default function SpaceEdit({ spaceId }: SpaceEditProps) {
 
       // Add current user to the space as admin
       const spaceUserResult = await addUserToSpace(
-        spaceResult.space.id, 
-        user.id, 
-        'admin', 
+        spaceResult.space.id,
+        user.id,
         EXTERNAL.directus_url
       );
       

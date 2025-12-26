@@ -503,7 +503,7 @@ export async function createOrbitCandidateSearchRequest(
       job_description_snapshot: jobDescriptionSnapshot,
       status: 'pending',
       space: finalSpaceIds,
-      custom_prompt: customPrompt || null
+      custom_prompt: customPrompt || undefined
     };
 
     const response = await fetch(`${directusUrl}/items/orbit_candidate_search_request`, {
@@ -1001,9 +1001,8 @@ export async function searchUserByEmail(
 
 // Add user to space (create space_user record)
 export async function addUserToSpace(
-  spaceId: number, 
-  userId: string, 
-  permission: string = 'admin',
+  spaceId: number,
+  userId: string,
   directusUrl: string
 ): Promise<{ success: boolean; spaceUser?: SpaceUser; error?: string }> {
   try {
@@ -1479,6 +1478,17 @@ export type HiringIntentAction = {
   user_created?: string;
 }
 
+// Hiring Intent User State types
+export type HiringIntentUserState = {
+  id?: number;
+  user_created?: string;
+  date_created?: string;
+  user_updated?: string;
+  date_updated?: string;
+  intent?: number;
+  status?: 'actioned' | 'hidden';
+}
+
 // Hiring Intent types
 export type HiringIntent = {
   id: number;
@@ -1494,22 +1504,20 @@ export type HiringIntent = {
   space?: number;
   confidence?: number;
   actions?: HiringIntentAction[];
+  user_state?: HiringIntentUserState[];
 }
 
-// Fetch hiring intents by space
-export async function getHiringIntentsBySpace(
-  spaceId: number | null,
-  directusUrl: string,
-  options?: {
-    limit?: number;
-    offset?: number;
-  }
-): Promise<{
-  success: boolean;
-  hiringIntents?: HiringIntent[];
-  totalCount?: number;
-  error?: string;
-}> {
+// Helper type for categorized intent IDs
+type CategorizedIntentIds = {
+  actionedIds: number[];
+  hiddenIds: number[];
+  allIds: number[];
+};
+
+// Fetch user's hiring intent states (to be called once and reused)
+export async function getUserHiringIntentStates(
+  directusUrl: string
+): Promise<{ success: boolean; categories?: CategorizedIntentIds; error?: string }> {
   try {
     const user = await getUserProfile(directusUrl);
     if (!user) {
@@ -1519,14 +1527,123 @@ export async function getHiringIntentsBySpace(
       };
     }
 
+    const userStateUrl = `${directusUrl}/items/hiring_intent_user_state?filter[user_created][_eq]=${encodeURIComponent(user.id)}&fields=intent,status&limit=1000`;
+    const userStateResponse = await fetch(userStateUrl, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!userStateResponse.ok) {
+      const errorText = await userStateResponse.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `Failed to fetch user states: ${errorText}`
+      };
+    }
+
+    const userStateResult = await userStateResponse.json();
+    const userStates = userStateResult.data || [];
+
+    // Categorize intent IDs by status
+    const actionedIds = userStates
+      .filter((state: any) => state.status === 'actioned')
+      .map((state: any) => state.intent);
+    const hiddenIds = userStates
+      .filter((state: any) => state.status === 'hidden')
+      .map((state: any) => state.intent);
+    const allIds = [...actionedIds, ...hiddenIds];
+
+    return {
+      success: true,
+      categories: {
+        actionedIds,
+        hiddenIds,
+        allIds
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching user hiring intent states:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Fetch hiring intents by space and column type (signals, actions, hidden)
+// If categorizedIds is provided, it will be used instead of fetching user states again
+export async function getHiringIntentsBySpace(
+  spaceId: number | null,
+  directusUrl: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    columnType?: 'signals' | 'actions' | 'hidden';
+    categorizedIds?: CategorizedIntentIds; // Reuse categorized IDs to avoid redundant queries
+  }
+): Promise<{
+  success: boolean;
+  hiringIntents?: HiringIntent[];
+  totalCount?: number;
+  error?: string;
+}> {
+  try {
     const limit = options?.limit ?? 100;
     const offset = options?.offset ?? 0;
+    const columnType = options?.columnType || 'signals';
 
-    // Build URL with optional space filter - include related actions
+    // Use provided categorizedIds or fetch them
+    let categorizedIds = options?.categorizedIds;
+    if (!categorizedIds) {
+      const statesResult = await getUserHiringIntentStates(directusUrl);
+      if (!statesResult.success || !statesResult.categories) {
+        return {
+          success: false,
+          error: statesResult.error || 'Failed to fetch user states'
+        };
+      }
+      categorizedIds = statesResult.categories;
+    }
+
+    const { actionedIds, hiddenIds, allIds } = categorizedIds;
+
+    // Build base URL with fields
     let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,actions.id,actions.status,actions.category,actions.date_created`;
 
+    // Add space filter if provided
     if (spaceId) {
       url += `&filter[space][_eq]=${spaceId}`;
+    }
+
+    // Add intent ID filters based on column type
+    if (columnType === 'actions') {
+      // For Actions: fetch intents where ID is in actionedIds
+      if (actionedIds.length === 0) {
+        return {
+          success: true,
+          hiringIntents: [],
+          totalCount: 0
+        };
+      }
+      url += `&filter[id][_in]=${actionedIds.join(',')}`;
+    } else if (columnType === 'hidden') {
+      // For Hidden: fetch intents where ID is in hiddenIds
+      if (hiddenIds.length === 0) {
+        return {
+          success: true,
+          hiringIntents: [],
+          totalCount: 0
+        };
+      }
+      url += `&filter[id][_in]=${hiddenIds.join(',')}`;
+    } else {
+      // For Signals: fetch intents where ID is NOT in allIds
+      if (allIds.length > 0) {
+        url += `&filter[id][_nin]=${allIds.join(',')}`;
+      }
+      // If no user states exist, all intents are signals (no additional filter needed)
     }
 
     const response = await fetch(url, {
@@ -1552,6 +1669,166 @@ export async function getHiringIntentsBySpace(
     };
   } catch (error) {
     console.error('Error fetching hiring intents:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Create or update hiring intent user state
+export async function updateHiringIntentUserState(
+  hiringIntentId: number,
+  status: 'actioned' | 'hidden',
+  directusUrl: string
+): Promise<{ success: boolean; userState?: HiringIntentUserState; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // First, check if a user state already exists for this intent and user
+    const checkUrl = `${directusUrl}/items/hiring_intent_user_state?filter[intent][_eq]=${hiringIntentId}&filter[user_created][_eq]=${encodeURIComponent(user.id)}&limit=1`;
+
+    const checkResponse = await fetch(checkUrl, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!checkResponse.ok) {
+      console.warn('Failed to check existing user state, will create new one');
+    }
+
+    const checkResult = await checkResponse.json();
+    const existingState = checkResult.data?.[0];
+
+    let response: Response;
+    const stateData = {
+      intent: hiringIntentId,
+      status: status
+    };
+
+    if (existingState) {
+      // Update existing state
+      response = await fetch(
+        `${directusUrl}/items/hiring_intent_user_state/${existingState.id}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status })
+        }
+      );
+    } else {
+      // Create new state
+      response = await fetch(
+        `${directusUrl}/items/hiring_intent_user_state`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(stateData)
+        }
+      );
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      userState: result.data || result
+    };
+  } catch (error) {
+    console.error('Error updating hiring intent user state:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Delete hiring intent user state (to move back to signals)
+export async function deleteHiringIntentUserState(
+  hiringIntentId: number,
+  directusUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // Find the user state for this intent and user
+    const findUrl = `${directusUrl}/items/hiring_intent_user_state?filter[intent][_eq]=${hiringIntentId}&filter[user_created][_eq]=${encodeURIComponent(user.id)}&limit=1`;
+
+    const findResponse = await fetch(findUrl, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!findResponse.ok) {
+      return {
+        success: false,
+        error: 'Failed to find user state'
+      };
+    }
+
+    const findResult = await findResponse.json();
+    const userState = findResult.data?.[0];
+
+    if (!userState) {
+      return {
+        success: true // Already deleted or doesn't exist
+      };
+    }
+
+    // Delete the user state
+    const deleteResponse = await fetch(
+      `${directusUrl}/items/hiring_intent_user_state/${userState.id}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!deleteResponse.ok && deleteResponse.status !== 204) {
+      const errorText = await deleteResponse.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${deleteResponse.status}: ${errorText}`
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('Error deleting hiring intent user state:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
