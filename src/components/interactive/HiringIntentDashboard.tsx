@@ -45,22 +45,32 @@ export default function HiringIntentDashboard() {
       const spaceIdNumber = selectedSpaceId && selectedSpaceId !== "all" ? parseInt(selectedSpaceId) : null;
       const offset = (currentPage - 1) * itemsPerPage;
 
-      // Fetch all three columns in parallel
+      // First, fetch user states ONCE
+      const userStatesResult = await getUserHiringIntentStates(EXTERNAL.directus_url);
+      if (!userStatesResult.success || !userStatesResult.categories) {
+        setError(userStatesResult.error || "Failed to fetch user states");
+        return;
+      }
+
+      // Now fetch all three columns in parallel, reusing the categorized IDs
       const [signalsResult, actionsResult, hiddenResult] = await Promise.all([
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset: offset,
-          columnType: 'signals'
+          columnType: 'signals',
+          categorizedIds: userStatesResult.categories
         }),
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset: offset,
-          columnType: 'actions'
+          columnType: 'actions',
+          categorizedIds: userStatesResult.categories
         }),
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset: offset,
-          columnType: 'hidden'
+          columnType: 'hidden',
+          categorizedIds: userStatesResult.categories
         })
       ]);
 
