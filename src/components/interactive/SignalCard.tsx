@@ -1,7 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import type { HiringIntent } from "@/lib/utils";
 
 interface SignalCardProps {
@@ -9,13 +8,15 @@ interface SignalCardProps {
   onAddToActions: (intentId: number) => void;
   onSkip: (intentId: number) => void;
   showActionButtons?: boolean;
+  isHidden?: boolean;
 }
 
 export function SignalCard({
   intent,
   onAddToActions,
   onSkip,
-  showActionButtons = true
+  showActionButtons = true,
+  isHidden = false
 }: SignalCardProps) {
   const getCategoryColor = (category?: string) => {
     switch (category) {
@@ -52,107 +53,147 @@ export function SignalCard({
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base md:text-lg line-clamp-2 flex-1">
+    <div className={`space-y-1.5 w-full ${isHidden ? 'opacity-50' : ''}`}>
+      {/* Header with company name and category */}
+      <div className="flex items-start justify-between gap-2">
+        {intent.company_profile?.reference?.website_url || intent.company_profile?.url || intent.company_profile?.website ? (
+          <a
+            href={intent.company_profile.reference?.website_url || intent.company_profile.url || intent.company_profile.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-sm font-semibold line-clamp-1 flex-1 flex items-center gap-1 ${
+              isHidden ? 'text-gray-500 hover:text-gray-600' : 'text-gray-900 hover:text-blue-600'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
             {intent.company_profile?.name || "Unknown Company"}
-          </CardTitle>
-          {intent.category && (
-            <Badge className={`${getCategoryColor(intent.category)} flex-shrink-0`}>
-              {intent.category}
-            </Badge>
-          )}
+            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+          </a>
+        ) : (
+          <h3 className={`text-sm font-semibold line-clamp-1 flex-1 ${
+            isHidden ? 'text-gray-500' : 'text-gray-900'
+          }`}>
+            {intent.company_profile?.name || "Unknown Company"}
+          </h3>
+        )}
+        {intent.category && (
+          <Badge className={`${getCategoryColor(intent.category)} flex-shrink-0 text-xs py-0 px-1.5 ${
+            isHidden ? 'opacity-70' : ''
+          }`}>
+            {intent.category}
+          </Badge>
+        )}
+      </div>
+
+      {/* Source Link and Date */}
+      {(intent.url || intent.source) && (
+        <div className="flex items-center gap-2">
+          <a
+            href={intent.url || intent.source}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-xs hover:underline flex items-center gap-1 ${
+              isHidden ? 'text-gray-400 hover:text-gray-500' : 'text-blue-600 hover:text-blue-800'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {intent.source || "Source"}
+            <ExternalLink className="w-3 h-3" />
+          </a>
+          <span className={`text-xs ${isHidden ? 'text-gray-400' : 'text-gray-400'}`}>
+            {formatDate(intent.date_created)}
+          </span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-2 md:space-y-3">
-        {/* Reason */}
-        {intent.reason && (
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1">Reason</p>
-            <p className="text-sm text-gray-700 line-clamp-3">{intent.reason}</p>
-          </div>
-        )}
+      )}
 
-        {/* Potential Role */}
-        {intent.potential_role && (
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1.5">Potential Role</p>
-            <div className="flex flex-wrap gap-1.5">
-              {(Array.isArray(intent.potential_role)
-                ? intent.potential_role
-                : typeof intent.potential_role === "string"
-                  ? [intent.potential_role]
-                  : []
-              ).map((role, index) => (
-                <Badge key={index} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
-                  {role}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Reason */}
+      {intent.reason && (
+        <p className={`text-xs line-clamp-2 ${isHidden ? 'text-gray-500' : 'text-gray-600'}`}>
+          {intent.reason}
+        </p>
+      )}
 
-        {/* Skills */}
-        {intent.skill && (
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-1.5">Skills</p>
-            <div className="flex flex-wrap gap-1.5">
-              {(Array.isArray(intent.skill)
-                ? intent.skill
-                : typeof intent.skill === "string"
-                  ? [intent.skill]
-                  : []
-              ).map((skill, index) => (
-                <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Confidence Score */}
-        {intent.confidence !== undefined && intent.confidence !== null && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-gray-500">Confidence</p>
-            <Badge className={getConfidenceColor(intent.confidence)}>
-              {intent.confidence}%
+      {/* Potential Role */}
+      {intent.potential_role && (
+        <div className="flex flex-wrap gap-1">
+          {(Array.isArray(intent.potential_role)
+            ? intent.potential_role
+            : typeof intent.potential_role === "string"
+              ? [intent.potential_role]
+              : []
+          ).map((role, index) => (
+            <Badge key={index} variant="outline" className={`text-xs py-0 px-1.5 ${
+              isHidden
+                ? 'bg-gray-50 text-gray-600 border-gray-200'
+                : 'bg-purple-50 text-purple-700 border-purple-200'
+            }`}>
+              {role}
             </Badge>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        {showActionButtons && !hasActionStatus('completed') && !hasActionStatus('skipped') && (
-          <div className="pt-3 border-t border-gray-100 flex gap-2">
-            <Button
-              size="sm"
-              variant="default"
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={() => onAddToActions(intent.id)}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-1" />
-              Add to Actions
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-              onClick={() => onSkip(intent.id)}
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              Skip
-            </Button>
-          </div>
-        )}
-
-        {/* Date Created */}
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs text-gray-400">
-            Created {formatDate(intent.date_created)}
-          </p>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Skills */}
+      {intent.skill && (
+        <div className="flex flex-wrap gap-1">
+          {(Array.isArray(intent.skill)
+            ? intent.skill
+            : typeof intent.skill === "string"
+              ? [intent.skill]
+              : []
+          ).map((skill, index) => (
+            <Badge key={index} variant="outline" className={`text-xs py-0 px-1.5 ${
+              isHidden
+                ? 'bg-gray-50 text-gray-600 border-gray-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
+            }`}>
+              {skill}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Confidence Score */}
+      {intent.confidence !== undefined && intent.confidence !== null && (
+        <div className="flex items-center justify-between pt-1">
+          <span className={`text-xs ${isHidden ? 'text-gray-400' : 'text-gray-500'}`}>Confidence</span>
+          <Badge className={`${getConfidenceColor(intent.confidence)} text-xs py-0 px-1.5 ${
+            isHidden ? 'opacity-70' : ''
+          }`}>
+            {intent.confidence}%
+          </Badge>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      {showActionButtons && !hasActionStatus('completed') && !hasActionStatus('skipped') && (
+        <div className="pt-1.5 flex gap-1.5">
+          <Button
+            size="sm"
+            variant="default"
+            className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToActions(intent.id);
+            }}
+          >
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Add
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 h-7 text-xs border-red-300 text-red-600 hover:bg-red-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSkip(intent.id);
+            }}
+          >
+            <XCircle className="w-3 h-3 mr-1" />
+            Skip
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

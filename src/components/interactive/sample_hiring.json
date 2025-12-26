@@ -1,0 +1,168 @@
+{
+  "data": [
+    {
+      "reason": "The article announces the appointment of a senior advisor, indicating organizational strengthening and growth.",
+      "potential_role": [
+        "監修顧問"
+      ],
+      "skill": [
+        "人事・採用",
+        "組織開発"
+      ],
+      "space": 21,
+      "confidence": null,
+      "category": "growth",
+      "url": "https://prtimes.jp/main/html/rd/p/000000050.000083720.html",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "株式会社カクシン",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "The article reports that Copee has secured venture debt financing and plans to accelerate its AI implementation, indicating a funding event that likely supports future expansion and potential hiring, but no explicit hiring announcements are made.",
+      "potential_role": [],
+      "skill": [],
+      "space": 21,
+      "confidence": null,
+      "category": "funding",
+      "url": "https://prtimes.jp/main/html/rd/p/000000032.000031786.html",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "株式会社コーピー",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "The article reports a successful final close of the ALPHA-1 fund at 20 billion yen, indicating significant capital raising. It also mentions an expansion of an external partner team comprising marketing, HR, and accounting specialists, implying future hiring to support this growth. This is an indirect hiring signal tied to the funding event.",
+      "potential_role": [
+        "Marketing",
+        "HR Professional",
+        "Certified Public Accountant"
+      ],
+      "skill": [
+        "Marketing",
+        "Human Resources",
+        "Accounting"
+      ],
+      "space": 21,
+      "confidence": null,
+      "category": "funding",
+      "url": "https://prtimes.jp/main/html/rd/p/000000005.000164255.html",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "株式会社alpha",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "The article explicitly states that the company is recruiting new teammates and provides an email address for inquiries, indicating a direct hiring intent.",
+      "potential_role": [],
+      "skill": [],
+      "space": 21,
+      "confidence": null,
+      "category": "hiring",
+      "url": "https://prtimes.jp/main/html/rd/p/000000063.000046362.html",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "プロトスター株式会社",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "The article explicitly states that sales partners are being recruited, indicating a hiring intent, but the primary business focus is the product launch.",
+      "potential_role": [
+        "販売代理店"
+      ],
+      "skill": [],
+      "space": 21,
+      "confidence": null,
+      "category": "other",
+      "url": "https://shop.akachan.jp/shop/g/g250504400/",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "株式会社Lieferant",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "The article describes the company’s expansion of its Google Cloud partner program, training of engineers, and development of high‑value services, indicating a growth strategy that will likely lead to increased hiring, but no explicit job openings or hiring announcements are made.",
+      "potential_role": [
+        "Engineer"
+      ],
+      "skill": [
+        "Google Cloud",
+        "データ分析",
+        "AI",
+        "セキュリティ開発"
+      ],
+      "space": 21,
+      "confidence": null,
+      "category": "growth",
+      "url": "https://www.is-tech.co.jp/",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "株式会社情報戦略テクノロジー",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "Article explicitly states that BUZZ GROUP is actively recruiting 17 positions and encourages unexperienced applicants, indicating direct hiring intent.",
+      "potential_role": [],
+      "skill": [],
+      "space": 21,
+      "confidence": null,
+      "category": "hiring",
+      "url": "https://group-buzz.com/recruit/",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "株式会社BUZZ GROUP",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    },
+    {
+      "reason": "The article reports new product launches, patent acquisitions, and a recent hiring of customer‑success team members, indicating organizational expansion and growth. The hiring mention is indirect but signals team build‑out.",
+      "potential_role": [
+        "Customer Success Manager"
+      ],
+      "skill": [
+        "AI",
+        "Patent Search",
+        "Customer Success"
+      ],
+      "space": 21,
+      "confidence": null,
+      "category": "growth",
+      "url": "https://patent-i.com/summaria/manual/S_20251225",
+      "source": "pr_times",
+      "company_profile": {
+        "name": "パテント・インテグレーション株式会社",
+        "reference": {
+          "website_url": null,
+          "email": null
+        }
+      }
+    }
+  ]
+}

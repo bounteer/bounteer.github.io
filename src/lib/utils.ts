@@ -1473,9 +1473,12 @@ export type HiringIntentAction = {
   id?: number;
   intent?: number;
   category?: string;
-  status?: 'pending' | 'completed' | 'skipped';
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
   date_created?: string;
   user_created?: string;
+  user?: string;
+  payload?: string;
+  lexical_order?: string;
 }
 
 // Hiring Intent User State types
@@ -1503,6 +1506,8 @@ export type HiringIntent = {
   category?: 'funding' | 'growth' | 'replacement';
   space?: number;
   confidence?: number;
+  url?: string;
+  source?: string;
   actions?: HiringIntentAction[];
   user_state?: HiringIntentUserState[];
 }
@@ -1610,7 +1615,7 @@ export async function getHiringIntentsBySpace(
     const { actionedIds, hiddenIds, allIds } = categorizedIds;
 
     // Build base URL with fields
-    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,actions.id,actions.status,actions.category,actions.date_created`;
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,url,source,actions.id,actions.status,actions.category,actions.date_created,actions.user,actions.payload,actions.lexical_order`;
 
     // Add space filter if provided
     if (spaceId) {
@@ -1885,6 +1890,55 @@ export async function createHiringIntentAction(
     };
   } catch (error) {
     console.error('Error creating hiring intent action:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Update hiring intent action status
+export async function updateHiringIntentAction(
+  actionId: number,
+  status: 'pending' | 'processing' | 'completed' | 'failed',
+  directusUrl: string
+): Promise<{ success: boolean; action?: HiringIntentAction; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const response = await fetch(
+      `${directusUrl}/items/hiring_intent_action/${actionId}`,
+      {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      action: result.data || result
+    };
+  } catch (error) {
+    console.error('Error updating hiring intent action:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

@@ -18,7 +18,7 @@ import {
   KanbanBoardCard,
   KanbanColorCircle,
 } from "@/components/ui/kanban";
-import { getHiringIntentsBySpace, getUserHiringIntentStates, updateHiringIntentUserState, deleteHiringIntentUserState, createHiringIntentAction, getUserProfile, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
+import { getHiringIntentsBySpace, getUserHiringIntentStates, updateHiringIntentUserState, deleteHiringIntentUserState, getUserProfile, type HiringIntent } from "@/lib/utils";
 import { createGenericSaveRequest } from "@/client_side/fetch/generic_request";
 import { EXTERNAL } from "@/constant";
 
@@ -311,12 +311,12 @@ export default function HiringIntentDashboard() {
       {/* Kanban Board */}
       {!isLoading && !error && (signalIntents.length > 0 || actionIntents.length > 0 || hiddenIntents.length > 0) && (
         <KanbanBoardProvider>
-          <KanbanBoard className="min-h-[500px] md:h-[calc(100vh-250px)] gap-4 flex-col md:flex-row">
+          <KanbanBoard className="min-h-[1200px] h-auto gap-4 flex-col md:flex-row">
             {/* Signals Column */}
             <KanbanBoardColumn
               columnId="signals"
               onDropOverColumn={(data) => handleDropOverColumn("signals", data)}
-              className="w-full md:flex-1 md:min-w-0"
+              className="w-full md:flex-1 md:min-w-0 min-h-[1200px] max-h-none"
             >
               <KanbanBoardColumnHeader className="px-3 py-2">
                 <KanbanBoardColumnTitle columnId="signals" className="text-base md:text-sm">
@@ -358,7 +358,7 @@ export default function HiringIntentDashboard() {
             <KanbanBoardColumn
               columnId="actions"
               onDropOverColumn={(data) => handleDropOverColumn("actions", data)}
-              className="w-full md:flex-1 md:min-w-0"
+              className="w-full md:flex-1 md:min-w-0 min-h-[1200px] max-h-none"
             >
               <KanbanBoardColumnHeader className="px-3 py-2">
                 <KanbanBoardColumnTitle columnId="actions" className="text-base md:text-sm">
@@ -395,7 +395,7 @@ export default function HiringIntentDashboard() {
             <KanbanBoardColumn
               columnId="hidden"
               onDropOverColumn={(data) => handleDropOverColumn("hidden", data)}
-              className="w-full md:flex-1 md:min-w-0"
+              className="w-full md:flex-1 md:min-w-0 min-h-[1200px] max-h-none"
             >
               <KanbanBoardColumnHeader className="px-3 py-2">
                 <KanbanBoardColumnTitle columnId="hidden" className="text-base md:text-sm">
@@ -424,6 +424,7 @@ export default function HiringIntentDashboard() {
                             onAddToActions={(id) => handleActionStatusUpdate(id, 'completed')}
                             onSkip={(id) => handleActionStatusUpdate(id, 'skipped')}
                             showActionButtons={false}
+                            isHidden={true}
                           />
                         </KanbanBoardCard>
                       </KanbanBoardColumnListItem>
