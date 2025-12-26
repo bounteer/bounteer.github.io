@@ -1499,8 +1499,17 @@ export type HiringIntent = {
 // Fetch hiring intents by space
 export async function getHiringIntentsBySpace(
   spaceId: number | null,
-  directusUrl: string
-): Promise<{ success: boolean; hiringIntents?: HiringIntent[]; error?: string }> {
+  directusUrl: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+  }
+): Promise<{
+  success: boolean;
+  hiringIntents?: HiringIntent[];
+  totalCount?: number;
+  error?: string;
+}> {
   try {
     const user = await getUserProfile(directusUrl);
     if (!user) {
@@ -1510,8 +1519,11 @@ export async function getHiringIntentsBySpace(
       };
     }
 
+    const limit = options?.limit ?? 100;
+    const offset = options?.offset ?? 0;
+
     // Build URL with optional space filter - include related actions
-    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=100&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,actions.id,actions.status,actions.category,actions.date_created`;
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,actions.id,actions.status,actions.category,actions.date_created`;
 
     if (spaceId) {
       url += `&filter[space][_eq]=${spaceId}`;
@@ -1535,7 +1547,8 @@ export async function getHiringIntentsBySpace(
     const result = await response.json();
     return {
       success: true,
-      hiringIntents: result.data || []
+      hiringIntents: result.data || [],
+      totalCount: result.meta?.filter_count ?? 0
     };
   } catch (error) {
     console.error('Error fetching hiring intents:', error);

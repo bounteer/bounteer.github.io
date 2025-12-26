@@ -770,9 +770,9 @@ export default function CompanyOrbitCallEnrichment({ sessionId: propSessionId }:
           timestamp: new Date().toISOString()
         };
 
-        // Create a generic request with action="save" and category="job_description"
+        // Create a generic request with action="save_job_description"
         createGenericSaveRequestOnUnload(
-          "job_description",
+          "save_job_description",
           payload,
           EXTERNAL.directus_url,
           EXTERNAL.directus_key,

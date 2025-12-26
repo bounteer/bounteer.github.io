@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import SpaceSelector from "@/components/interactive/SpaceSelector";
 import { SignalCard } from "@/components/interactive/SignalCard";
 import { ActionCard } from "@/components/interactive/ActionCard";
+import { PaginationControls } from "@/components/interactive/PaginationControls";
 import {
   KanbanBoard,
   KanbanBoardProvider,
@@ -17,7 +18,8 @@ import {
   KanbanBoardCard,
   KanbanColorCircle,
 } from "@/components/ui/kanban";
-import { getHiringIntentsBySpace, createHiringIntentAction, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
+import { getHiringIntentsBySpace, createHiringIntentAction, getUserProfile, type HiringIntent, type HiringIntentAction } from "@/lib/utils";
+import { createGenericSaveRequest } from "@/client_side/fetch/generic_request";
 import { EXTERNAL } from "@/constant";
 
 export default function HiringIntentDashboard() {
@@ -25,10 +27,13 @@ export default function HiringIntentDashboard() {
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchHiringIntents();
-  }, [selectedSpaceId]);
+  }, [selectedSpaceId, currentPage, itemsPerPage]);
 
   const fetchHiringIntents = async () => {
     setIsLoading(true);
@@ -36,10 +41,20 @@ export default function HiringIntentDashboard() {
 
     try {
       const spaceIdNumber = selectedSpaceId && selectedSpaceId !== "all" ? parseInt(selectedSpaceId) : null;
-      const result = await getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url);
+      const offset = (currentPage - 1) * itemsPerPage;
+
+      const result = await getHiringIntentsBySpace(
+        spaceIdNumber,
+        EXTERNAL.directus_url,
+        {
+          limit: itemsPerPage,
+          offset: offset
+        }
+      );
 
       if (result.success && result.hiringIntents) {
         setHiringIntents(result.hiringIntents);
+        setTotalCount(result.totalCount || 0);
       } else {
         setError(result.error || "Failed to fetch orbit signals");
       }
@@ -53,6 +68,16 @@ export default function HiringIntentDashboard() {
 
   const handleSpaceChange = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
+    setCurrentPage(1); // Reset to first page when changing space
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   const handleDropOverColumn = async (columnId: string, dataTransferData: string) => {
@@ -89,6 +114,10 @@ export default function HiringIntentDashboard() {
     actionType: 'completed' | 'skipped'
   ) => {
     try {
+      // Get current user profile
+      const user = await getUserProfile(EXTERNAL.directus_url);
+
+      // Create hiring intent action
       const result = await createHiringIntentAction(
         hiringIntentId,
         actionType,
@@ -97,6 +126,23 @@ export default function HiringIntentDashboard() {
       );
 
       if (result.success && result.action) {
+        // If action is completed, send generic request
+        if (actionType === 'completed' && user) {
+          const payload = {
+            intent: hiringIntentId,
+            user: user.id
+          };
+
+          // Send generic request in the background (don't await)
+          createGenericSaveRequest(
+            "create_hiring_intent_action",
+            payload,
+            EXTERNAL.directus_url
+          ).catch(err => {
+            console.error('Error creating generic request:', err);
+          });
+        }
+
         // Update local state to add the new action to the intent
         setHiringIntents(prevIntents =>
           prevIntents.map(intent =>
@@ -263,6 +309,15 @@ export default function HiringIntentDashboard() {
               </KanbanBoardColumnList>
             </KanbanBoardColumn>
           </KanbanBoard>
+
+          {/* Pagination Controls */}
+          <PaginationControls
+            currentPage={currentPage}
+            totalItems={totalCount}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </KanbanBoardProvider>
       )}
     </div>

@@ -3911,7 +3911,7 @@
       },
       "action": {
         "nullable": true,
-        "description": "options: [\"save\"]",
+        "description": "options: [\"save\", \"save_job_description\", \"save_candidate_profile\", \"create_hiring_intent_action\"]",
         "type": "string"
       },
       "payload": {
@@ -3924,6 +3924,98 @@
       }
     },
     "x-collection": "generic_request"
+  },
+  "ItemsHiringIntent": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "company_profile": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsCompanyProfile"
+          }
+        ]
+      },
+      "reason": {
+        "nullable": true,
+        "type": "string"
+      },
+      "potential_role": {
+        "nullable": true
+      },
+      "skill": {
+        "nullable": true
+      },
+      "space": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      },
+      "confidence": {
+        "nullable": true,
+        "type": "integer"
+      },
+      "category": {
+        "nullable": true,
+        "type": "string"
+      },
+      "url": {
+        "nullable": true,
+        "type": "string"
+      },
+      "source": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "hiring_intent"
   },
   "ItemsCompanyReference": {
     "type": "object",
@@ -4301,94 +4393,6 @@
     },
     "x-collection": "hiring_intent_contact"
   },
-  "ItemsHiringIntent": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "company_profile": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsCompanyProfile"
-          }
-        ]
-      },
-      "reason": {
-        "nullable": true,
-        "type": "string"
-      },
-      "potential_role": {
-        "nullable": true
-      },
-      "skill": {
-        "nullable": true
-      },
-      "space": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "integer"
-          },
-          {
-            "$ref": "#/components/schemas/ItemsSpace"
-          }
-        ]
-      },
-      "confidence": {
-        "nullable": true,
-        "type": "integer"
-      },
-      "category": {
-        "nullable": true,
-        "type": "string"
-      },
-      "url": {
-        "nullable": true,
-        "type": "string"
-      }
-    },
-    "x-collection": "hiring_intent"
-  },
   "ItemsHiringIntentAction": {
     "type": "object",
     "properties": {
@@ -4450,10 +4454,25 @@
         "description": "options: [\"pending\", \"processing\", \"completed\", \"failed\"]",
         "type": "string"
       },
-      "execution_order": {
+      "payload": {
         "nullable": true,
-        "type": "string",
-        "format": "uuid"
+        "type": "string"
+      },
+      "user": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "lexical_order": {
+        "nullable": true,
+        "type": "string"
       }
     },
     "x-collection": "hiring_intent_action"

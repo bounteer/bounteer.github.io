@@ -426,9 +426,9 @@ export default function CandidateOrbitCallEnrichment({ sessionId: propSessionId 
           timestamp: new Date().toISOString()
         };
 
-        // Create a generic request with action="save" and category="candidate_profile"
+        // Create a generic request with action="save_candidate_profile"
         createGenericSaveRequestOnUnload(
-          "candidate_profile",
+          "save_candidate_profile",
           payload,
           EXTERNAL.directus_url,
           EXTERNAL.directus_key,

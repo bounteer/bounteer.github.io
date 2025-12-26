@@ -1,15 +1,13 @@
 import { getUserProfile, getAuthHeaders } from "@/lib/utils";
 
 // Generic Request types
-export type GenericRequestCategory = "job_description" | "candidate_profile";
-export type GenericRequestAction = "save";
+export type GenericRequestAction = "save_job_description" | "save_candidate_profile" | "create_hiring_intent_action";
 export type GenericRequestStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface GenericRequest {
   id?: number;
   space?: number;
   user?: string;
-  category: GenericRequestCategory;
   action: GenericRequestAction;
   payload: any;
   status?: GenericRequestStatus;
@@ -22,7 +20,7 @@ export interface GenericRequest {
  * This is used to save session data (JD/CP) when user exits the page
  */
 export async function createGenericSaveRequest(
-  category: GenericRequestCategory,
+  action: GenericRequestAction,
   payload: any,
   directusUrl: string,
   space?: number
@@ -32,8 +30,7 @@ export async function createGenericSaveRequest(
     const authHeaders = getAuthHeaders(user);
 
     const requestData: Partial<GenericRequest> = {
-      category,
-      action: "save",
+      action,
       payload,
       status: "pending"
     };
@@ -87,7 +84,7 @@ export async function createGenericSaveRequest(
  * This version doesn't return a promise and is optimized for beforeunload events
  */
 export function createGenericSaveRequestOnUnload(
-  category: GenericRequestCategory,
+  action: GenericRequestAction,
   payload: any,
   directusUrl: string,
   directusKey: string,
@@ -95,8 +92,7 @@ export function createGenericSaveRequestOnUnload(
 ): void {
   try {
     const requestData: Partial<GenericRequest> = {
-      category,
-      action: "save",
+      action,
       payload,
       status: "pending"
     };
