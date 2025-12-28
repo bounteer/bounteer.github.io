@@ -27,6 +27,8 @@ export default function HiringIntentDashboard() {
   const [actionIntents, setActionIntents] = useState<HiringIntent[]>([]);
   const [hiddenIntents, setHiddenIntents] = useState<HiringIntent[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedUser, setSelectedUser] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,7 +37,7 @@ export default function HiringIntentDashboard() {
 
   useEffect(() => {
     fetchHiringIntents();
-  }, [selectedSpaceId, currentPage, itemsPerPage]);
+  }, [selectedSpaceId, selectedCategory, selectedUser, currentPage, itemsPerPage]);
 
   const fetchHiringIntents = async () => {
     setIsLoading(true);
@@ -75,14 +77,33 @@ export default function HiringIntentDashboard() {
       ]);
 
       if (signalsResult.success && actionsResult.success && hiddenResult.success) {
-        setSignalIntents(signalsResult.hiringIntents || []);
-        setActionIntents(actionsResult.hiringIntents || []);
-        setHiddenIntents(hiddenResult.hiringIntents || []);
-        // Total count is sum of all three columns
+        // Apply client-side filters
+        let filteredSignals = signalsResult.hiringIntents || [];
+        let filteredActions = actionsResult.hiringIntents || [];
+        let filteredHidden = hiddenResult.hiringIntents || [];
+
+        // Filter by category
+        if (selectedCategory !== "all") {
+          filteredSignals = filteredSignals.filter(intent => intent.category === selectedCategory);
+          filteredActions = filteredActions.filter(intent => intent.category === selectedCategory);
+          filteredHidden = filteredHidden.filter(intent => intent.category === selectedCategory);
+        }
+
+        // Filter by user
+        if (selectedUser !== "all") {
+          filteredSignals = filteredSignals.filter(intent => intent.user_created === selectedUser);
+          filteredActions = filteredActions.filter(intent => intent.user_created === selectedUser);
+          filteredHidden = filteredHidden.filter(intent => intent.user_created === selectedUser);
+        }
+
+        setSignalIntents(filteredSignals);
+        setActionIntents(filteredActions);
+        setHiddenIntents(filteredHidden);
+        // Total count is sum of all three columns after filtering
         setTotalCount(
-          (signalsResult.totalCount || 0) +
-          (actionsResult.totalCount || 0) +
-          (hiddenResult.totalCount || 0)
+          filteredSignals.length +
+          filteredActions.length +
+          filteredHidden.length
         );
       } else {
         setError(
@@ -101,6 +122,16 @@ export default function HiringIntentDashboard() {
   const handleSpaceChange = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
     setCurrentPage(1); // Reset to first page when changing space
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  };
+
+  const handleUserChange = (user: string) => {
+    setSelectedUser(user);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number) => {
@@ -258,18 +289,55 @@ export default function HiringIntentDashboard() {
     }
   };
 
+  // Get unique categories and users from all intents
+  const allIntents = [...signalIntents, ...actionIntents, ...hiddenIntents];
+  const uniqueCategories = Array.from(new Set(allIntents.map(i => i.category).filter(Boolean)));
+  const uniqueUsers = Array.from(new Set(allIntents.map(i => i.user_created).filter(Boolean)));
+
   return (
     <div className="space-y-6">
-      {/* Space Selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">Filter by Space:</label>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Space:</label>
           <SpaceSelector
             onSpaceChange={handleSpaceChange}
             selectedSpaceId={selectedSpaceId}
             showAllOption={true}
             className="w-auto"
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Category:</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="all">All</option>
+            <option value="funding">Funding</option>
+            <option value="growth">Growth</option>
+            <option value="replacement">Replacement</option>
+            <option value="hiring">Hiring</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">User:</label>
+          <select
+            value={selectedUser}
+            onChange={(e) => handleUserChange(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="all">All Users</option>
+            {uniqueUsers.map((user) => (
+              <option key={user} value={user}>
+                {user}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

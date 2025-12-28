@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import type { HiringIntent } from "@/lib/utils";
 
@@ -168,30 +167,44 @@ export function SignalCard({
       {/* Action Buttons */}
       {showActionButtons && !hasActionStatus('completed') && !hasActionStatus('skipped') && (
         <div className="pt-1.5 flex gap-1.5">
-          <Button
-            size="sm"
-            variant="default"
-            className="flex-1 h-7 text-xs bg-green-600 hover:bg-green-700"
+          <div
+            role="button"
+            tabIndex={0}
+            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md bg-green-600 hover:bg-green-700 text-white font-medium cursor-pointer transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               onAddToActions(intent.id);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onAddToActions(intent.id);
+              }
+            }}
           >
             <CheckCircle2 className="w-3 h-3 mr-1" />
             Add
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-7 text-xs border-red-300 text-red-600 hover:bg-red-50"
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
+            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium cursor-pointer transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               onSkip(intent.id);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onSkip(intent.id);
+              }
+            }}
           >
             <XCircle className="w-3 h-3 mr-1" />
             Skip
-          </Button>
+          </div>
         </div>
       )}
     </div>

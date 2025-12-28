@@ -1844,7 +1844,7 @@ export async function deleteHiringIntentUserState(
 // Create hiring intent action
 export async function createHiringIntentAction(
   hiringIntentId: number,
-  actionStatus: 'completed' | 'skipped',
+  actionStatus: 'pending' | 'processing' | 'completed' | 'skipped' | 'failed',
   category: string = 'user_action',
   directusUrl: string
 ): Promise<{ success: boolean; action?: HiringIntentAction; error?: string }> {
