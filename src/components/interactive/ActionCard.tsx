@@ -245,6 +245,26 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     });
   };
 
+  // Extract source URL and name safely
+  const sourceUrl = typeof intent.source === 'object' ? intent.source?.url : intent.source;
+  const getSourceName = () => {
+    if (typeof intent.source === 'string') {
+      return intent.source;
+    }
+    if (typeof intent.source === 'object' && intent.source?.source) {
+      return typeof intent.source.source === 'string' ? intent.source.source : 'Source';
+    }
+    if (typeof intent.source === 'object' && intent.source?.url) {
+      try {
+        return new URL(intent.source.url).hostname;
+      } catch {
+        return 'Source';
+      }
+    }
+    return 'Source';
+  };
+  const sourceName = getSourceName();
+
   return (
     <div className="flex items-start gap-2 w-full border-l-2 border-l-green-500 pl-2">
       <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -275,16 +295,16 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
         </div>
 
         {/* Source Link and Date */}
-        {(intent.url || intent.source) && (
+        {(intent.url || sourceUrl) && (
           <div className="flex items-center gap-2">
             <a
-              href={intent.url || intent.source}
+              href={intent.url || sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
               onClick={(e) => e.stopPropagation()}
             >
-              {intent.source || "Source"}
+              {sourceName}
               <ExternalLink className="w-3 h-3" />
             </a>
             <span className="text-xs text-gray-400">

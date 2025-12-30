@@ -57,7 +57,21 @@ export function SignalCard({
   const companyEmail = intent.company_profile?.reference?.email;
 
   const sourceUrl = intent.source?.url;
-  const sourceName = intent.source?.source;
+  // Handle source name - it could be a string or need to extract from nested structure
+  const getSourceName = () => {
+    if (typeof intent.source?.source === 'string') {
+      return intent.source.source;
+    }
+    if (intent.source?.url) {
+      try {
+        return new URL(intent.source.url).hostname;
+      } catch {
+        return 'Source';
+      }
+    }
+    return 'Source';
+  };
+  const sourceName = getSourceName();
 
   return (
     <div
