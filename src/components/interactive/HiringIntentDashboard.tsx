@@ -137,6 +137,7 @@ export default function HiringIntentDashboard() {
           onSpaceChange={setSelectedSpaceId}
           selectedSpaceId={selectedSpaceId}
           showAllOption
+          countTags={["hiring_intent"]}
         />
 
         {/* Category filter */}

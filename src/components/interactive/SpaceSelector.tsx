@@ -1,19 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getUserSpaces, getUserSpacesWithWriteAccess, type Space } from "@/lib/utils";
+import {
+  getUserSpaces,
+  getUserSpacesWithWriteAccess,
+  type Space,
+} from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
+
+type CountTag = "job" | "candidate" | "hiring_intent";
 
 interface SpaceSelectorProps {
   onSpaceChange: (spaceId: string | null) => void;
   selectedSpaceId?: string | null;
   className?: string;
   showAllOption?: boolean;
-  requireWriteAccess?: boolean; // New prop to determine if only write access spaces should be shown
+  requireWriteAccess?: boolean;
+
+  /**
+   * Which counts to show next to space name
+   * Default: ["job", "candidate"]
+   */
+  countTags?: CountTag[];
 }
 
-export default function SpaceSelector({ onSpaceChange, selectedSpaceId, className = "", showAllOption = false, requireWriteAccess = false }: SpaceSelectorProps) {
+export default function SpaceSelector({
+  onSpaceChange,
+  selectedSpaceId,
+  className = "",
+  showAllOption = false,
+  requireWriteAccess = false,
+  countTags = ["job", "candidate"],
+}: SpaceSelectorProps) {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,14 +42,24 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
       setError(null);
 
       try {
-        const result = requireWriteAccess 
+        const result = requireWriteAccess
           ? await getUserSpacesWithWriteAccess(EXTERNAL.directus_url)
           : await getUserSpaces(EXTERNAL.directus_url);
-        
+
         if (result.success && result.spaces) {
           setSpaces(result.spaces);
-          // Auto-select first space if no space is selected and there are spaces available (only if not showing "All" option)
-          if (!selectedSpaceId && result.spaces.length > 0 && !showAllOption) {
+
+          // Default to "all" if allowed
+          if (!selectedSpaceId && showAllOption) {
+            onSpaceChange("all");
+          }
+
+          // Otherwise auto-select first space
+          if (
+            !selectedSpaceId &&
+            !showAllOption &&
+            result.spaces.length > 0
+          ) {
             onSpaceChange(result.spaces[0].id.toString());
           }
         } else {
@@ -46,20 +74,41 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
     }
 
     fetchSpaces();
-  }, [selectedSpaceId, onSpaceChange, requireWriteAccess]);
+  }, [selectedSpaceId, onSpaceChange, requireWriteAccess, showAllOption]);
+
+  const renderCounts = (space: Space) => {
+    const parts: string[] = [];
+
+    countTags.forEach((tag) => {
+      switch (tag) {
+        case "job":
+          parts.push(`${space.job_description_count || 0} jobs`);
+          break;
+        case "candidate":
+          parts.push(`${space.candidate_profile_count || 0} candidates`);
+          break;
+        case "hiring_intent":
+          parts.push(`${space.hiring_intent_count || 0} signals`);
+          break;
+        default:
+          break;
+      }
+    });
+
+    return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+  };
 
   if (isLoading) {
     return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
-        <span className="text-sm text-white/70">Loading spaces...</span>
+      <div className={`text-sm text-gray-500 ${className}`}>
+        Loading spaces…
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className={`text-sm text-red-300 ${className}`}>
+      <div className={`text-sm text-red-600 ${className}`}>
         {error}
       </div>
     );
@@ -67,41 +116,34 @@ export default function SpaceSelector({ onSpaceChange, selectedSpaceId, classNam
 
   if (spaces.length === 0) {
     return (
-      <div className={`text-sm text-white/70 ${className}`}>
+      <div className={`text-sm text-gray-500 ${className}`}>
         No spaces available
       </div>
     );
   }
 
   return (
-    <div className={`${className}`}>
-      <Select 
-        value={selectedSpaceId || undefined} 
-        onValueChange={onSpaceChange}
+    <div className={className}>
+      <select
+        value={selectedSpaceId ?? "all"}
+        onChange={(e) => onSpaceChange(e.target.value)}
+        className="
+          h-9 w-64 rounded-md border border-input bg-background px-3
+          text-sm shadow-sm focus-visible:outline-none
+          focus-visible:ring-2 focus-visible:ring-ring
+        "
       >
-        <SelectTrigger className="w-64 bg-white/20 border-white/40 text-white backdrop-blur-sm [&_svg]:text-white/70 focus-visible:ring-white/50">
-          <SelectValue placeholder="Select a space" />
-        </SelectTrigger>
-        <SelectContent className="bg-white border border-gray-200 shadow-lg">
-          {showAllOption && (
-            <SelectItem 
-              value="all"
-              className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100"
-            >
-              All
-            </SelectItem>
-          )}
-          {spaces.map((space) => (
-            <SelectItem 
-              key={space.id} 
-              value={space.id.toString()}
-              className="text-gray-900 hover:bg-gray-100 focus:bg-gray-100"
-            >
-              {space.name} ({space.job_description_count || 0} jobs, {space.candidate_profile_count || 0} candidates)
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {showAllOption && (
+          <option value="all">All Spaces</option>
+        )}
+
+        {spaces.map((space) => (
+          <option key={space.id} value={space.id.toString()}>
+            {space.name}
+            {renderCounts(space)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

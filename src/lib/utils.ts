@@ -592,6 +592,7 @@ export type Space = {
   job_description_count?: number;
   candidate_profile_count?: number;
   user_count?: number;
+  hiring_intent_count?: number;
 }
 
 export type SpaceUser = {
@@ -709,7 +710,7 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
           
           if (jdResponse.ok) {
             const jdResult = await jdResponse.json();
-            
+
             // Extract count from aggregate response - try different possible structures
             let count = 0;
             if (jdResult.data?.[0]?.count !== undefined) {
@@ -725,14 +726,50 @@ export async function getUserSpaces(directusUrl: string): Promise<{ success: boo
             } else if (typeof jdResult.data === 'number') {
               count = jdResult.data;
             }
-            
+
             space.job_description_count = count;
           } else {
             space.job_description_count = 0;
           }
+
+          // Fetch hiring intent count
+          const hiringIntentResponse = await fetch(
+            `${directusUrl}/items/hiring_intent?filter[space][_eq]=${space.id}&aggregate[count]=id`,
+            {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+
+          if (hiringIntentResponse.ok) {
+            const hiringIntentResult = await hiringIntentResponse.json();
+
+            // Extract count from aggregate response - try different possible structures
+            let count = 0;
+            if (hiringIntentResult.data?.[0]?.count !== undefined) {
+              const countValue = hiringIntentResult.data[0].count;
+              // Handle case where count is an object with id property
+              if (typeof countValue === 'object' && countValue.id !== undefined) {
+                count = parseInt(countValue.id) || 0;
+              } else {
+                count = parseInt(countValue) || 0;
+              }
+            } else if (hiringIntentResult.data?.length !== undefined) {
+              count = hiringIntentResult.data.length;
+            } else if (typeof hiringIntentResult.data === 'number') {
+              count = hiringIntentResult.data;
+            }
+
+            space.hiring_intent_count = count;
+          } else {
+            space.hiring_intent_count = 0;
+          }
         } catch (error) {
           space.candidate_profile_count = 0;
           space.job_description_count = 0;
+          space.hiring_intent_count = 0;
         }
         return space;
       })
@@ -858,7 +895,7 @@ export async function getUserSpacesWithWriteAccess(directusUrl: string): Promise
           
           if (jdResponse.ok) {
             const jdResult = await jdResponse.json();
-            
+
             // Extract count from aggregate response - try different possible structures
             let count = 0;
             if (jdResult.data?.[0]?.count !== undefined) {
@@ -874,14 +911,50 @@ export async function getUserSpacesWithWriteAccess(directusUrl: string): Promise
             } else if (typeof jdResult.data === 'number') {
               count = jdResult.data;
             }
-            
+
             space.job_description_count = count;
           } else {
             space.job_description_count = 0;
           }
+
+          // Fetch hiring intent count
+          const hiringIntentResponse = await fetch(
+            `${directusUrl}/items/hiring_intent?filter[space][_eq]=${space.id}&aggregate[count]=id`,
+            {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+
+          if (hiringIntentResponse.ok) {
+            const hiringIntentResult = await hiringIntentResponse.json();
+
+            // Extract count from aggregate response - try different possible structures
+            let count = 0;
+            if (hiringIntentResult.data?.[0]?.count !== undefined) {
+              const countValue = hiringIntentResult.data[0].count;
+              // Handle case where count is an object with id property
+              if (typeof countValue === 'object' && countValue.id !== undefined) {
+                count = parseInt(countValue.id) || 0;
+              } else {
+                count = parseInt(countValue) || 0;
+              }
+            } else if (hiringIntentResult.data?.length !== undefined) {
+              count = hiringIntentResult.data.length;
+            } else if (typeof hiringIntentResult.data === 'number') {
+              count = hiringIntentResult.data;
+            }
+
+            space.hiring_intent_count = count;
+          } else {
+            space.hiring_intent_count = 0;
+          }
         } catch (error) {
           space.candidate_profile_count = 0;
           space.job_description_count = 0;
+          space.hiring_intent_count = 0;
         }
         return space;
       })
