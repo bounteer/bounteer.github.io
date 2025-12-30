@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import type { HiringIntent } from "@/lib/utils";
@@ -15,198 +16,252 @@ export function SignalCard({
   onAddToActions,
   onSkip,
   showActionButtons = true,
-  isHidden = false
+  isHidden = false,
 }: SignalCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const getCategoryColor = (category?: string) => {
     switch (category) {
       case "funding":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-50 text-blue-700";
       case "growth":
-        return "bg-green-100 text-green-800";
+        return "bg-green-50 text-green-700";
       case "replacement":
-        return "bg-amber-100 text-amber-800";
+        return "bg-amber-50 text-amber-700";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-50 text-gray-700";
     }
   };
 
-  const getConfidenceColor = (confidence?: number) => {
-    if (!confidence) return "bg-gray-100 text-gray-800";
-    if (confidence >= 80) return "bg-green-100 text-green-800";
-    if (confidence >= 50) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
+  const getConfidenceLevel = (confidence?: number) => {
+    if (!confidence) return { label: "N/A", color: "bg-gray-50 text-gray-600" };
+    if (confidence >= 85) return { label: "High", color: "bg-green-50 text-green-700" };
+    if (confidence >= 70) return { label: "Mid", color: "bg-yellow-50 text-yellow-700" };
+    if (confidence >= 50) return { label: "Low", color: "bg-orange-50 text-orange-700" };
+    return { label: "Very Low", color: "bg-gray-100 text-gray-600" };
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
-      year: "numeric",
       month: "short",
       day: "numeric",
     });
   };
 
-  const hasActionStatus = (status: 'completed' | 'skipped'): boolean => {
-    return intent.actions?.some(action => action.status === status) || false;
-  };
+  const hasActionStatus = (status: "completed" | "skipped") =>
+    intent.actions?.some((a) => a.status === status) || false;
+
+  const companyWebsite = intent.company_profile?.reference?.website_url;
+  const companyEmail = intent.company_profile?.reference?.email;
+
+  const sourceUrl = intent.source?.url;
+  const sourceName = intent.source?.source;
 
   return (
-    <div className={`space-y-1.5 w-full ${isHidden ? 'opacity-50' : ''}`}>
-      {/* Header with company name and category */}
-      <div className="flex items-start justify-between gap-2">
-        {intent.company_profile?.reference?.website_url || intent.company_profile?.url || intent.company_profile?.website ? (
-          <a
-            href={intent.company_profile.reference?.website_url || intent.company_profile.url || intent.company_profile.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`text-sm font-semibold line-clamp-1 flex-1 flex items-center gap-1 ${
-              isHidden ? 'text-gray-500 hover:text-gray-600' : 'text-gray-900 hover:text-blue-600'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
+    <div
+      className={`w-full space-y-2 cursor-pointer transition ${isHidden ? "opacity-50" : ""
+        }`}
+      onClick={() => setExpanded((v) => !v)}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold truncate text-gray-900">
             {intent.company_profile?.name || "Unknown Company"}
-            <ExternalLink className="w-3 h-3 flex-shrink-0" />
-          </a>
-        ) : (
-          <h3 className={`text-sm font-semibold line-clamp-1 flex-1 ${
-            isHidden ? 'text-gray-500' : 'text-gray-900'
-          }`}>
-            {intent.company_profile?.name || "Unknown Company"}
-          </h3>
-        )}
+          </div>
+
+          {intent.company_profile?.industry && (
+            <div className="mt-1">
+              <Badge
+                variant="outline"
+                className="text-[11px] px-2 py-0.5 bg-slate-50 text-slate-600 border-slate-200"
+              >
+                {Array.isArray(intent.company_profile.industry)
+                  ? intent.company_profile.industry[0]
+                  : intent.company_profile.industry}
+              </Badge>
+            </div>
+          )}
+        </div>
+
         {intent.category && (
-          <Badge className={`${getCategoryColor(intent.category)} flex-shrink-0 text-xs py-0 px-1.5 ${
-            isHidden ? 'opacity-70' : ''
-          }`}>
+          <Badge
+            className={`${getCategoryColor(intent.category)} text-[11px] px-2 py-0.5`}
+          >
             {intent.category}
           </Badge>
         )}
       </div>
 
-      {/* Source Link and Date */}
-      {(intent.url || intent.source) && (
-        <div className="flex items-center gap-2">
-          <a
-            href={intent.url || intent.source}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`text-xs hover:underline flex items-center gap-1 ${
-              isHidden ? 'text-gray-400 hover:text-gray-500' : 'text-blue-600 hover:text-blue-800'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {intent.source || "Source"}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-          <span className={`text-xs ${isHidden ? 'text-gray-400' : 'text-gray-400'}`}>
-            {formatDate(intent.date_created)}
-          </span>
-        </div>
-      )}
-
       {/* Reason */}
       {intent.reason && (
-        <p className={`text-xs line-clamp-2 ${isHidden ? 'text-gray-500' : 'text-gray-600'}`}>
+        <p
+          className={`text-xs leading-relaxed text-gray-600 ${expanded ? "line-clamp-3" : "line-clamp-1"
+            }`}
+        >
           {intent.reason}
+          {!expanded && <span className="text-gray-400"> … more</span>}
         </p>
       )}
 
-      {/* Potential Role */}
-      {intent.potential_role && (
-        <div className="flex flex-wrap gap-1">
-          {(Array.isArray(intent.potential_role)
-            ? intent.potential_role
-            : typeof intent.potential_role === "string"
-              ? [intent.potential_role]
-              : []
-          ).map((role, index) => (
-            <Badge key={index} variant="outline" className={`text-xs py-0 px-1.5 ${
-              isHidden
-                ? 'bg-gray-50 text-gray-600 border-gray-200'
-                : 'bg-purple-50 text-purple-700 border-purple-200'
-            }`}>
-              {role}
-            </Badge>
-          ))}
+      {/* Expanded inspection panel */}
+      {expanded && (
+        <div
+          className="
+            mt-2
+            pl-3
+            pr-2
+            py-2
+            space-y-2
+            text-[11px]
+            text-gray-500
+            bg-gray-50
+            border-l-2
+            border-gray-200
+            rounded-sm
+          "
+        >
+          {/* Roles */}
+          <div>
+            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
+              Roles
+            </div>
+            {intent.potential_role ? (
+              <div className="flex flex-wrap gap-1.5">
+                {(Array.isArray(intent.potential_role)
+                  ? intent.potential_role
+                  : [intent.potential_role]
+                ).map((role, i) => (
+                  <Badge
+                    key={i}
+                    variant="outline"
+                    className="text-[11px] px-2 py-0.5 bg-violet-50 text-violet-700 border-violet-200"
+                  >
+                    {role}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="italic text-gray-400">not found</span>
+            )}
+          </div>
+
+          {/* Hiring window */}
+          <div>
+            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
+              Hiring window
+            </div>
+            {(intent.predicted_window_start || intent.predicted_window_end) ? (
+              <span>
+                {intent.predicted_window_start
+                  ? formatDate(intent.predicted_window_start)
+                  : "?"}
+                {" → "}
+                {intent.predicted_window_end
+                  ? formatDate(intent.predicted_window_end)
+                  : "?"}
+              </span>
+            ) : (
+              <span className="italic text-gray-400">not found</span>
+            )}
+          </div>
+
+          {/* Source */}
+          <div>
+            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
+              Source
+            </div>
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-blue-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {sourceName}
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
+          </div>
+
+          {/* Company links */}
+          <div>
+            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
+              Company links
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {companyWebsite ? (
+                <a
+                  href={companyWebsite}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-blue-600"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Website ↗
+                </a>
+              ) : (
+                <span className="italic text-gray-400">Website — not found</span>
+              )}
+
+              {companyEmail ? (
+                <a
+                  href={`mailto:${companyEmail}`}
+                  className="hover:text-blue-600"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Email
+                </a>
+              ) : (
+                <span className="italic text-gray-400">Email — not found</span>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Skills */}
-      {intent.skill && (
-        <div className="flex flex-wrap gap-1">
-          {(Array.isArray(intent.skill)
-            ? intent.skill
-            : typeof intent.skill === "string"
-              ? [intent.skill]
-              : []
-          ).map((skill, index) => (
-            <Badge key={index} variant="outline" className={`text-xs py-0 px-1.5 ${
-              isHidden
-                ? 'bg-gray-50 text-gray-600 border-gray-200'
-                : 'bg-blue-50 text-blue-700 border-blue-200'
-            }`}>
-              {skill}
-            </Badge>
-          ))}
-        </div>
-      )}
+      {/* Meta row */}
+      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1">
+        <span>{intent.date_created && formatDate(intent.date_created)}</span>
 
-      {/* Confidence Score */}
-      {intent.confidence !== undefined && intent.confidence !== null && (
-        <div className="flex items-center justify-between pt-1">
-          <span className={`text-xs ${isHidden ? 'text-gray-400' : 'text-gray-500'}`}>Confidence</span>
-          <Badge className={`${getConfidenceColor(intent.confidence)} text-xs py-0 px-1.5 ${
-            isHidden ? 'opacity-70' : ''
-          }`}>
-            {intent.confidence}%
+        {intent.confidence !== undefined && intent.confidence !== null && (
+          <Badge
+            className={`${getConfidenceLevel(intent.confidence).color} text-[11px] px-2 py-0.5`}
+          >
+            {getConfidenceLevel(intent.confidence).label}
           </Badge>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Action Buttons */}
-      {showActionButtons && !hasActionStatus('completed') && !hasActionStatus('skipped') && (
-        <div className="pt-1.5 flex gap-1.5">
-          <div
-            role="button"
-            tabIndex={0}
-            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md bg-green-600 hover:bg-green-700 text-white font-medium cursor-pointer transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddToActions(intent.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+      {/* Actions */}
+      {showActionButtons &&
+        !hasActionStatus("completed") &&
+        !hasActionStatus("skipped") && (
+          <div className="pt-2 flex gap-2">
+            <button
+              className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 text-white font-medium transition"
+              onClick={(e) => {
                 e.stopPropagation();
                 onAddToActions(intent.id);
-              }
             }}
           >
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            Add
-          </div>
-          <div
-            role="button"
-            tabIndex={0}
-            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md border border-red-300 text-red-600 hover:bg-red-50 font-medium cursor-pointer transition-colors"
+            Add to actions
+          </button>
+
+          <button
+            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition"
             onClick={(e) => {
-              e.stopPropagation();
-              onSkip(intent.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
                 e.stopPropagation();
                 onSkip(intent.id);
-              }
             }}
           >
-            <XCircle className="w-3 h-3 mr-1" />
-            Skip
+              <XCircle className="w-3 h-3 mr-1 opacity-70" />
+              Hide
+            </button>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
