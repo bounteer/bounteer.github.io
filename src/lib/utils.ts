@@ -1489,7 +1489,7 @@ export type HiringIntentUserState = {
   user_updated?: string;
   date_updated?: string;
   intent?: number;
-  status?: 'actioned' | 'hidden';
+  status?: 'actioned' | 'hidden' | 'completed';
 }
 
 // Hiring Intent types
@@ -1517,6 +1517,7 @@ export type HiringIntent = {
 type CategorizedIntentIds = {
   actionedIds: number[];
   hiddenIds: number[];
+  completedIds: number[];
   allIds: number[];
 };
 
@@ -1559,13 +1560,17 @@ export async function getUserHiringIntentStates(
     const hiddenIds = userStates
       .filter((state: any) => state.status === 'hidden')
       .map((state: any) => state.intent);
-    const allIds = [...actionedIds, ...hiddenIds];
+    const completedIds = userStates
+      .filter((state: any) => state.status === 'completed')
+      .map((state: any) => state.intent);
+    const allIds = [...actionedIds, ...hiddenIds, ...completedIds];
 
     return {
       success: true,
       categories: {
         actionedIds,
         hiddenIds,
+        completedIds,
         allIds
       }
     };
@@ -1586,7 +1591,7 @@ export async function getHiringIntentsBySpace(
   options?: {
     limit?: number;
     offset?: number;
-    columnType?: 'signals' | 'actions' | 'hidden';
+    columnType?: 'signals' | 'actions' | 'hidden' | 'completed';
     categorizedIds?: CategorizedIntentIds; // Reuse categorized IDs to avoid redundant queries
   }
 ): Promise<{
@@ -1613,7 +1618,7 @@ export async function getHiringIntentsBySpace(
       categorizedIds = statesResult.categories;
     }
 
-    const { actionedIds, hiddenIds, allIds } = categorizedIds;
+    const { actionedIds, hiddenIds, completedIds, allIds } = categorizedIds;
 
     // Build base URL with fields
     let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,reason,potential_role,skill,category,space,confidence,predicted_window_start,predicted_window_end,source,actions.id,actions.status,actions.category,actions.date_created,actions.user,actions.payload,actions.lexical_order`;
@@ -1644,6 +1649,16 @@ export async function getHiringIntentsBySpace(
         };
       }
       url += `&filter[id][_in]=${hiddenIds.join(',')}`;
+    } else if (columnType === 'completed') {
+      // For Completed: fetch intents where ID is in completedIds
+      if (completedIds.length === 0) {
+        return {
+          success: true,
+          hiringIntents: [],
+          totalCount: 0
+        };
+      }
+      url += `&filter[id][_in]=${completedIds.join(',')}`;
     } else {
       // For Signals: fetch intents where ID is NOT in allIds
       if (allIds.length > 0) {
@@ -1685,7 +1700,7 @@ export async function getHiringIntentsBySpace(
 // Create or update hiring intent user state
 export async function updateHiringIntentUserState(
   hiringIntentId: number,
-  status: 'actioned' | 'hidden',
+  status: 'actioned' | 'hidden' | 'completed',
   directusUrl: string
 ): Promise<{ success: boolean; userState?: HiringIntentUserState; error?: string }> {
   try {

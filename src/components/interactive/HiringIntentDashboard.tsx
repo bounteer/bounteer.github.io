@@ -25,6 +25,7 @@ import { EXTERNAL } from "@/constant";
 export default function HiringIntentDashboard() {
   const [signalIntents, setSignalIntents] = useState<HiringIntent[]>([]);
   const [actionIntents, setActionIntents] = useState<HiringIntent[]>([]);
+  const [completedIntents, setCompletedIntents] = useState<HiringIntent[]>([]);
   const [hiddenIntents, setHiddenIntents] = useState<HiringIntent[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -54,8 +55,8 @@ export default function HiringIntentDashboard() {
         return;
       }
 
-      // Now fetch all three columns in parallel, reusing the categorized IDs
-      const [signalsResult, actionsResult, hiddenResult] = await Promise.all([
+      // Now fetch all four columns in parallel, reusing the categorized IDs
+      const [signalsResult, actionsResult, completedResult, hiddenResult] = await Promise.all([
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset: offset,
@@ -71,21 +72,29 @@ export default function HiringIntentDashboard() {
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset: offset,
+          columnType: 'completed',
+          categorizedIds: userStatesResult.categories
+        }),
+        getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
+          limit: itemsPerPage,
+          offset: offset,
           columnType: 'hidden',
           categorizedIds: userStatesResult.categories
         })
       ]);
 
-      if (signalsResult.success && actionsResult.success && hiddenResult.success) {
+      if (signalsResult.success && actionsResult.success && completedResult.success && hiddenResult.success) {
         // Apply client-side filters
         let filteredSignals = signalsResult.hiringIntents || [];
         let filteredActions = actionsResult.hiringIntents || [];
+        let filteredCompleted = completedResult.hiringIntents || [];
         let filteredHidden = hiddenResult.hiringIntents || [];
 
         // Filter by category
         if (selectedCategory !== "all") {
           filteredSignals = filteredSignals.filter(intent => intent.category === selectedCategory);
           filteredActions = filteredActions.filter(intent => intent.category === selectedCategory);
+          filteredCompleted = filteredCompleted.filter(intent => intent.category === selectedCategory);
           filteredHidden = filteredHidden.filter(intent => intent.category === selectedCategory);
         }
 
@@ -93,21 +102,24 @@ export default function HiringIntentDashboard() {
         if (selectedUser !== "all") {
           filteredSignals = filteredSignals.filter(intent => intent.user_created === selectedUser);
           filteredActions = filteredActions.filter(intent => intent.user_created === selectedUser);
+          filteredCompleted = filteredCompleted.filter(intent => intent.user_created === selectedUser);
           filteredHidden = filteredHidden.filter(intent => intent.user_created === selectedUser);
         }
 
         setSignalIntents(filteredSignals);
         setActionIntents(filteredActions);
+        setCompletedIntents(filteredCompleted);
         setHiddenIntents(filteredHidden);
-        // Total count is sum of all three columns after filtering
+        // Total count is sum of all four columns after filtering
         setTotalCount(
           filteredSignals.length +
           filteredActions.length +
+          filteredCompleted.length +
           filteredHidden.length
         );
       } else {
         setError(
-          signalsResult.error || actionsResult.error || hiddenResult.error ||
+          signalsResult.error || actionsResult.error || completedResult.error || hiddenResult.error ||
           "Failed to fetch orbit signals"
         );
       }
@@ -226,6 +238,114 @@ export default function HiringIntentDashboard() {
           }
         } else {
           setError(result.error || 'Failed to move hidden to actions');
+        }
+      }
+      // Moving from Actions to Completed
+      else if (fromColumn === "actions" && columnId === "completed") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'completed', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = actionIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent && result.userState) {
+            // Update the intent's user_state with the new completed state
+            const updatedIntent = {
+              ...movedIntent,
+              user_state: [result.userState]
+            };
+            setActionIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setCompletedIntents(prev => [...prev, updatedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move action to completed');
+        }
+      }
+      // Moving from Completed to Actions
+      else if (fromColumn === "completed" && columnId === "actions") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'actioned', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = completedIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent && result.userState) {
+            // Update the intent's user_state to actioned
+            const updatedIntent = {
+              ...movedIntent,
+              user_state: [result.userState]
+            };
+            setCompletedIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setActionIntents(prev => [...prev, updatedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move completed to actions');
+        }
+      }
+      // Moving from Completed to Signals
+      else if (fromColumn === "completed" && columnId === "signals") {
+        const result = await deleteHiringIntentUserState(hiringIntentId, EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = completedIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent) {
+            // Remove user_state when moving back to signals
+            const updatedIntent = {
+              ...movedIntent,
+              user_state: []
+            };
+            setCompletedIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setSignalIntents(prev => [...prev, updatedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move completed to signals');
+        }
+      }
+      // Moving from Completed to Hidden
+      else if (fromColumn === "completed" && columnId === "hidden") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'hidden', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = completedIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent && result.userState) {
+            // Update the intent's user_state to hidden
+            const updatedIntent = {
+              ...movedIntent,
+              user_state: [result.userState]
+            };
+            setCompletedIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setHiddenIntents(prev => [...prev, updatedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move completed to hidden');
+        }
+      }
+      // Moving from Signals to Completed
+      else if (fromColumn === "signals" && columnId === "completed") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'completed', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = signalIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent && result.userState) {
+            // Update the intent's user_state with the new completed state
+            const updatedIntent = {
+              ...movedIntent,
+              user_state: [result.userState]
+            };
+            setSignalIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setCompletedIntents(prev => [...prev, updatedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move signal to completed');
+        }
+      }
+      // Moving from Hidden to Completed
+      else if (fromColumn === "hidden" && columnId === "completed") {
+        const result = await updateHiringIntentUserState(hiringIntentId, 'completed', EXTERNAL.directus_url);
+        if (result.success) {
+          const movedIntent = hiddenIntents.find(intent => intent.id === hiringIntentId);
+          if (movedIntent && result.userState) {
+            // Update the intent's user_state with the new completed state
+            const updatedIntent = {
+              ...movedIntent,
+              user_state: [result.userState]
+            };
+            setHiddenIntents(prev => prev.filter(intent => intent.id !== hiringIntentId));
+            setCompletedIntents(prev => [...prev, updatedIntent]);
+          }
+        } else {
+          setError(result.error || 'Failed to move hidden to completed');
         }
       }
     } catch (err) {
@@ -361,7 +481,7 @@ export default function HiringIntentDashboard() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && signalIntents.length === 0 && actionIntents.length === 0 && hiddenIntents.length === 0 && (
+      {!isLoading && !error && signalIntents.length === 0 && actionIntents.length === 0 && completedIntents.length === 0 && hiddenIntents.length === 0 && (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -377,7 +497,7 @@ export default function HiringIntentDashboard() {
       )}
 
       {/* Kanban Board */}
-      {!isLoading && !error && (signalIntents.length > 0 || actionIntents.length > 0 || hiddenIntents.length > 0) && (
+      {!isLoading && !error && (signalIntents.length > 0 || actionIntents.length > 0 || completedIntents.length > 0 || hiddenIntents.length > 0) && (
         <KanbanBoardProvider>
           <KanbanBoard className="min-h-[1200px] h-auto gap-4 flex-col md:flex-row">
             {/* Signals Column */}
@@ -447,6 +567,51 @@ export default function HiringIntentDashboard() {
                 ) : (
                   actionIntents.map((intent) => {
                     const cardData = { id: intent.id.toString(), columnId: "actions" };
+                    return (
+                      <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
+                        <KanbanBoardCard data={cardData}>
+                          <ActionCard
+                            intent={intent}
+                            onHide={async (intentId) => {
+                              await handleDropOverColumn("hidden", JSON.stringify({ id: intentId, columnId: "actions" }));
+                            }}
+                            onComplete={async (intentId) => {
+                              await handleDropOverColumn("completed", JSON.stringify({ id: intentId, columnId: "actions" }));
+                            }}
+                          />
+                        </KanbanBoardCard>
+                      </KanbanBoardColumnListItem>
+                    );
+                  })
+                )}
+              </KanbanBoardColumnList>
+            </KanbanBoardColumn>
+
+            {/* Completed Column */}
+            <KanbanBoardColumn
+              columnId="completed"
+              onDropOverColumn={(data) => handleDropOverColumn("completed", data)}
+              className="w-full md:flex-1 md:min-w-0 min-h-[1200px] max-h-none"
+            >
+              <KanbanBoardColumnHeader className="px-3 py-2">
+                <KanbanBoardColumnTitle columnId="completed" className="text-base md:text-sm">
+                  <KanbanColorCircle color="purple" />
+                  Completed
+                  <Badge className="ml-2 bg-purple-100 text-purple-800 text-xs">
+                    {completedIntents.length}
+                  </Badge>
+                </KanbanBoardColumnTitle>
+              </KanbanBoardColumnHeader>
+              <KanbanBoardColumnList className="px-1 md:px-0">
+                {completedIntents.length === 0 ? (
+                  <div className="px-2 py-8 text-center">
+                    <p className="text-sm text-gray-500">
+                      No completed actions. Drag actions here to mark them as completed.
+                    </p>
+                  </div>
+                ) : (
+                  completedIntents.map((intent) => {
+                    const cardData = { id: intent.id.toString(), columnId: "completed" };
                     return (
                       <KanbanBoardColumnListItem key={intent.id} cardId={intent.id.toString()}>
                         <KanbanBoardCard data={cardData}>
