@@ -1,26 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { enrichAndValidateCallUrl } from "@/types/models";
 import { createOrbitCallRequest } from "@/lib/utils";
 import { get_orbit_job_description_enrichment_session_by_request_id, get_orbit_candidate_profile_enrichment_session_by_request_id } from "@/client_side/fetch/orbit_call_session";
 import { EXTERNAL } from "@/constant";
 import PreviousOrbitCalls from "./PreviousOrbitCalls";
 import SpaceSelector from "./SpaceSelector";
+import MeetingScheduler from "./MeetingScheduler";
 
-type InputMode = "meeting" | "testing";
+type InputMode = "schedule" | "meeting" | "testing";
 type CallType = "company" | "candidate";
 
 export default function OrbitCallDashboard() {
   const [callUrl, setCallUrl] = useState("");
   const [callUrlError, setCallUrlError] = useState<string>("");
-  const [inputMode, setInputMode] = useState<InputMode>("meeting");
+  const [inputMode, setInputMode] = useState<InputMode>("schedule");
   const [callType, setCallType] = useState<CallType>("company");
   const [isDeploying, setIsDeploying] = useState(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [showManualInput, setShowManualInput] = useState(false);
 
   /**
    * Handle call type switching with state reset
@@ -32,6 +36,25 @@ export default function OrbitCallDashboard() {
       setCallUrlError("");
       setCallType(newCallType);
     }
+  };
+
+  /**
+   * Handle meeting scheduled from MeetingScheduler component
+   */
+  const handleMeetingScheduled = (meetLink: string) => {
+    console.log("Meeting scheduled with link:", meetLink);
+    setCallUrl(meetLink);
+    setCallUrlError("");
+    // Automatically trigger the send bot with the new meeting link
+    handleSendBotWithUrl(meetLink);
+  };
+
+  /**
+   * Handle error from MeetingScheduler component
+   */
+  const handleSchedulerError = (error: string) => {
+    console.error("Scheduler error:", error);
+    setCallUrlError(error);
   };
 
 
@@ -73,46 +96,32 @@ export default function OrbitCallDashboard() {
 
   /**
    * Handles creating orbit call request and redirecting to enrichment page
+   * with a specific URL (used by both manual input and scheduler)
    */
-  const handleSendBot = async () => {
+  const handleSendBotWithUrl = async (url: string) => {
     setIsDeploying(true);
 
     try {
       let requestData: { meeting_url?: string; testing_filename?: string; mode?: 'company_call' | 'candidate_call'; space?: number } = {};
 
-      if (inputMode === "meeting") {
-        const validation = enrichAndValidateCallUrl(callUrl);
+      // Validate and use the provided URL
+      const validation = enrichAndValidateCallUrl(url);
 
-        if (!validation.isValid) {
-          setCallUrlError(validation.error || "Invalid URL");
-          setIsDeploying(false);
-          return;
-        }
-
-        // Clear any errors and use the enriched URL
-        setCallUrlError("");
-        const finalUrl = validation.enrichedUrl || callUrl;
-        if (validation.enrichedUrl) {
-          setCallUrl(validation.enrichedUrl);
-        }
-
-        requestData.meeting_url = finalUrl;
-        console.log("Sending bot to call:", finalUrl);
-      } else {
-        // Testing mode validation
-        if (!callUrl.trim().includes("testing_filename")) {
-          const isValidFilename = /^[a-zA-Z0-9._-]+\.(json|txt|csv)$/.test(callUrl.trim());
-          if (!isValidFilename) {
-            setCallUrlError("Please enter a valid test filename (e.g., test-call-001.json)");
-            setIsDeploying(false);
-            return;
-          }
-        }
-
-        setCallUrlError("");
-        requestData.testing_filename = callUrl.trim();
-        console.log("Loading test file:", callUrl);
+      if (!validation.isValid) {
+        setCallUrlError(validation.error || "Invalid URL");
+        setIsDeploying(false);
+        return;
       }
+
+      // Clear any errors and use the enriched URL
+      setCallUrlError("");
+      const finalUrl = validation.enrichedUrl || url;
+      if (validation.enrichedUrl) {
+        setCallUrl(validation.enrichedUrl);
+      }
+
+      requestData.meeting_url = finalUrl;
+      console.log("Sending bot to call:", finalUrl);
 
       // Add mode based on callType
       requestData.mode = callType === "company" ? "company_call" : "candidate_call";
@@ -218,9 +227,66 @@ export default function OrbitCallDashboard() {
       }
 
     } catch (error) {
-      console.error("Error in handleSendBot:", error);
+      console.error("Error in handleSendBotWithUrl:", error);
       setCallUrlError("An unexpected error occurred. Please try again.");
       setIsDeploying(false);
+    }
+  };
+
+  /**
+   * Handles creating orbit call request from manual input or testing mode
+   */
+  const handleSendBot = async () => {
+    if (inputMode === "meeting") {
+      // Manual meeting URL input
+      await handleSendBotWithUrl(callUrl);
+    } else if (inputMode === "testing") {
+      // Testing mode validation
+      setIsDeploying(true);
+      try {
+        let requestData: { testing_filename?: string; mode?: 'company_call' | 'candidate_call'; space?: number } = {};
+
+        if (!callUrl.trim().includes("testing_filename")) {
+          const isValidFilename = /^[a-zA-Z0-9._-]+\.(json|txt|csv)$/.test(callUrl.trim());
+          if (!isValidFilename) {
+            setCallUrlError("Please enter a valid test filename (e.g., test-call-001.json)");
+            setIsDeploying(false);
+            return;
+          }
+        }
+
+        setCallUrlError("");
+        requestData.testing_filename = callUrl.trim();
+        requestData.mode = callType === "company" ? "company_call" : "candidate_call";
+
+        if (selectedSpaceId) {
+          requestData.space = parseInt(selectedSpaceId);
+        }
+
+        console.log("Loading test file:", callUrl);
+
+        // Create orbit call request in Directus
+        const result = await createOrbitCallRequest(requestData, EXTERNAL.directus_url);
+
+        if (!result.success) {
+          setCallUrlError(result.error || "Failed to create orbit call request");
+          setIsDeploying(false);
+          return;
+        }
+
+        console.log("Orbit call request created with ID:", result.id);
+
+        // Redirect based on call type (same as meeting mode)
+        if (callType === "company") {
+          window.location.href = `/orbit-call/company`;
+        } else {
+          window.location.href = `/orbit-call/candidate`;
+        }
+      } catch (error) {
+        console.error("Error in testing mode:", error);
+        setCallUrlError("An unexpected error occurred. Please try again.");
+        setIsDeploying(false);
+      }
     }
   };
 
@@ -277,99 +343,129 @@ export default function OrbitCallDashboard() {
           </div>
         </div>
 
-        {/* Row 2 & 3: Responsive layout - stacked on small screens, single row on md+ */}
-        <div className="space-y-2">
-          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-            {/* Input Mode Segmented Control */}
-            <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
-              <button
-                onClick={() => setInputMode("meeting")}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                  inputMode === "meeting"
-                    ? "bg-white text-black shadow-md"
-                    : "text-white hover:bg-white/10"
-                }`}
-              >
-                Meeting
-              </button>
-              <button
-                onClick={() => setInputMode("testing")}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                  inputMode === "testing"
-                    ? "bg-white text-black shadow-md"
-                    : "text-white hover:bg-white/10"
-                }`}
-              >
-                Testing
-              </button>
-            </div>
-            
-            {/* URL input and Deploy button */}
-            <div className="flex gap-2 flex-1">
-              <Input
-                id="callUrl"
-                type={inputMode === "meeting" ? "url" : "text"}
-                placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
-                value={callUrl}
-                onChange={(e) => handleCallUrlChange(e.target.value)}
-                className={`flex-1 text-sm bg-white/20 border-white/40 text-white placeholder-white/70 focus-visible:ring-white/50 backdrop-blur-sm ${callUrlError ? 'border-red-300' : ''}`}
+        {/* Scheduling Mode or Manual Input */}
+        <div className="space-y-4">
+          {inputMode === "schedule" ? (
+            <>
+              {/* Meeting Scheduler Component */}
+              <MeetingScheduler
+                onMeetingScheduled={handleMeetingScheduled}
+                onError={handleSchedulerError}
+                callType={callType}
               />
-              <Button
-                onClick={handleSendBot}
-                size="sm"
-                disabled={!!callUrlError || !callUrl.trim() || isDeploying || !selectedSpaceId}
-                className="flex items-center justify-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-              >
-                {isDeploying ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      fill="none"
-                      viewBox="0 0 24 24"
+
+              {/* Expandable Manual Input Section */}
+              <Collapsible open={showManualInput} onOpenChange={setShowManualInput}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full flex items-center justify-center gap-2 text-white/80 hover:text-white hover:bg-white/10"
+                    size="sm"
+                  >
+                    <span className="text-sm">Manual URL Input</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${
+                        showManualInput ? "rotate-180" : ""
+                      }`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  {/* Input Mode Segmented Control */}
+                  <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
+                    <button
+                      onClick={() => setInputMode("meeting")}
+                      className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                        inputMode === "meeting"
+                          ? "bg-white text-black shadow-md"
+                          : "text-white hover:bg-white/10"
+                      }`}
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Deploying...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                      Meeting URL
+                    </button>
+                    <button
+                      onClick={() => setInputMode("testing")}
+                      className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                        inputMode === "testing"
+                          ? "bg-white text-black shadow-md"
+                          : "text-white hover:bg-white/10"
+                      }`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                      />
-                    </svg>
-                    Deploy
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-          {callUrlError && (
-            <p className="text-sm text-red-300">{callUrlError}</p>
-          )}
-          {!selectedSpaceId && (
-            <p className="text-sm text-yellow-300">Please select a space to proceed</p>
-          )}
+                      Testing
+                    </button>
+                  </div>
+            
+                  {/* URL input and Deploy button */}
+                  <div className="flex gap-2">
+                    <Input
+                      id="callUrl"
+                      type={inputMode === "meeting" ? "url" : "text"}
+                      placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
+                      value={callUrl}
+                      onChange={(e) => handleCallUrlChange(e.target.value)}
+                      className={`flex-1 text-sm bg-white/20 border-white/40 text-white placeholder-white/70 focus-visible:ring-white/50 backdrop-blur-sm ${callUrlError ? 'border-red-300' : ''}`}
+                    />
+                    <Button
+                      onClick={handleSendBot}
+                      size="sm"
+                      disabled={!!callUrlError || !callUrl.trim() || isDeploying || !selectedSpaceId}
+                      className="flex items-center justify-center gap-1 px-3 bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                    >
+                      {isDeploying ? (
+                        <>
+                          <svg
+                            className="w-4 h-4 animate-spin"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          Deploying...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                            />
+                          </svg>
+                          Deploy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {callUrlError && (
+                    <p className="text-sm text-red-300">{callUrlError}</p>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Space selection reminder */}
+              {!selectedSpaceId && (
+                <p className="text-sm text-yellow-300">Please select a space to proceed</p>
+              )}
+            </>
+          ) : null}
         </div>
       </div>
     </BackgroundGradientAnimation>

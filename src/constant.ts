@@ -9,7 +9,10 @@ export const EXTERNAL = {
     payment_webhook_test_url: "https://n8n.bounteer.com/webhook-test/9d62c0a4-4078-4ba4-b2a8-6d4f6982d339",
     twitter_intent_url: "https://twitter.com/intent/tweet",
     facebook_share_url: "https://www.facebook.com/sharer/sharer.php",
-    linkedin_share_url: "https://www.linkedin.com/shareArticle"
+    linkedin_share_url: "https://www.linkedin.com/shareArticle",
+    // Google Calendar OAuth Configuration (for Meeting Scheduler in Orbit Call)
+    // Only Client ID is needed for client-side OAuth - no API key or client secret required
+    google_client_id: "", // TODO: Add your Google OAuth 2.0 Client ID from https://console.cloud.google.com/
 }
 export const KEYWORDS = {
     name: "Bounteer",
