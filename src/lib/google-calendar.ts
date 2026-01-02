@@ -16,6 +16,9 @@ export interface CalendarEvent {
     dateTime: string;
     timeZone?: string;
   };
+  attendees?: Array<{
+    email: string;
+  }>;
   conferenceData?: {
     createRequest: {
       requestId: string;
@@ -107,7 +110,8 @@ export async function createCalendarEventWithMeet(
   date: Date,
   duration: number, // in minutes
   summary: string = "Orbit Call Interview",
-  description: string = "AI-powered interview session via Bounteer Orbit Call"
+  description: string = "AI-powered interview session via Bounteer Orbit Call",
+  attendeeEmails: string[] = []
 ): Promise<CreateEventResult> {
   try {
     // Ensure user is signed in
@@ -145,10 +149,17 @@ export async function createCalendarEventWithMeet(
       },
     };
 
+    // Add attendees if provided
+    if (attendeeEmails.length > 0) {
+      event.attendees = attendeeEmails.map(email => ({ email }));
+    }
+
     // Create the event
+    // Note: sendUpdates: 'all' will send calendar invites to all attendees
     const response = await window.gapi.client.calendar.events.insert({
       calendarId: 'primary',
       conferenceDataVersion: 1,
+      sendUpdates: attendeeEmails.length > 0 ? 'all' : 'none',
       resource: event,
     });
 

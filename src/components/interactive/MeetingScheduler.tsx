@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { initGoogleCalendar, createCalendarEventWithMeet } from "@/lib/google-calendar";
 
@@ -39,6 +40,7 @@ export default function MeetingScheduler({
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState<string>("10:00");
   const [duration, setDuration] = useState<string>("30");
+  const [emails, setEmails] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
   const [isGoogleApiReady, setIsGoogleApiReady] = useState(false);
   const [initError, setInitError] = useState<string>("");
@@ -79,12 +81,19 @@ export default function MeetingScheduler({
         return;
       }
 
+      // Parse emails (comma or space separated)
+      const attendeeEmails = emails
+        .split(/[,\s]+/)
+        .map(email => email.trim())
+        .filter(email => email.length > 0 && email.includes('@'));
+
       // Create calendar event with Google Meet
       const result = await createCalendarEventWithMeet(
         meetingDate,
         parseInt(duration),
         `Orbit Call - ${callType === "company" ? "Company" : "Candidate"} Interview`,
-        `AI-powered ${callType} interview session via Bounteer Orbit Call`
+        `AI-powered ${callType} interview session via Bounteer Orbit Call`,
+        attendeeEmails
       );
 
       if (result.success && result.meetLink) {
@@ -118,7 +127,7 @@ export default function MeetingScheduler({
               {date ? format(date, "PPP") : "Pick a date"}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)]" align="center">
             <Calendar
               mode="single"
               selected={date}
@@ -143,7 +152,7 @@ export default function MeetingScheduler({
               {time}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-2" align="start">
+          <PopoverContent className="w-64 p-2 max-w-[calc(100vw-2rem)]" align="center">
             <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
               {TIME_SLOTS.map((slot) => (
                 <Button
@@ -161,11 +170,29 @@ export default function MeetingScheduler({
         </Popover>
       </div>
 
+      {/* Email Invitations */}
+      <div className="space-y-2">
+        <Label className="text-white/90 flex items-center gap-2">
+          <Mail className="h-4 w-4" />
+          Invite Attendees (Optional)
+        </Label>
+        <Input
+          type="text"
+          placeholder="email@example.com, another@example.com"
+          value={emails}
+          onChange={(e) => setEmails(e.target.value)}
+          className="bg-white/20 border-white/40 text-white placeholder-white/60 focus-visible:ring-white/50 backdrop-blur-sm"
+        />
+        <p className="text-xs text-white/60">
+          Enter email addresses separated by commas or spaces
+        </p>
+      </div>
+
       {/* Duration Selector */}
       <div className="space-y-2">
         <Label className="text-white/90">Duration</Label>
         <RadioGroup value={duration} onValueChange={setDuration}>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {DURATION_OPTIONS.map((option) => (
               <div key={option.value} className="flex items-center space-x-2">
                 <RadioGroupItem
