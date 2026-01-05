@@ -21,6 +21,8 @@ import {
 import {
   getHiringIntentsBySpace,
   getUserHiringIntentStates,
+  updateHiringIntentUserState,
+  getHiringIntentActions,
   type HiringIntent,
 } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
@@ -129,6 +131,42 @@ export default function HiringIntentDashboard() {
     }
   };
 
+  const handleAddToActions = async (intentId: number) => {
+    try {
+      const result = await updateHiringIntentUserState(
+        intentId,
+        "actioned",
+        EXTERNAL.directus_url
+      );
+
+      if (result.success) {
+        await fetchHiringIntents();
+      } else {
+        console.error("Failed to add to actions:", result.error);
+      }
+    } catch (err) {
+      console.error("Failed to add to actions:", err);
+    }
+  };
+
+  const handleSkip = async (intentId: number) => {
+    try {
+      const result = await updateHiringIntentUserState(
+        intentId,
+        "hidden",
+        EXTERNAL.directus_url
+      );
+
+      if (result.success) {
+        await fetchHiringIntents();
+      } else {
+        console.error("Failed to skip:", result.error);
+      }
+    } catch (err) {
+      console.error("Failed to skip:", err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters + Desktop toggle */}
@@ -138,7 +176,6 @@ export default function HiringIntentDashboard() {
           selectedSpaceId={selectedSpaceId}
           showAllOption
           countTags={["hiring_intent"]}
-          variant="glass"
         />
 
         {/* Category filter */}
@@ -212,7 +249,11 @@ export default function HiringIntentDashboard() {
                     <KanbanBoardCard
                       data={{ id: intent.id.toString(), columnId: "signals" }}
                     >
-                      <SignalCard intent={intent} />
+                      <SignalCard
+                        intent={intent}
+                        onAddToActions={handleAddToActions}
+                        onSkip={handleSkip}
+                      />
                     </KanbanBoardCard>
                   </KanbanBoardColumnListItem>
                 ))}
@@ -288,7 +329,12 @@ export default function HiringIntentDashboard() {
                     <KanbanBoardCard
                       data={{ id: intent.id.toString(), columnId: "hidden" }}
                     >
-                      <SignalCard intent={intent} isHidden />
+                      <SignalCard
+                        intent={intent}
+                        onAddToActions={handleAddToActions}
+                        onSkip={handleSkip}
+                        isHidden
+                      />
                     </KanbanBoardCard>
                   </KanbanBoardColumnListItem>
                 ))}

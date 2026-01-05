@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical } from "lucide-react";
+import { CheckCircle2, ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X } from "lucide-react";
 import type { HiringIntent, HiringIntentAction } from "@/lib/utils";
-import { getUserProfile, updateHiringIntentAction, createHiringIntentAction } from "@/lib/utils";
+import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
 interface ActionCardProps {
@@ -21,6 +21,18 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
+
+  // Helper function to extract text from payload (handles both JSON and plain text)
+  const extractTextFromPayload = (payload: any): string => {
+    if (!payload) return "";
+    try {
+      const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+      return parsed.text || "";
+    } catch {
+      // If parsing fails, use as plain text (for backwards compatibility)
+      return typeof payload === 'string' ? payload : "";
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -153,24 +165,29 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
       const result = await createHiringIntentAction(
         intent.id,
         'processing',
-        'user_action',
+        'manual',
         EXTERNAL.directus_url
       );
 
       if (result.success && result.action) {
-        // Update the action with the lexical order
+        // Update the action with the lexical order and initialize payload
         if (result.action.id) {
+          const initialPayload = { text: "" };
+
           await fetch(`${EXTERNAL.directus_url}/items/hiring_intent_action/${result.action.id}`, {
             method: 'PATCH',
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ lexical_order: newOrder }),
+            body: JSON.stringify({
+              lexical_order: newOrder,
+              payload: initialPayload
+            }),
           });
 
           // Add to local state
-          const newAction = { ...result.action!, lexical_order: newOrder };
+          const newAction = { ...result.action!, lexical_order: newOrder, payload: initialPayload };
           setUserActions(prev => [...prev, newAction]);
 
           // Automatically start editing the new action
@@ -189,25 +206,38 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
 
   const handleStartEdit = (action: HiringIntentAction) => {
     setEditingActionId(action.id!);
-    setEditingText(action.payload || "");
+    setEditingText(extractTextFromPayload(action.payload));
   };
 
   const handleSaveEdit = async (action: HiringIntentAction) => {
     if (!action.id) return;
 
     try {
-      await fetch(`${EXTERNAL.directus_url}/items/hiring_intent_action/${action.id}`, {
+      // Wrap text in JSON object with category and payload
+      const payloadData = {
+        text: editingText
+      };
+
+      const response = await fetch(`${EXTERNAL.directus_url}/items/hiring_intent_action/${action.id}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ payload: editingText }),
+        body: JSON.stringify({
+          category: "manual",
+          payload: payloadData
+        }),
       });
 
-      // Update local state
+      if (!response.ok) {
+        console.error('Failed to save action:', response.status);
+        return;
+      }
+
+      // Update local state only if save was successful
       setUserActions(prev =>
-        prev.map(a => (a.id === action.id ? { ...a, payload: editingText } : a))
+        prev.map(a => (a.id === action.id ? { ...a, category: "manual", payload: payloadData } : a))
       );
 
       setEditingActionId(null);
@@ -221,6 +251,24 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   const handleCancelEdit = () => {
     setEditingActionId(null);
     setEditingText("");
+  };
+
+  const handleDeleteAction = async (actionId: number) => {
+    if (!actionId) return;
+
+    try {
+      const result = await deleteHiringIntentAction(actionId, EXTERNAL.directus_url);
+
+      if (result.success) {
+        // Remove from local state
+        setUserActions(prev => prev.filter(a => a.id !== actionId));
+        onActionUpdate?.();
+      } else {
+        console.error('Failed to delete action:', result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting action:', error);
+    }
   };
   const getCategoryColor = (category?: string) => {
     switch (category) {
@@ -431,12 +479,22 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                             handleStartEdit(action);
                           }}
                         >
-                          {action.payload || (
+                          {extractTextFromPayload(action.payload) || (
                             <span className="text-gray-400 italic">Click to add description...</span>
                           )}
                         </p>
                       )}
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAction(action.id!);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
+                      title="Delete action"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))
               ) : (

@@ -1550,7 +1550,7 @@ export type HiringIntentAction = {
   date_created?: string;
   user_created?: string;
   user?: string;
-  payload?: string;
+  payload?: any; // Can be string or JSON object
   lexical_order?: string;
 }
 
@@ -1693,8 +1693,8 @@ export async function getHiringIntentsBySpace(
 
     const { actionedIds, hiddenIds, completedIds, allIds } = categorizedIds;
 
-    // Build base URL with fields
-    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,company_profile.reference.*,reason,potential_role,skill,category,space,confidence,predicted_window_start,predicted_window_end,source.*,actions.id,actions.status,actions.category,actions.date_created,actions.user,actions.payload,actions.lexical_order`;
+    // Build base URL with fields (excluding actions - will be fetched separately)
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,company_profile.reference.*,reason,potential_role,skill,category,space,confidence,predicted_window_start,predicted_window_end,source.*`;
 
     // Add space filter if provided
     if (spaceId) {
@@ -1756,9 +1756,35 @@ export async function getHiringIntentsBySpace(
     }
 
     const result = await response.json();
+    const intents = result.data || [];
+
+    // Fetch actions separately for all intents
+    if (intents.length > 0) {
+      const intentIds = intents.map((intent: HiringIntent) => intent.id);
+      const actionsResult = await getHiringIntentActions(intentIds, directusUrl);
+
+      if (actionsResult.success && actionsResult.actions) {
+        // Group actions by intent ID
+        const actionsByIntent: { [key: number]: HiringIntentAction[] } = {};
+        actionsResult.actions.forEach(action => {
+          if (action.intent) {
+            if (!actionsByIntent[action.intent]) {
+              actionsByIntent[action.intent] = [];
+            }
+            actionsByIntent[action.intent].push(action);
+          }
+        });
+
+        // Merge actions into intents
+        intents.forEach((intent: HiringIntent) => {
+          intent.actions = actionsByIntent[intent.id] || [];
+        });
+      }
+    }
+
     return {
       success: true,
-      hiringIntents: result.data || [],
+      hiringIntents: intents,
       totalCount: result.meta?.filter_count ?? 0
     };
   } catch (error) {
@@ -1930,6 +1956,50 @@ export async function deleteHiringIntentUserState(
   }
 }
 
+// Fetch hiring intent actions for specific intent IDs
+export async function getHiringIntentActions(
+  intentIds: number[],
+  directusUrl: string
+): Promise<{ success: boolean; actions?: HiringIntentAction[]; error?: string }> {
+  try {
+    if (intentIds.length === 0) {
+      return {
+        success: true,
+        actions: []
+      };
+    }
+
+    const url = `${directusUrl}/items/hiring_intent_action?filter[intent][_in]=${intentIds.join(',')}&fields=id,intent,status,category,date_created,user,user_created,payload,lexical_order&limit=1000`;
+
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      actions: result.data || []
+    };
+  } catch (error) {
+    console.error('Error fetching hiring intent actions:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 // Create hiring intent action
 export async function createHiringIntentAction(
   hiringIntentId: number,
@@ -1979,6 +2049,51 @@ export async function createHiringIntentAction(
     };
   } catch (error) {
     console.error('Error creating hiring intent action:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+// Delete hiring intent action
+export async function deleteHiringIntentAction(
+  actionId: number,
+  directusUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const response = await fetch(
+      `${directusUrl}/items/hiring_intent_action/${actionId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok && response.status !== 204) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('Error deleting hiring intent action:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
