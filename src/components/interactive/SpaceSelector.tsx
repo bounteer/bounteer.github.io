@@ -105,13 +105,13 @@ export default function SpaceSelector({
   }
 
   const baseClass =
-    "h-9 w-64 rounded-md px-3 text-sm focus:outline-none appearance-none";
+    "h-9 w-full rounded-md px-3 text-sm focus:outline-none appearance-none bg-transparent";
 
   const variantClass: Record<SpaceSelectorVariant, string> = {
     default:
       "border border-input bg-background text-foreground focus:ring-2 focus:ring-ring",
     glass:
-      "bg-white/15 backdrop-blur-md border border-white/30 text-white " +
+      "bg-white/5 backdrop-blur-sm border border-white/20 text-white " +
       "focus:ring-2 focus:ring-white/40 placeholder:text-white/70",
   };
 

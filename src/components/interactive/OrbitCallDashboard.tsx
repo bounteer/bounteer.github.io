@@ -305,20 +305,21 @@ export default function OrbitCallDashboard() {
       interactive={true}
     >
       <div className="relative z-10 p-6 text-white">
-        {/* Row 1: Title and Space Selector */}
-        <div className="mb-4 flex items-center justify-between">
+        {/* Title */}
+        <div className="mb-4">
           <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-white/70">Space:</span>
-            <div className="rounded-md bg-white/10 backdrop-blur-sm border border-white/20">
+        </div>
 
-              <SpaceSelector
-                onSpaceChange={setSelectedSpaceId}
-                selectedSpaceId={selectedSpaceId}
-                requireWriteAccess={true}
-                variant="glass"
-              />
-            </div>
+        {/* Space Selector */}
+        <div className="mb-4 space-y-2">
+          <div className="text-sm text-white/90">Space</div>
+          <div className="rounded-md bg-white/10 backdrop-blur-sm border border-white/20">
+            <SpaceSelector
+              onSpaceChange={setSelectedSpaceId}
+              selectedSpaceId={selectedSpaceId}
+              requireWriteAccess={true}
+              variant="glass"
+            />
           </div>
         </div>
 
