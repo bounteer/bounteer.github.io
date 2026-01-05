@@ -10,9 +10,8 @@ export const EXTERNAL = {
     twitter_intent_url: "https://twitter.com/intent/tweet",
     facebook_share_url: "https://www.facebook.com/sharer/sharer.php",
     linkedin_share_url: "https://www.linkedin.com/shareArticle",
-    // Google Calendar OAuth Configuration (for Meeting Scheduler in Orbit Call)
-    // Only Client ID is needed for client-side OAuth - no API key or client secret required
-    google_client_id: "", // TODO: Add your Google OAuth 2.0 Client ID from https://console.cloud.google.com/
+    google_client_id: "276135406423-brk5l9qdf0g4a5021vdo68qrtcmj9q7b.apps.googleusercontent.com",
+    // TODO: Add your Google OAuth 2.0 Client ID from https://console.cloud.google.com/
 }
 export const KEYWORDS = {
     name: "Bounteer",
@@ -88,29 +87,29 @@ export const FEATURES = [
         color: "accent",
     },
     {
-      title: "Build Referrer Reputation",
-      description:
+        title: "Build Referrer Reputation",
+        description:
             "Showcase successful referrals and grow a trusted profile. Your track record travels with you across roles and companies.",
         icon: "M3 3v18h18V3H3zm4 14l3-3 2 2 5-5 3 3",
         color: "accent",
     },
     {
-      title: "Smart Ranking (Powered by RFI)",
-      description:
+        title: "Smart Ranking (Powered by RFI)",
+        description:
             "Applicants are ranked using Bounteer’s Role Fit Index (RFI) so employers see stronger shortlists — and referrers know who to recommend first.",
         icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
         color: "accent",
     },
     {
-      title: "Clear Bounty Details",
-      description:
+        title: "Clear Bounty Details",
+        description:
             "See payout amounts, eligibility criteria, and verification steps upfront. No guesswork — just clear, public terms.",
         icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
         color: "accent",
     },
     {
-      title: "End-to-End Referral Tracking",
-      description:
+        title: "End-to-End Referral Tracking",
+        description:
             "Share unique links and follow status from invite to offer, with timely updates so you always know where things stand.",
         icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
         color: "accent",

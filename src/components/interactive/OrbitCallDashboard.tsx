@@ -14,13 +14,14 @@ import PreviousOrbitCalls from "./PreviousOrbitCalls";
 import SpaceSelector from "./SpaceSelector";
 import MeetingScheduler from "./MeetingScheduler";
 
-type InputMode = "schedule" | "meeting" | "testing";
+type ManualInputType = "meeting" | "testing";
 type CallType = "company" | "candidate";
 
 export default function OrbitCallDashboard() {
   const [callUrl, setCallUrl] = useState("");
   const [callUrlError, setCallUrlError] = useState<string>("");
-  const [inputMode, setInputMode] = useState<InputMode>("schedule");
+  const [inputMode] = useState<"schedule">("schedule");
+  const [manualInputType, setManualInputType] = useState<ManualInputType>("meeting");
   const [callType, setCallType] = useState<CallType>("company");
   const [isDeploying, setIsDeploying] = useState(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export default function OrbitCallDashboard() {
     setCallUrl(value);
 
     if (value.trim()) {
-      if (inputMode === "meeting") {
+      if (manualInputType === "meeting") {
         const validation = enrichAndValidateCallUrl(value);
         if (validation.error) {
           setCallUrlError(validation.error);
@@ -149,15 +150,15 @@ export default function OrbitCallDashboard() {
           try {
             console.log(`Polling for company session, attempt ${attempts + 1}/${maxAttempts}`);
             const sessionResult = await get_orbit_job_description_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
-            
+
             if (sessionResult.success && sessionResult.session) {
               const publicKey = sessionResult.session.public_key;
-              console.log("Session data:", { 
-                id: sessionResult.session.id, 
+              console.log("Session data:", {
+                id: sessionResult.session.id,
                 public_key: sessionResult.session.public_key,
-                request: sessionResult.session.request 
+                request: sessionResult.session.request
               });
-              
+
               if (publicKey) {
                 console.log("Found company session public key:", publicKey);
                 window.location.href = `/orbit-call/company?session=${publicKey}`;
@@ -166,7 +167,7 @@ export default function OrbitCallDashboard() {
                 console.log("Company session found but no public key available yet, continuing to poll...");
               }
             }
-            
+
             // Retry if session not found and we haven't exceeded max attempts
             if (attempts < maxAttempts - 1) {
               setTimeout(() => pollForSession(attempts + 1, maxAttempts), 2000);
@@ -180,7 +181,7 @@ export default function OrbitCallDashboard() {
             window.location.href = `/orbit-call/company`;
           }
         };
-        
+
         // Start polling immediately
         pollForSession();
 
@@ -190,15 +191,15 @@ export default function OrbitCallDashboard() {
           try {
             console.log(`Polling for candidate session, attempt ${attempts + 1}/${maxAttempts}`);
             const sessionResult = await get_orbit_candidate_profile_enrichment_session_by_request_id(result.id, EXTERNAL.directus_url);
-            
+
             if (sessionResult.success && sessionResult.session) {
               const publicKey = sessionResult.session.public_key;
-              console.log("Session data:", { 
-                id: sessionResult.session.id, 
+              console.log("Session data:", {
+                id: sessionResult.session.id,
                 public_key: sessionResult.session.public_key,
-                request: sessionResult.session.request 
+                request: sessionResult.session.request
               });
-              
+
               if (publicKey) {
                 console.log("Found candidate session public key:", publicKey);
                 window.location.href = `/orbit-call/candidate?session=${publicKey}`;
@@ -207,7 +208,7 @@ export default function OrbitCallDashboard() {
                 console.log("Candidate session found but no public key available yet, continuing to poll...");
               }
             }
-            
+
             // Retry if session not found and we haven't exceeded max attempts
             if (attempts < maxAttempts - 1) {
               setTimeout(() => pollForSession(attempts + 1, maxAttempts), 2000);
@@ -221,7 +222,7 @@ export default function OrbitCallDashboard() {
             window.location.href = `/orbit-call/candidate`;
           }
         };
-        
+
         // Start polling immediately
         pollForSession();
       }
@@ -237,10 +238,10 @@ export default function OrbitCallDashboard() {
    * Handles creating orbit call request from manual input or testing mode
    */
   const handleSendBot = async () => {
-    if (inputMode === "meeting") {
+    if (manualInputType === "meeting") {
       // Manual meeting URL input
       await handleSendBotWithUrl(callUrl);
-    } else if (inputMode === "testing") {
+    } else if (manualInputType === "testing") {
       // Testing mode validation
       setIsDeploying(true);
       try {
@@ -309,11 +310,15 @@ export default function OrbitCallDashboard() {
           <h3 className="text-lg font-semibold">Set Up New Orbit Call</h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-white/70">Space:</span>
-            <SpaceSelector 
-              onSpaceChange={setSelectedSpaceId}
-              selectedSpaceId={selectedSpaceId}
-              requireWriteAccess={true}
-            />
+            <div className="rounded-md bg-white/10 backdrop-blur-sm border border-white/20">
+
+              <SpaceSelector
+                onSpaceChange={setSelectedSpaceId}
+                selectedSpaceId={selectedSpaceId}
+                requireWriteAccess={true}
+                variant="glass"
+              />
+            </div>
           </div>
         </div>
 
@@ -322,21 +327,19 @@ export default function OrbitCallDashboard() {
           <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
             <button
               onClick={() => handleCallTypeChange("company")}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                callType === "company"
-                  ? "bg-white text-black shadow-md"
-                  : "text-white hover:bg-white/10"
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${callType === "company"
+                ? "bg-white text-black shadow-md"
+                : "text-white hover:bg-white/10"
+                }`}
             >
               Company Call
             </button>
             <button
               onClick={() => handleCallTypeChange("candidate")}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                callType === "candidate"
-                  ? "bg-white text-black shadow-md"
-                  : "text-white hover:bg-white/10"
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${callType === "candidate"
+                ? "bg-white text-black shadow-md"
+                : "text-white hover:bg-white/10"
+                }`}
             >
               Candidate Call
             </button>
@@ -364,9 +367,8 @@ export default function OrbitCallDashboard() {
                   >
                     <span className="text-sm">Manual URL Input</span>
                     <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        showManualInput ? "rotate-180" : ""
-                      }`}
+                      className={`h-4 w-4 transition-transform ${showManualInput ? "rotate-180" : ""
+                        }`}
                     />
                   </Button>
                 </CollapsibleTrigger>
@@ -374,33 +376,31 @@ export default function OrbitCallDashboard() {
                   {/* Input Mode Segmented Control */}
                   <div className="inline-flex rounded-full bg-white/20 backdrop-blur-sm p-1 border border-white/40">
                     <button
-                      onClick={() => setInputMode("meeting")}
-                      className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                        inputMode === "meeting"
-                          ? "bg-white text-black shadow-md"
-                          : "text-white hover:bg-white/10"
-                      }`}
+                      onClick={() => setManualInputType("meeting")}
+                      className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${manualInputType === "meeting"
+                        ? "bg-white text-black shadow-md"
+                        : "text-white hover:bg-white/10"
+                        }`}
                     >
                       Meeting URL
                     </button>
                     <button
-                      onClick={() => setInputMode("testing")}
-                      className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                        inputMode === "testing"
-                          ? "bg-white text-black shadow-md"
-                          : "text-white hover:bg-white/10"
-                      }`}
+                      onClick={() => setManualInputType("testing")}
+                      className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${manualInputType === "testing"
+                        ? "bg-white text-black shadow-md"
+                        : "text-white hover:bg-white/10"
+                        }`}
                     >
                       Testing
                     </button>
                   </div>
-            
+
                   {/* URL input and Deploy button */}
                   <div className="flex gap-2">
                     <Input
                       id="callUrl"
-                      type={inputMode === "meeting" ? "url" : "text"}
-                      placeholder={inputMode === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
+                      type={manualInputType === "meeting" ? "url" : "text"}
+                      placeholder={manualInputType === "meeting" ? "Paste meeting link (Google Meet, Teams, or Zoom)" : "Enter test filename (e.g., test-call-001.json)"}
                       value={callUrl}
                       onChange={(e) => handleCallUrlChange(e.target.value)}
                       className={`flex-1 text-sm bg-white/20 border-white/40 text-white placeholder-white/70 focus-visible:ring-white/50 backdrop-blur-sm ${callUrlError ? 'border-red-300' : ''}`}
@@ -477,7 +477,7 @@ export default function OrbitCallDashboard() {
       <div className="rounded-3xl overflow-hidden w-full">
         {renderNotLinkedStage()}
       </div>
-      
+
       {/* Show previous orbit call for navigation */}
       <PreviousOrbitCalls />
     </div>

@@ -138,6 +138,7 @@ export default function HiringIntentDashboard() {
           selectedSpaceId={selectedSpaceId}
           showAllOption
           countTags={["hiring_intent"]}
+          variant="glass"
         />
 
         {/* Category filter */}

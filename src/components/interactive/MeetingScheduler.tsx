@@ -1,18 +1,11 @@
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Mail } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { initGoogleCalendar, createCalendarEventWithMeet } from "@/lib/google-calendar";
+import { DateTimePick } from "./DateTimePick";
 
 interface MeetingSchedulerProps {
   onMeetingScheduled: (meetLink: string) => void;
@@ -26,19 +19,12 @@ const DURATION_OPTIONS = [
   { value: "45", label: "45 minutes" },
 ];
 
-const TIME_SLOTS = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-];
-
 export default function MeetingScheduler({
   onMeetingScheduled,
   onError,
   callType,
 }: MeetingSchedulerProps) {
-  const [date, setDate] = useState<Date>();
-  const [time, setTime] = useState<string>("10:00");
+  const [dateTime, setDateTime] = useState<Date | undefined>();
   const [duration, setDuration] = useState<string>("30");
   const [emails, setEmails] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
@@ -46,7 +32,6 @@ export default function MeetingScheduler({
   const [initError, setInitError] = useState<string>("");
 
   useEffect(() => {
-    // Initialize Google Calendar API on mount
     initGoogleCalendar().then((success) => {
       setIsGoogleApiReady(success);
       if (!success) {
@@ -56,8 +41,8 @@ export default function MeetingScheduler({
   }, []);
 
   const handleCreateMeeting = async () => {
-    if (!date) {
-      onError("Please select a date");
+    if (!dateTime) {
+      onError("Please select a date and time");
       return;
     }
 
@@ -66,30 +51,21 @@ export default function MeetingScheduler({
       return;
     }
 
+    if (dateTime < new Date()) {
+      onError("Please select a future date and time");
+      return;
+    }
+
     setIsCreating(true);
 
     try {
-      // Combine date and time
-      const [hours, minutes] = time.split(":").map(Number);
-      const meetingDate = new Date(date);
-      meetingDate.setHours(hours, minutes, 0, 0);
-
-      // Check if the meeting is in the past
-      if (meetingDate < new Date()) {
-        onError("Please select a future date and time");
-        setIsCreating(false);
-        return;
-      }
-
-      // Parse emails (comma or space separated)
       const attendeeEmails = emails
         .split(/[,\s]+/)
-        .map(email => email.trim())
-        .filter(email => email.length > 0 && email.includes('@'));
+        .map(e => e.trim())
+        .filter(e => e.includes("@"));
 
-      // Create calendar event with Google Meet
       const result = await createCalendarEventWithMeet(
-        meetingDate,
+        dateTime,
         parseInt(duration),
         `Orbit Call - ${callType === "company" ? "Company" : "Candidate"} Interview`,
         `AI-powered ${callType} interview session via Bounteer Orbit Call`,
@@ -101,9 +77,9 @@ export default function MeetingScheduler({
       } else {
         onError(result.error || "Failed to create meeting");
       }
-    } catch (error) {
-      console.error("Error creating meeting:", error);
-      onError(error instanceof Error ? error.message : "Failed to create meeting");
+    } catch (err) {
+      console.error(err);
+      onError(err instanceof Error ? err.message : "Failed to create meeting");
     } finally {
       setIsCreating(false);
     }
@@ -111,64 +87,12 @@ export default function MeetingScheduler({
 
   return (
     <div className="space-y-4">
-      {/* Date Picker */}
-      <div className="space-y-2">
-        <Label className="text-white/90">Date</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal bg-white/20 border-white/40 text-white hover:bg-white/30 hover:text-white",
-                !date && "text-white/70"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : "Pick a date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)]" align="center">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Time Picker */}
-      <div className="space-y-2">
-        <Label className="text-white/90">Time</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-left font-normal bg-white/20 border-white/40 text-white hover:bg-white/30 hover:text-white"
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              {time}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-2 max-w-[calc(100vw-2rem)]" align="center">
-            <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-              {TIME_SLOTS.map((slot) => (
-                <Button
-                  key={slot}
-                  variant={time === slot ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setTime(slot)}
-                  className="w-full"
-                >
-                  {slot}
-                </Button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+      {/* Date + Time */}
+      <DateTimePick
+        value={dateTime}
+        onChange={setDateTime}
+        className="space-y-2"
+      />
 
       {/* Email Invitations */}
       <div className="space-y-2">
@@ -176,6 +100,7 @@ export default function MeetingScheduler({
           <Mail className="h-4 w-4" />
           Invite Attendees (Optional)
         </Label>
+
         <Input
           type="text"
           placeholder="email@example.com, another@example.com"
@@ -183,12 +108,13 @@ export default function MeetingScheduler({
           onChange={(e) => setEmails(e.target.value)}
           className="bg-white/20 border-white/40 text-white placeholder-white/60 focus-visible:ring-white/50 backdrop-blur-sm"
         />
+
         <p className="text-xs text-white/60">
           Enter email addresses separated by commas or spaces
         </p>
       </div>
 
-      {/* Duration Selector */}
+      {/* Duration */}
       <div className="space-y-2">
         <Label className="text-white/90">Duration</Label>
         <RadioGroup value={duration} onValueChange={setDuration}>
@@ -212,36 +138,13 @@ export default function MeetingScheduler({
         </RadioGroup>
       </div>
 
-      {/* Create Meeting Button */}
+      {/* Create */}
       <Button
         onClick={handleCreateMeeting}
-        disabled={!date || isCreating || !isGoogleApiReady}
-        className="w-full bg-white text-black hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+        disabled={!dateTime || isCreating || !isGoogleApiReady}
+        className="w-full bg-white text-black hover:bg-gray-200 font-semibold disabled:opacity-50"
       >
-        {isCreating ? (
-          <>
-            <svg
-              className="w-4 h-4 mr-2 animate-spin"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            Creating Meeting...
-          </>
-        ) : (
+        {isCreating ? "Creating Meeting…" : (
           <>
             <CalendarIcon className="w-4 h-4 mr-2" />
             Schedule & Create Meet Link
@@ -251,7 +154,7 @@ export default function MeetingScheduler({
 
       {!isGoogleApiReady && !initError && (
         <p className="text-xs text-white/70 text-center">
-          Loading Google Calendar...
+          Loading Google Calendar…
         </p>
       )}
 
