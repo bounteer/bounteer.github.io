@@ -1,0 +1,86 @@
+{
+  "description": "Example payloads for hiring_intent_action. The payload field stores action-specific data as JSON. This document focuses on actionable todo items. Orbit Call outputs and deal artifacts are handled separately.",
+  "version": "1.0.0",
+  "examples": {
+    "manual_action": {
+      "description": "Simple user-created todo item",
+      "category": "manual",
+      "payload": {
+        "text": "Research company background and recent product launches"
+      }
+    },
+    "linkedin_outreach": {
+      "description": "Todo that opens a LinkedIn people search for a specific company",
+      "category": "linkedin_outreach",
+      "payload": {
+        "text": "LinkedIn outreach",
+        "company_name": "COMPANY_NAME",
+        "linkedin_search_url": "https://www.linkedin.com/search/results/people/?keywords=COMPANY_NAME"
+      }
+    },
+    "orbit_company_call_schedule": {
+      "description": "Todo that navigates user to Orbit Call scheduling page",
+      "category": "orbit_company_call_schedule",
+      "payload": {
+        "text": "Schedule Orbit Company Call",
+        "orbit_call_create_url": "https://bounteer.com/dashboard/orbit-call/"
+      }
+    },
+    "orbit_company_call_review": {
+      "description": "Todo for reviewing Orbit Call results and JD enrichment output",
+      "category": "orbit_company_call_review",
+      "payload": {
+        "text": "Review Orbit Company Call results (JD enrichment)",
+        "orbit_call_id": "orbit_call_123",
+        "review_target": "jd_enrichment",
+        "review_url": "https://bounteer.com/dashboard/orbit-call/orbit_call_123"
+      }
+    },
+    "follow_up_after_call": {
+      "description": "Todo for sending a follow-up email after an Orbit Call",
+      "category": "email_outreach",
+      "payload": {
+        "text": "Send follow-up email",
+        "email": "contact@email.com"
+      }
+    }
+  },
+  "backward_compatibility": {
+    "old_format": {
+      "description": "Legacy string payload (deprecated but supported)",
+      "category": "manual",
+      "payload": "Send follow-up email"
+    },
+    "new_format": {
+      "description": "Structured payload (recommended)",
+      "category": "manual",
+      "payload": {
+        "text": "Send follow-up email"
+      }
+    },
+    "note": "Frontend should handle both formats. Use extractTextFromPayload() helper."
+  },
+  "common_patterns": {
+    "minimal_manual": {
+      "category": "manual",
+      "payload": {
+        "text": "Task description"
+      }
+    },
+    "with_timestamp": {
+      "category": "manual",
+      "payload": {
+        "text": "Task description",
+        "completed_at": "2026-01-15T14:30:00Z"
+      }
+    }
+  },
+  "notes": [
+    "All timestamps must follow ISO 8601 format: YYYY-MM-DDTHH:mm:ssZ",
+    "The 'text' field is required for all todo items for display purposes",
+    "External links must be complete URLs",
+    "Todo payloads represent unfinished human actions only",
+    "Orbit Call results, role clarification, and proposals are outputs, not todo items",
+    "Frontend should validate payload structure based on category"
+  ]
+}

@@ -1,10 +1,19 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X } from "lucide-react";
+import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X } from "lucide-react";
 import type { HiringIntent, HiringIntentAction } from "@/lib/utils";
 import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
+import {
+  LinkedinOutreachAction,
+  OrbitCompanyCallScheduleAction,
+  OrbitCompanyCallReviewAction,
+  EmailAction,
+  ManualAction,
+  parsePayload,
+  extractTextFromPayload,
+} from "./ActionTypes";
 
 interface ActionCardProps {
   intent: HiringIntent;
@@ -22,16 +31,50 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
 
-  // Helper function to extract text from payload (handles both JSON and plain text)
-  const extractTextFromPayload = (payload: any): string => {
-    if (!payload) return "";
-    try {
-      const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
-      return parsed.text || "";
-    } catch {
-      // If parsing fails, use as plain text (for backwards compatibility)
-      return typeof payload === 'string' ? payload : "";
+  // Render action based on category
+  const renderActionContent = (action: HiringIntentAction) => {
+    const category = action.category;
+    const payload = parsePayload(action.payload);
+    const isCompleted = action.status === 'completed';
+    const isEditing = editingActionId === action.id;
+
+    const commonProps = {
+      isCompleted,
+      isEditing,
+      editingText,
+      onEditChange: setEditingText,
+      onSave: () => handleSaveEdit(action),
+      onCancel: handleCancelEdit,
+      onStartEdit: () => handleStartEdit(action),
+    };
+
+    // LinkedIn Outreach
+    if (category === 'linkedin_outreach' && payload?.linkedin_search_url) {
+      return <LinkedinOutreachAction {...commonProps} payload={payload} />;
     }
+
+    // Orbit Call Schedule
+    if (category === 'orbit_company_call_schedule' && payload?.orbit_call_create_url) {
+      return <OrbitCompanyCallScheduleAction {...commonProps} payload={payload} />;
+    }
+
+    // Orbit Call Review
+    if (category === 'orbit_company_call_review' && payload?.review_url) {
+      return <OrbitCompanyCallReviewAction {...commonProps} payload={payload} />;
+    }
+
+    // Email / Follow-up
+    if ((category === 'email' || category === 'email_outreach') && payload?.email) {
+      return <EmailAction {...commonProps} payload={payload} />;
+    }
+
+    // Default: Manual Action
+    return (
+      <ManualAction
+        {...commonProps}
+        text={extractTextFromPayload(action.payload)}
+      />
+    );
   };
 
   useEffect(() => {
@@ -314,8 +357,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   const sourceName = getSourceName();
 
   return (
-    <div className="flex items-start gap-2 w-full border-l-2 border-l-green-500 pl-2">
-      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
+    <div className="flex items-start gap-2 w-full">
       <div className="flex-1 min-w-0 space-y-1">
         {/* Header with company name and category */}
         <div className="flex items-start justify-between gap-2">
@@ -368,14 +410,14 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
 
         {/* Potential Role */}
         {intent.potential_role && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
             {(Array.isArray(intent.potential_role)
               ? intent.potential_role
               : typeof intent.potential_role === "string"
                 ? [intent.potential_role]
                 : []
             ).map((role, index) => (
-              <Badge key={index} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs py-0 px-1.5">
+              <Badge key={index} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs py-0 px-1.5 whitespace-nowrap">
                 {role}
               </Badge>
             ))}
@@ -384,14 +426,14 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
 
         {/* Skills */}
         {intent.skill && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
             {(Array.isArray(intent.skill)
               ? intent.skill
               : typeof intent.skill === "string"
                 ? [intent.skill]
                 : []
             ).map((skill, index) => (
-              <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs py-0 px-1.5">
+              <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs py-0 px-1.5 whitespace-nowrap">
                 {skill}
               </Badge>
             ))}
@@ -434,7 +476,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, index)}
-                    className={`flex items-start gap-2 group cursor-move ${
+                    className={`flex items-start gap-2 action-item cursor-move ${
                       dragOverIndex === index ? 'border-t-2 border-blue-500 pt-2' : ''
                     } ${draggedIndex === index ? 'opacity-50' : ''}`}
                     onClick={(e) => e.stopPropagation()}
@@ -447,54 +489,23 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                       className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      {editingActionId === action.id ? (
-                        <input
-                          type="text"
-                          value={editingText}
-                          onChange={(e) => setEditingText(e.target.value)}
-                          onBlur={() => handleSaveEdit(action)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSaveEdit(action);
-                            } else if (e.key === 'Escape') {
-                              e.preventDefault();
-                              handleCancelEdit();
-                            }
-                          }}
-                          autoFocus
-                          placeholder="Enter action description..."
-                          className="w-full text-xs px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <p
-                          className={`text-xs cursor-text ${
-                            action.status === 'completed'
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-700'
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEdit(action);
-                          }}
-                        >
-                          {extractTextFromPayload(action.payload) || (
-                            <span className="text-gray-400 italic">Click to add description...</span>
-                          )}
-                        </p>
-                      )}
+                      {renderActionContent(action)}
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteAction(action.id!);
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
+                      className="delete-btn opacity-0 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
                       title="Delete action"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
+                    <style>{`
+                      .action-item:hover .delete-btn {
+                        opacity: 1;
+                      }
+                    `}</style>
                   </div>
                 ))
               ) : (
