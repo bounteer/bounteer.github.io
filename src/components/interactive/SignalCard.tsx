@@ -213,7 +213,7 @@ export function SignalCard({
                   className="hover:text-blue-600"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Website ↗
+                  {companyWebsite} ↗
                 </a>
               ) : (
                 <span className="italic text-gray-400">Website — not found</span>
@@ -225,7 +225,7 @@ export function SignalCard({
                   className="hover:text-blue-600"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Email
+                  {companyEmail}
                 </a>
               ) : (
                 <span className="italic text-gray-400">Email — not found</span>

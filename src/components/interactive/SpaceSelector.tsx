@@ -19,7 +19,7 @@ interface SpaceSelectorProps {
   showAllOption?: boolean;
   requireWriteAccess?: boolean;
   variant?: SpaceSelectorVariant;
-
+  label?: string;
   countTags?: CountTag[];
 }
 
@@ -30,6 +30,7 @@ export default function SpaceSelector({
   showAllOption = false,
   requireWriteAccess = false,
   variant = "default",
+  label,
   countTags = ["job", "candidate"],
 }: SpaceSelectorProps) {
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -115,12 +116,26 @@ export default function SpaceSelector({
       "focus:ring-2 focus:ring-white/40 placeholder:text-white/70",
   };
 
+  const labelClass: Record<SpaceSelectorVariant, string> = {
+    default: "text-sm font-medium text-foreground mb-2 block",
+    glass: "text-sm font-medium text-white mb-2 block",
+  };
+
+  const selectId = "space-selector";
+
   return (
     <div className={className}>
+      {label && (
+        <label htmlFor={selectId} className={labelClass[variant]}>
+          {label}
+        </label>
+      )}
       <select
+        id={selectId}
         value={selectedSpaceId ?? "all"}
         onChange={(e) => onSpaceChange(e.target.value)}
         className={cn(baseClass, variantClass[variant])}
+        aria-label={label || "Select a space"}
       >
         {showAllOption && <option value="all">All Spaces</option>}
 
