@@ -23,7 +23,7 @@
       "category": "orbit_company_call_schedule",
       "payload": {
         "text": "Schedule Orbit Company Call",
-        "orbit_call_create_url": "https://bounteer.com/dashboard/orbit-call/"
+        "orbit_company_call_create_url": "https://bounteer.com/dashboard/orbit-call/"
       }
     },
     "orbit_company_call_review": {

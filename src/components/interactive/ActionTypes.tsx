@@ -35,7 +35,7 @@ export function LinkedinOutreachAction({
       className={`text-xs flex items-start gap-1.5 linkedin-action ${isCompleted ? 'opacity-50' : ''}`}
     >
       <span className="bg-blue-600 linkedin-action:hover:bg-blue-700 text-white text-xs py-1 px-3 rounded-md cursor-pointer transition-colors font-medium linkedin-badge flex-shrink-0 whitespace-nowrap">
-        LinkedIn
+        Outreach on LinkedIn
       </span>
       <span className={`cursor-pointer transition-colors linkedin-text ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
         reach out person in charge
@@ -79,7 +79,7 @@ export function OrbitCompanyCallScheduleAction({
       className={`text-xs flex items-start gap-1.5 orbit-action ${isCompleted ? 'opacity-50' : ''}`}
     >
       <span className="bg-orange-600 text-white text-xs py-1 px-3 rounded-md cursor-pointer transition-colors font-medium orbit-badge flex-shrink-0 whitespace-nowrap">
-        Orbit Call
+        Schedule Orbit Call
       </span>
       <span className={`cursor-pointer transition-colors orbit-text ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
         {payload.text || 'Schedule Orbit Company Call'}
@@ -125,7 +125,7 @@ export function OrbitCompanyCallReviewAction({
       className={`text-xs flex items-start gap-1.5 orbit-review-action ${isCompleted ? 'opacity-50' : ''}`}
     >
       <span className="bg-orange-600 text-white text-xs py-1 px-3 rounded-md cursor-pointer transition-colors font-medium orbit-review-badge flex-shrink-0 whitespace-nowrap">
-        Orbit Call
+        Review Orbit Call
       </span>
       <span className={`cursor-pointer transition-colors orbit-review-text ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
         {payload.text || 'Review Orbit Company Call'}

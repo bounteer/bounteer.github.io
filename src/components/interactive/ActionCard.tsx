@@ -38,6 +38,15 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     const isCompleted = action.status === 'completed';
     const isEditing = editingActionId === action.id;
 
+    // Debug logging
+    console.log('Rendering action:', {
+      id: action.id,
+      category,
+      payload,
+      hasScheduleUrl: !!payload?.orbit_company_call_create_url,
+      hasReviewUrl: !!payload?.review_url
+    });
+
     const commonProps = {
       isCompleted,
       isEditing,
@@ -54,7 +63,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     }
 
     // Orbit Call Schedule
-    if (category === 'orbit_company_call_schedule' && payload?.orbit_call_create_url) {
+    if (category === 'orbit_company_call_schedule' && payload?.orbit_company_call_create_url) {
       return <OrbitCompanyCallScheduleAction {...commonProps} payload={payload} />;
     }
 
@@ -69,6 +78,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     }
 
     // Default: Manual Action
+    console.log('Falling back to ManualAction for:', category);
     return (
       <ManualAction
         {...commonProps}
@@ -256,10 +266,27 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     if (!action.id) return;
 
     try {
-      // Wrap text in JSON object with category and payload
-      const payloadData = {
-        text: editingText
-      };
+      // Preserve existing payload structure for special action types
+      const existingPayload = parsePayload(action.payload);
+      const isSpecialType = action.category && action.category !== 'manual';
+
+      let updatedCategory = action.category;
+      let updatedPayload: any;
+
+      if (isSpecialType && existingPayload) {
+        // For special action types, preserve the category and merge text into existing payload
+        updatedCategory = action.category;
+        updatedPayload = {
+          ...existingPayload,
+          text: editingText
+        };
+      } else {
+        // For manual actions, just update text
+        updatedCategory = "manual";
+        updatedPayload = {
+          text: editingText
+        };
+      }
 
       const response = await fetch(`${EXTERNAL.directus_url}/items/hiring_intent_action/${action.id}`, {
         method: 'PATCH',
@@ -268,8 +295,8 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          category: "manual",
-          payload: payloadData
+          category: updatedCategory,
+          payload: updatedPayload
         }),
       });
 
@@ -280,7 +307,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
 
       // Update local state only if save was successful
       setUserActions(prev =>
-        prev.map(a => (a.id === action.id ? { ...a, category: "manual", payload: payloadData } : a))
+        prev.map(a => (a.id === action.id ? { ...a, category: updatedCategory, payload: updatedPayload } : a))
       );
 
       setEditingActionId(null);
