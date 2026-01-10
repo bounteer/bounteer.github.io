@@ -1562,7 +1562,7 @@ export type HiringIntentUserState = {
   user_updated?: string;
   date_updated?: string;
   intent?: number;
-  status?: 'actioned' | 'hidden' | 'completed';
+  status?: 'actioned' | 'hidden' | 'completed' | 'aborted';
 }
 
 // Hiring Intent types
@@ -1591,6 +1591,7 @@ type CategorizedIntentIds = {
   actionedIds: number[];
   hiddenIds: number[];
   completedIds: number[];
+  abortedIds: number[];
   allIds: number[];
 };
 
@@ -1636,7 +1637,10 @@ export async function getUserHiringIntentStates(
     const completedIds = userStates
       .filter((state: any) => state.status === 'completed')
       .map((state: any) => state.intent);
-    const allIds = [...actionedIds, ...hiddenIds, ...completedIds];
+    const abortedIds = userStates
+      .filter((state: any) => state.status === 'aborted')
+      .map((state: any) => state.intent);
+    const allIds = [...actionedIds, ...hiddenIds, ...completedIds, ...abortedIds];
 
     return {
       success: true,
@@ -1644,6 +1648,7 @@ export async function getUserHiringIntentStates(
         actionedIds,
         hiddenIds,
         completedIds,
+        abortedIds,
         allIds
       }
     };
@@ -1664,7 +1669,7 @@ export async function getHiringIntentsBySpace(
   options?: {
     limit?: number;
     offset?: number;
-    columnType?: 'signals' | 'actions' | 'hidden' | 'completed';
+    columnType?: 'signals' | 'actions' | 'hidden' | 'completed' | 'aborted';
     categorizedIds?: CategorizedIntentIds; // Reuse categorized IDs to avoid redundant queries
   }
 ): Promise<{
@@ -1691,7 +1696,7 @@ export async function getHiringIntentsBySpace(
       categorizedIds = statesResult.categories;
     }
 
-    const { actionedIds, hiddenIds, completedIds, allIds } = categorizedIds;
+    const { actionedIds, hiddenIds, completedIds, abortedIds, allIds } = categorizedIds;
 
     // Build base URL with fields (excluding actions - will be fetched separately)
     let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,company_profile.reference.*,reason,potential_role,skill,category,space,confidence,predicted_window_start,predicted_window_end,source.*`;
@@ -1732,6 +1737,16 @@ export async function getHiringIntentsBySpace(
         };
       }
       url += `&filter[id][_in]=${completedIds.join(',')}`;
+    } else if (columnType === 'aborted') {
+      // For Aborted: fetch intents where ID is in abortedIds
+      if (abortedIds.length === 0) {
+        return {
+          success: true,
+          hiringIntents: [],
+          totalCount: 0
+        };
+      }
+      url += `&filter[id][_in]=${abortedIds.join(',')}`;
     } else {
       // For Signals: fetch intents where ID is NOT in allIds
       if (allIds.length > 0) {
@@ -1799,7 +1814,7 @@ export async function getHiringIntentsBySpace(
 // Create or update hiring intent user state
 export async function updateHiringIntentUserState(
   hiringIntentId: number,
-  status: 'actioned' | 'hidden' | 'completed',
+  status: 'actioned' | 'hidden' | 'completed' | 'aborted',
   directusUrl: string
 ): Promise<{ success: boolean; userState?: HiringIntentUserState; error?: string }> {
   try {

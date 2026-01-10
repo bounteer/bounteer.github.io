@@ -27,12 +27,13 @@ import {
 } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 
-type MobileTab = "signals" | "actions" | "completed" | "hidden";
+type MobileTab = "signals" | "actions" | "completed" | "aborted" | "hidden";
 
 export default function HiringIntentDashboard() {
   const [signalIntents, setSignalIntents] = useState<HiringIntent[]>([]);
   const [actionIntents, setActionIntents] = useState<HiringIntent[]>([]);
   const [completedIntents, setCompletedIntents] = useState<HiringIntent[]>([]);
+  const [abortedIntents, setAbortedIntents] = useState<HiringIntent[]>([]);
   const [hiddenIntents, setHiddenIntents] = useState<HiringIntent[]>([]);
 
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export default function HiringIntentDashboard() {
         return;
       }
 
-      const [signals, actions, completed, hidden] = await Promise.all([
+      const [signals, actions, completed, aborted, hidden] = await Promise.all([
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset,
@@ -98,12 +99,18 @@ export default function HiringIntentDashboard() {
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
           limit: itemsPerPage,
           offset,
+          columnType: "aborted",
+          categorizedIds: userStatesResult.categories,
+        }),
+        getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
+          limit: itemsPerPage,
+          offset,
           columnType: "hidden",
           categorizedIds: userStatesResult.categories,
         }),
       ]);
 
-      if (signals.success && actions.success && completed.success && hidden.success) {
+      if (signals.success && actions.success && completed.success && aborted.success && hidden.success) {
         const filterByCategory = (list: HiringIntent[]) =>
           selectedCategory === "all"
             ? list
@@ -112,14 +119,16 @@ export default function HiringIntentDashboard() {
         const s = filterByCategory(signals.hiringIntents || []);
         const a = filterByCategory(actions.hiringIntents || []);
         const c = filterByCategory(completed.hiringIntents || []);
+        const ab = filterByCategory(aborted.hiringIntents || []);
         const h = filterByCategory(hidden.hiringIntents || []);
 
         setSignalIntents(s);
         setActionIntents(a);
         setCompletedIntents(c);
+        setAbortedIntents(ab);
         setHiddenIntents(h);
 
-        setTotalCount(s.length + a.length + c.length + h.length);
+        setTotalCount(s.length + a.length + c.length + ab.length + h.length);
       } else {
         setError("Failed to fetch orbit signals");
       }
@@ -213,6 +222,7 @@ export default function HiringIntentDashboard() {
           ["signals", "Signals", signalIntents.length],
           ["actions", "Actions", actionIntents.length],
           ["completed", "Completed", completedIntents.length],
+          ["aborted", "Aborted", abortedIntents.length],
           ["hidden", "Hidden", hiddenIntents.length],
         ] as const).map(([key, label, count]) => (
           <button
@@ -302,6 +312,33 @@ export default function HiringIntentDashboard() {
                       data={{
                         id: intent.id.toString(),
                         columnId: "completed",
+                      }}
+                    >
+                      <ActionCard intent={intent} />
+                    </KanbanBoardCard>
+                  </KanbanBoardColumnListItem>
+                ))}
+              </KanbanBoardColumnList>
+            </KanbanBoardColumn>
+
+            {/* ABORTED */}
+            <KanbanBoardColumn
+              columnId="aborted"
+              className={`w-full md:flex-1 md:min-w-0 min-h-[1200px]
+                ${mobileTab !== "aborted" ? "hidden md:block" : ""}`}
+            >
+              <KanbanBoardColumnHeader>
+                <KanbanBoardColumnTitle columnId="aborted">
+                  <KanbanColorCircle color="orange" /> Aborted
+                </KanbanBoardColumnTitle>
+              </KanbanBoardColumnHeader>
+              <KanbanBoardColumnList>
+                {abortedIntents.map((intent) => (
+                  <KanbanBoardColumnListItem key={intent.id}>
+                    <KanbanBoardCard
+                      data={{
+                        id: intent.id.toString(),
+                        columnId: "aborted",
                       }}
                     >
                       <ActionCard intent={intent} />

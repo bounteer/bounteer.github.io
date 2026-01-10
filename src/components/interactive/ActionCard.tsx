@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, Check, Ban } from "lucide-react";
+import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X, Check, Ban } from "lucide-react";
 import type { HiringIntent, HiringIntentAction } from "@/lib/utils";
-import { getUserProfile, updateHiringIntentAction, createHiringIntentAction } from "@/lib/utils";
+import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction, updateHiringIntentUserState } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
 import {
   LinkedinOutreachAction,
@@ -31,8 +31,10 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
-  const [isDoneZoneActive, setIsDoneZoneActive] = useState(false);
-  const [isAbortedZoneActive, setIsAbortedZoneActive] = useState(false);
+  const [isUpdatingCardStatus, setIsUpdatingCardStatus] = useState(false);
+
+  // Get current card status from user_state
+  const currentStatus = intent.user_state?.[0]?.status || 'actioned';
 
   // Render action based on category
   const renderActionContent = (action: HiringIntentAction) => {
@@ -151,8 +153,6 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
-    setIsDoneZoneActive(true);
-    setIsAbortedZoneActive(true);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -169,8 +169,6 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     if (draggedIndex === null || draggedIndex === dropIndex) {
       setDraggedIndex(null);
       setDragOverIndex(null);
-      setIsDoneZoneActive(false);
-      setIsAbortedZoneActive(false);
       return;
     }
 
@@ -192,8 +190,6 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     setUserActions(updatedActions);
     setDraggedIndex(null);
     setDragOverIndex(null);
-    setIsDoneZoneActive(false);
-    setIsAbortedZoneActive(false);
 
     // Save to backend
     try {
@@ -213,39 +209,6 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     } catch (error) {
       console.error('Error updating lexical orders:', error);
     }
-  };
-
-  const handleDropOnDone = async (e: React.DragEvent) => {
-    e.preventDefault();
-    if (draggedIndex === null) return;
-
-    const draggedAction = userActions[draggedIndex];
-    await handleMarkAsDone(draggedAction);
-
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-    setIsDoneZoneActive(false);
-    setIsAbortedZoneActive(false);
-  };
-
-  const handleDropOnAborted = async (e: React.DragEvent) => {
-    e.preventDefault();
-    if (draggedIndex === null) return;
-
-    const draggedAction = userActions[draggedIndex];
-    await handleMarkAsAborted(draggedAction);
-
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-    setIsDoneZoneActive(false);
-    setIsAbortedZoneActive(false);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-    setIsDoneZoneActive(false);
-    setIsAbortedZoneActive(false);
   };
 
   const handleAddAction = async () => {
@@ -365,53 +328,45 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
     setEditingText("");
   };
 
-  const handleMarkAsDone = async (action: HiringIntentAction) => {
-    if (action.status !== 'completed') {
-      await handleActionToggle(action);
+  const handleDeleteAction = async (actionId: number) => {
+    if (!actionId) return;
+
+    try {
+      const result = await deleteHiringIntentAction(actionId, EXTERNAL.directus_url);
+
+      if (result.success) {
+        // Remove from local state
+        setUserActions(prev => prev.filter(a => a.id !== actionId));
+        onActionUpdate?.();
+      } else {
+        console.error('Failed to delete action:', result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting action:', error);
     }
   };
 
-  const handleMarkAsAborted = async (action: HiringIntentAction) => {
-    if (!action.id || updatingActionIds.has(action.id)) return;
+  const handleCardStatusChange = async (newStatus: 'actioned' | 'hidden' | 'completed' | 'aborted') => {
+    if (isUpdatingCardStatus) return;
 
-    setUpdatingActionIds(prev => new Set(prev).add(action.id!));
-
-    const result = await updateHiringIntentAction(action.id, 'aborted', EXTERNAL.directus_url);
-
-    if (result.success) {
-      setUserActions(prev =>
-        prev.map(a => (a.id === action.id ? { ...a, status: 'aborted' } : a))
-      );
-      onActionUpdate?.();
+    setIsUpdatingCardStatus(true);
+    try {
+      const result = await updateHiringIntentUserState(intent.id, newStatus, EXTERNAL.directus_url);
+      if (result.success) {
+        onActionUpdate?.(); // Refresh the dashboard
+      } else {
+        console.error('Failed to update card status:', result.error);
+      }
+    } catch (error) {
+      console.error('Error updating card status:', error);
+    } finally {
+      setIsUpdatingCardStatus(false);
     }
-
-    setUpdatingActionIds(prev => {
-      const next = new Set(prev);
-      next.delete(action.id!);
-      return next;
-    });
   };
 
-  const handleStatusChange = async (action: HiringIntentAction, newStatus: string) => {
-    if (!action.id || updatingActionIds.has(action.id)) return;
+  const handleMarkAsCompleted = () => handleCardStatusChange('completed');
+  const handleMarkAsAborted = () => handleCardStatusChange('aborted');
 
-    setUpdatingActionIds(prev => new Set(prev).add(action.id!));
-
-    const result = await updateHiringIntentAction(action.id, newStatus, EXTERNAL.directus_url);
-
-    if (result.success) {
-      setUserActions(prev =>
-        prev.map(a => (a.id === action.id ? { ...a, status: newStatus } : a))
-      );
-      onActionUpdate?.();
-    }
-
-    setUpdatingActionIds(prev => {
-      const next = new Set(prev);
-      next.delete(action.id!);
-      return next;
-    });
-  };
   const getCategoryColor = (category?: string) => {
     switch (category) {
       case "funding":
@@ -575,70 +530,33 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, index)}
-                    onDragEnd={handleDragEnd}
                     className={`flex items-start gap-2 action-item cursor-move ${
                       dragOverIndex === index ? 'border-t-2 border-blue-500 pt-2' : ''
-                    } ${draggedIndex === index ? 'opacity-50' : ''} ${
-                      action.status === 'aborted' ? 'opacity-60' : ''
-                    }`}
+                    } ${draggedIndex === index ? 'opacity-50' : ''}`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <GripVertical className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
                     <Checkbox
                       checked={action.status === 'completed'}
-                      disabled={updatingActionIds.has(action.id!) || action.status === 'aborted'}
+                      disabled={updatingActionIds.has(action.id!)}
                       onCheckedChange={() => handleActionToggle(action)}
                       className="mt-0.5"
                     />
-                    <div className={`flex-1 min-w-0 ${action.status === 'aborted' ? 'line-through text-gray-400' : ''}`}>
+                    <div className="flex-1 min-w-0">
                       {renderActionContent(action)}
                     </div>
-
-                    {/* Mobile Status Selector - visible on small screens */}
-                    <div className="md:hidden flex-shrink-0">
-                      <Select
-                        value={action.status || 'processing'}
-                        onValueChange={(value) => handleStatusChange(action, value)}
-                        disabled={updatingActionIds.has(action.id!)}
-                      >
-                        <SelectTrigger className="h-7 w-28 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="processing">To Do</SelectItem>
-                          <SelectItem value="completed">Done</SelectItem>
-                          <SelectItem value="aborted">Aborted</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Desktop Action Buttons - visible on medium+ screens */}
-                    {action.status !== 'completed' && action.status !== 'aborted' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkAsDone(action);
-                        }}
-                        className="hidden md:block action-btn opacity-0 transition-opacity p-0.5 hover:bg-green-100 rounded text-gray-400 hover:text-green-600 flex-shrink-0"
-                        title="Mark as done"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {action.status !== 'completed' && action.status !== 'aborted' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMarkAsAborted(action);
-                        }}
-                        className="hidden md:block action-btn opacity-0 transition-opacity p-0.5 hover:bg-orange-100 rounded text-gray-400 hover:text-orange-600 flex-shrink-0"
-                        title="Mark as aborted"
-                      >
-                        <Ban className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAction(action.id!);
+                      }}
+                      className="delete-btn opacity-0 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
+                      title="Delete action"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                     <style>{`
-                      .action-item:hover .action-btn {
+                      .action-item:hover .delete-btn {
                         opacity: 1;
                       }
                     `}</style>
@@ -668,33 +586,58 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 {isAdding ? 'Adding...' : 'Add Action'}
               </div>
-              {(isDoneZoneActive || isAbortedZoneActive) && (
-                <div className="flex gap-2 mt-2">
-                  {isDoneZoneActive && (
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleDropOnDone}
-                      className="flex-1 h-12 text-xs inline-flex items-center justify-center rounded-md border-2 border-dashed border-green-400 bg-green-50 text-green-700 font-medium transition-all"
-                    >
-                      <Check className="w-4 h-4 mr-1" />
-                      Drop to Done
-                    </div>
-                  )}
-                  {isAbortedZoneActive && (
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleDropOnAborted}
-                      className="flex-1 h-12 text-xs inline-flex items-center justify-center rounded-md border-2 border-dashed border-orange-400 bg-orange-50 text-orange-700 font-medium transition-all"
-                    >
-                      <Ban className="w-4 h-4 mr-1" />
-                      Drop to Abort
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>
+
+        {/* Card Status Controls */}
+        {currentStatus === 'actioned' && (
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              {/* Desktop Buttons */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkAsCompleted();
+                }}
+                disabled={isUpdatingCardStatus}
+                className="hidden md:flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Mark as Done
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkAsAborted();
+                }}
+                disabled={isUpdatingCardStatus}
+                className="hidden md:flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Ban className="w-3.5 h-3.5" />
+                Mark as Aborted
+              </button>
+
+              {/* Mobile Selector */}
+              <div className="md:hidden flex-1">
+                <Select
+                  value={currentStatus}
+                  onValueChange={(value) => handleCardStatusChange(value as 'actioned' | 'hidden' | 'completed' | 'aborted')}
+                  disabled={isUpdatingCardStatus}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="actioned">In Progress</SelectItem>
+                    <SelectItem value="completed">Mark as Done</SelectItem>
+                    <SelectItem value="aborted">Mark as Aborted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Date Added */}
         {intent.actions && intent.actions.length > 0 && (
