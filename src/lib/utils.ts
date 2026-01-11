@@ -2165,6 +2165,62 @@ export async function updateHiringIntentAction(
   }
 }
 
+// Create hiring intent event (e.g., for abort reason tracking)
+export async function createHiringIntentEvent(
+  hiringIntentId: number,
+  category: 'aborted',
+  reason: string,
+  directusUrl: string
+): Promise<{ success: boolean; event?: any; error?: string }> {
+  try {
+    const user = await getUserProfile(directusUrl);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const eventData = {
+      intent: hiringIntentId,
+      category: category,
+      reason: reason
+    };
+
+    const response = await fetch(
+      `${directusUrl}/items/hiring_intent_event`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      event: result.data || result
+    };
+  } catch (error) {
+    console.error('Error creating hiring intent event:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 // Get package version from package.json
 export async function getPackageVersion(): Promise<string> {
   try {

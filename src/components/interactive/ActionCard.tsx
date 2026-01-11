@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X, Check, Ban } from "lucide-react";
 import type { HiringIntent, HiringIntentAction } from "@/lib/utils";
-import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction, updateHiringIntentUserState } from "@/lib/utils";
+import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction, updateHiringIntentUserState, createHiringIntentEvent } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
+import { AbortReasonDialog } from "./AbortReasonDialog";
 import {
   LinkedinOutreachAction,
   OrbitCompanyCallScheduleAction,
@@ -32,6 +33,7 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
   const [isUpdatingCardStatus, setIsUpdatingCardStatus] = useState(false);
+  const [showAbortDialog, setShowAbortDialog] = useState(false);
 
   // Get current card status - prefer columnType prop over user_state
   const currentStatus = columnType === 'actions' ? 'actioned' :
@@ -369,7 +371,45 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
   };
 
   const handleMarkAsCompleted = () => handleCardStatusChange('completed');
-  const handleMarkAsAborted = () => handleCardStatusChange('aborted');
+  const handleMarkAsAborted = () => {
+    setShowAbortDialog(true);
+  };
+
+  const handleConfirmAbort = async (reason: string) => {
+    if (isUpdatingCardStatus) return;
+
+    setIsUpdatingCardStatus(true);
+    try {
+      // First, create the hiring_intent_event with the abort reason
+      const eventResult = await createHiringIntentEvent(
+        intent.id,
+        'aborted',
+        reason,
+        EXTERNAL.directus_url
+      );
+
+      if (!eventResult.success) {
+        console.error('Failed to create abort event:', eventResult.error);
+        alert('Failed to record abort reason. Please try again.');
+        setIsUpdatingCardStatus(false);
+        return;
+      }
+
+      // Only proceed to update the card status if the event was successfully created
+      const result = await updateHiringIntentUserState(intent.id, 'aborted', EXTERNAL.directus_url);
+      if (result.success) {
+        onActionUpdate?.(); // Refresh the dashboard
+      } else {
+        console.error('Failed to update card status:', result.error);
+        alert('Failed to move card to aborted. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error aborting card:', error);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setIsUpdatingCardStatus(false);
+    }
+  };
 
   const getCategoryColor = (category?: string) => {
     switch (category) {
@@ -639,6 +679,14 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
           </div>
         )}
       </div>
+
+      {/* Abort Reason Dialog */}
+      <AbortReasonDialog
+        open={showAbortDialog}
+        onOpenChange={setShowAbortDialog}
+        onConfirm={handleConfirmAbort}
+        companyName={intent.company_profile?.name}
+      />
     </div>
   );
 }
