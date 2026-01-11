@@ -177,6 +177,7 @@ export function EmailAction({
 // Manual Action (default)
 interface ManualActionProps extends BaseActionProps {
   text: string;
+  isReadOnly?: boolean;
 }
 
 export function ManualAction({
@@ -188,6 +189,7 @@ export function ManualAction({
   onSave,
   onCancel,
   onStartEdit,
+  isReadOnly = false,
 }: ManualActionProps) {
   if (isEditing) {
     return (
@@ -215,14 +217,16 @@ export function ManualAction({
 
   return (
     <p
-      className={`text-xs cursor-text ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'
+      className={`text-xs ${!isReadOnly ? 'cursor-text' : ''} ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'
         }`}
       onClick={(e) => {
         e.stopPropagation();
-        onStartEdit();
+        if (!isReadOnly) {
+          onStartEdit();
+        }
       }}
     >
-      {text || <span className="text-gray-400 italic">Click to add description...</span>}
+      {text || <span className="text-gray-400 italic">{!isReadOnly ? 'Click to add description...' : 'No description'}</span>}
     </p>
   );
 }

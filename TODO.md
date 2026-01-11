@@ -729,13 +729,13 @@ Missing fields for better matching:
 ## Orbit Signal - Actions Feature
 
 ### Overview
-Add action tracking to Orbit Signal dashboard, allowing users to mark signals as "add to actions" or "ignore", with automatic filtering and organization.
+Add action tracking to Orbit Signal dashboard, allowing users to mark signals as "move to actions" or "ignore", with automatic filtering and organization.
 
 ### Implementation Status: ✅ COMPLETED (2025-12-22)
 
 ### Features Implemented
 - ✅ Action tracking using `hiring_intent_action` table
-- ✅ "Add to Actions" and "Skip" buttons on each signal card
+- ✅ "Move to Actions" and "Skip" buttons on each signal card
 - ✅ Dedicated "Actions" section displaying signals with completed status
 - ✅ Automatic removal of skipped signals from UI
 - ✅ Real-time state updates when actions are created
@@ -753,7 +753,7 @@ Add action tracking to Orbit Signal dashboard, allowing users to mark signals as
   - Updated `getHiringIntentsBySpace()` to fetch related actions using Directus field expansion
 
 - **Component Updates**: `src/components/interactive/HiringIntentDashboard.tsx`
-  - Added action buttons (Add to Actions, Skip) with icons
+  - Added action buttons (Move to Actions, Skip) with icons
   - Implemented `hasActionStatus()` helper to check action array
   - Filtering logic checks actions array for completed/skipped status
   - Created separate sections: "Actions" and "Orbit Signals"
@@ -780,7 +780,7 @@ hiring_intent_action:
 ```
 
 **Status Mapping**:
-- `completed` = Signal marked as "Add to Actions"
+- `completed` = Signal marked as "Move to Actions"
 - `skipped` = Signal marked as "Skip"
 - No action = Pending signal (no action record)
 
@@ -794,13 +794,13 @@ hiring_intent_action:
 
 #### Orbit Signals Section
 - Shows pending/new signals only
-- Each card has "Add to Actions" (green) and "Skip" (red) buttons
+- Each card has "Move to Actions" (green) and "Skip" (red) buttons
 - Badges show count of pending signals
 - Skipped signals are completely removed from view
 
 ### Testing Checklist
 - [x] Verify `hiring_intent_action` table exists in Directus
-- [ ] Test "Add to Actions" button creates action with status='completed'
+- [ ] Test "Move to Actions" button creates action with status='completed'
 - [ ] Test "Skip" button creates action with status='skipped'
 - [ ] Verify skipped signals disappear from UI
 - [ ] Verify actioned signals appear in Actions section

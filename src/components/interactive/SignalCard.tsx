@@ -261,7 +261,7 @@ export function SignalCard({
             }}
           >
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            Add to actions
+            Move to Actions
           </button>
 
           <button

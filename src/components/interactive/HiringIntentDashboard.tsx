@@ -3,10 +3,19 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ChevronDown } from "lucide-react";
 import SpaceSelector from "@/components/interactive/SpaceSelector";
 import { SignalCard } from "@/components/interactive/SignalCard";
 import { ActionCard } from "@/components/interactive/ActionCard";
 import { PaginationControls } from "@/components/interactive/PaginationControls";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   KanbanBoard,
   KanbanBoardProvider,
@@ -49,8 +58,24 @@ export default function HiringIntentDashboard() {
   // Mobile-only
   const [mobileTab, setMobileTab] = useState<MobileTab>("signals");
 
-  // Desktop-only
-  const [showHiddenDesktop, setShowHiddenDesktop] = useState(false);
+  // Desktop-only - which columns to show
+  const [visibleColumns, setVisibleColumns] = useState<{
+    signals: boolean;
+    actions: boolean;
+    completed: boolean;
+    aborted: boolean;
+    hidden: boolean;
+  }>({
+    signals: true,
+    actions: true,
+    completed: false,
+    aborted: false,
+    hidden: false,
+  });
+
+  const toggleColumn = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
+  };
 
   useEffect(() => {
     fetchHiringIntents();
@@ -151,10 +176,10 @@ export default function HiringIntentDashboard() {
       if (result.success) {
         await fetchHiringIntents();
       } else {
-        console.error("Failed to add to actions:", result.error);
+        console.error("Failed to move to actions:", result.error);
       }
     } catch (err) {
-      console.error("Failed to add to actions:", err);
+      console.error("Failed to move to actions:", err);
     }
   };
 
@@ -204,16 +229,49 @@ export default function HiringIntentDashboard() {
           <option value="other">Other</option>
         </select>
 
-        {/* Desktop-only hidden toggle */}
-        <button
-          onClick={() => setShowHiddenDesktop((v) => !v)}
-          className="hidden md:inline-flex items-center text-sm text-gray-600 border px-3 py-1.5 rounded-md hover:bg-gray-100"
-        >
-          {showHiddenDesktop ? "Hide hidden" : "Show hidden"}
-          <span className="ml-2 text-xs text-gray-400">
-            ({hiddenIntents.length})
-          </span>
-        </button>
+        {/* Desktop-only column visibility dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="hidden md:inline-flex items-center gap-2 text-sm text-gray-600 border px-3 py-1.5 rounded-md hover:bg-gray-100">
+              Show Columns
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuLabel>Visible Columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.signals}
+              onCheckedChange={() => toggleColumn('signals')}
+            >
+              Signals ({signalIntents.length})
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.actions}
+              onCheckedChange={() => toggleColumn('actions')}
+            >
+              Actions ({actionIntents.length})
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.completed}
+              onCheckedChange={() => toggleColumn('completed')}
+            >
+              Completed ({completedIntents.length})
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.aborted}
+              onCheckedChange={() => toggleColumn('aborted')}
+            >
+              Aborted ({abortedIntents.length})
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.hidden}
+              onCheckedChange={() => toggleColumn('hidden')}
+            >
+              Hidden ({hiddenIntents.length})
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* MOBILE TABS */}
@@ -241,12 +299,14 @@ export default function HiringIntentDashboard() {
 
       {!isLoading && !error && (
         <KanbanBoardProvider>
-          <KanbanBoard className="flex-col md:flex-row gap-4">
+          <div className="overflow-x-auto pb-4">
+            <KanbanBoard className="flex-col md:flex-row gap-4 md:min-w-max">
             {/* SIGNALS */}
             <KanbanBoardColumn
               columnId="signals"
-              className={`w-full md:flex-1 md:min-w-0 min-h-[1200px]
-                ${mobileTab !== "signals" ? "hidden md:block" : ""}`}
+                className={`w-full md:w-[30vw] md:flex-shrink-0 min-h-[1200px]
+                ${mobileTab !== "signals" ? "hidden" : ""}
+                ${visibleColumns.signals ? "md:block" : "md:hidden"}`}
             >
               <KanbanBoardColumnHeader>
                 <KanbanBoardColumnTitle columnId="signals">
@@ -273,8 +333,9 @@ export default function HiringIntentDashboard() {
             {/* ACTIONS */}
             <KanbanBoardColumn
               columnId="actions"
-              className={`w-full md:flex-1 md:min-w-0 min-h-[1200px]
-                ${mobileTab !== "actions" ? "hidden md:block" : ""}`}
+                className={`w-full md:w-[40vw] md:flex-shrink-0 min-h-[1200px]
+                ${mobileTab !== "actions" ? "hidden" : ""}
+                ${visibleColumns.actions ? "md:block" : "md:hidden"}`}
             >
               <KanbanBoardColumnHeader>
                 <KanbanBoardColumnTitle columnId="actions">
@@ -287,7 +348,11 @@ export default function HiringIntentDashboard() {
                     <KanbanBoardCard
                       data={{ id: intent.id.toString(), columnId: "actions" }}
                     >
-                      <ActionCard intent={intent} />
+                      <ActionCard
+                        intent={intent}
+                        onActionUpdate={fetchHiringIntents}
+                        columnType="actions"
+                      />
                     </KanbanBoardCard>
                   </KanbanBoardColumnListItem>
                 ))}
@@ -297,8 +362,9 @@ export default function HiringIntentDashboard() {
             {/* COMPLETED */}
             <KanbanBoardColumn
               columnId="completed"
-              className={`w-full md:flex-1 md:min-w-0 min-h-[1200px]
-                ${mobileTab !== "completed" ? "hidden md:block" : ""}`}
+                className={`w-full md:w-[40vw] md:flex-shrink-0 min-h-[1200px]
+                ${mobileTab !== "completed" ? "hidden" : ""}
+                ${visibleColumns.completed ? "md:block" : "md:hidden"}`}
             >
               <KanbanBoardColumnHeader>
                 <KanbanBoardColumnTitle columnId="completed">
@@ -314,7 +380,11 @@ export default function HiringIntentDashboard() {
                         columnId: "completed",
                       }}
                     >
-                      <ActionCard intent={intent} />
+                      <ActionCard
+                        intent={intent}
+                        onActionUpdate={fetchHiringIntents}
+                        columnType="completed"
+                      />
                     </KanbanBoardCard>
                   </KanbanBoardColumnListItem>
                 ))}
@@ -324,8 +394,9 @@ export default function HiringIntentDashboard() {
             {/* ABORTED */}
             <KanbanBoardColumn
               columnId="aborted"
-              className={`w-full md:flex-1 md:min-w-0 min-h-[1200px]
-                ${mobileTab !== "aborted" ? "hidden md:block" : ""}`}
+                className={`w-full md:w-[40vw] md:flex-shrink-0 min-h-[1200px]
+                ${mobileTab !== "aborted" ? "hidden" : ""}
+                ${visibleColumns.aborted ? "md:block" : "md:hidden"}`}
             >
               <KanbanBoardColumnHeader>
                 <KanbanBoardColumnTitle columnId="aborted">
@@ -341,7 +412,11 @@ export default function HiringIntentDashboard() {
                         columnId: "aborted",
                       }}
                     >
-                      <ActionCard intent={intent} />
+                      <ActionCard
+                        intent={intent}
+                        onActionUpdate={fetchHiringIntents}
+                        columnType="aborted"
+                      />
                     </KanbanBoardCard>
                   </KanbanBoardColumnListItem>
                 ))}
@@ -351,9 +426,9 @@ export default function HiringIntentDashboard() {
             {/* HIDDEN */}
             <KanbanBoardColumn
               columnId="hidden"
-              className={`w-full md:flex-1 md:min-w-0 min-h-[1200px]
-                ${mobileTab === "hidden" ? "block" : "hidden"}
-                ${showHiddenDesktop ? "md:block" : "md:hidden"}`}
+                className={`w-full md:w-[30vw] md:flex-shrink-0 min-h-[1200px]
+                ${mobileTab !== "hidden" ? "hidden" : ""}
+                ${visibleColumns.hidden ? "md:block" : "md:hidden"}`}
             >
               <KanbanBoardColumnHeader>
                 <KanbanBoardColumnTitle columnId="hidden">
@@ -371,6 +446,7 @@ export default function HiringIntentDashboard() {
                         onAddToActions={handleAddToActions}
                         onSkip={handleSkip}
                         isHidden
+                        showActionButtons={false}
                       />
                     </KanbanBoardCard>
                   </KanbanBoardColumnListItem>
@@ -378,6 +454,7 @@ export default function HiringIntentDashboard() {
               </KanbanBoardColumnList>
             </KanbanBoardColumn>
           </KanbanBoard>
+          </div>
 
           <PaginationControls
             currentPage={currentPage}

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X, Check, Ban } from "lucide-react";
 import type { HiringIntent, HiringIntentAction } from "@/lib/utils";
 import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction, updateHiringIntentUserState } from "@/lib/utils";
@@ -19,9 +18,10 @@ import {
 interface ActionCardProps {
   intent: HiringIntent;
   onActionUpdate?: () => void;
+  columnType?: 'actions' | 'completed' | 'aborted' | 'hidden';
 }
 
-export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
+export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: ActionCardProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userActions, setUserActions] = useState<HiringIntentAction[]>([]);
   const [updatingActionIds, setUpdatingActionIds] = useState<Set<number>>(new Set());
@@ -33,15 +33,18 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   const [editingText, setEditingText] = useState<string>("");
   const [isUpdatingCardStatus, setIsUpdatingCardStatus] = useState(false);
 
-  // Get current card status from user_state
-  const currentStatus = intent.user_state?.[0]?.status || 'actioned';
+  // Get current card status - prefer columnType prop over user_state
+  const currentStatus = columnType === 'actions' ? 'actioned' :
+                        columnType === 'completed' ? 'completed' :
+                        columnType === 'aborted' ? 'aborted' :
+                        intent.user_state?.[0]?.status || 'actioned';
 
   // Render action based on category
   const renderActionContent = (action: HiringIntentAction) => {
     const category = action.category;
     const payload = parsePayload(action.payload);
     const isCompleted = action.status === 'completed';
-    const isEditing = editingActionId === action.id;
+    const isEditing = !isReadOnly && editingActionId === action.id;
 
     // Debug logging
     console.log('Rendering action:', {
@@ -59,7 +62,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
       onEditChange: setEditingText,
       onSave: () => handleSaveEdit(action),
       onCancel: handleCancelEdit,
-      onStartEdit: () => handleStartEdit(action),
+      onStartEdit: isReadOnly ? () => {} : () => handleStartEdit(action),
     };
 
     // LinkedIn Outreach
@@ -88,6 +91,7 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
       <ManualAction
         {...commonProps}
         text={extractTextFromPayload(action.payload)}
+        isReadOnly={isReadOnly}
       />
     );
   };
@@ -410,9 +414,11 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
   };
   const sourceName = getSourceName();
 
+  const isReadOnly = currentStatus === 'completed' || currentStatus === 'aborted';
+
   return (
     <div className="flex items-start gap-2 w-full">
-      <div className="flex-1 min-w-0 space-y-1">
+      <div className={`flex-1 min-w-0 space-y-1 ${isReadOnly ? 'opacity-50' : ''}`}>
         {/* Header with company name and category */}
         <div className="flex items-start justify-between gap-2">
           {intent.company_profile?.url || intent.company_profile?.website ? (
@@ -525,36 +531,38 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                 userActions.map((action, index) => (
                   <div
                     key={action.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
+                    draggable={!isReadOnly}
+                    onDragStart={() => !isReadOnly && handleDragStart(index)}
+                    onDragOver={(e) => !isReadOnly && handleDragOver(e, index)}
                     onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, index)}
-                    className={`flex items-start gap-2 action-item cursor-move ${
+                    onDrop={(e) => !isReadOnly && handleDrop(e, index)}
+                    className={`flex items-start gap-2 action-item ${!isReadOnly ? 'cursor-move' : ''} ${
                       dragOverIndex === index ? 'border-t-2 border-blue-500 pt-2' : ''
                     } ${draggedIndex === index ? 'opacity-50' : ''}`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <GripVertical className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                    {!isReadOnly && <GripVertical className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />}
                     <Checkbox
                       checked={action.status === 'completed'}
-                      disabled={updatingActionIds.has(action.id!)}
+                      disabled={isReadOnly || updatingActionIds.has(action.id!)}
                       onCheckedChange={() => handleActionToggle(action)}
                       className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
                       {renderActionContent(action)}
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAction(action.id!);
-                      }}
-                      className="delete-btn opacity-0 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
-                      title="Delete action"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAction(action.id!);
+                        }}
+                        className="delete-btn opacity-0 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
+                        title="Delete action"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <style>{`
                       .action-item:hover .delete-btn {
                         opacity: 1;
@@ -565,27 +573,29 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
               ) : (
                 <p className="text-xs text-gray-400 py-2">No actions yet. Add one to get started.</p>
               )}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isAdding) handleAddAction();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
+              {!isReadOnly && (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
                     e.stopPropagation();
                     if (!isAdding) handleAddAction();
-                  }
-                }}
-                className={`w-full mt-2 h-7 text-xs inline-flex items-center justify-center rounded-md border border-dashed text-gray-600 hover:text-gray-900 hover:border-gray-400 font-medium transition-colors ${
-                  isAdding ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                }`}
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                {isAdding ? 'Adding...' : 'Add Action'}
-              </div>
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isAdding) handleAddAction();
+                    }
+                  }}
+                  className={`w-full mt-2 h-7 text-xs inline-flex items-center justify-center rounded-md border border-dashed text-gray-600 hover:text-gray-900 hover:border-gray-400 font-medium transition-colors ${
+                    isAdding ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  {isAdding ? 'Adding...' : 'Add Action'}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -594,17 +604,16 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
         {currentStatus === 'actioned' && (
           <div className="pt-2 border-t border-gray-100">
             <div className="flex items-center gap-2">
-              {/* Desktop Buttons */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleMarkAsCompleted();
                 }}
                 disabled={isUpdatingCardStatus}
-                className="hidden md:flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Check className="w-3.5 h-3.5" />
-                Mark as Done
+                Move to Completed
               </button>
               <button
                 onClick={(e) => {
@@ -612,29 +621,11 @@ export function ActionCard({ intent, onActionUpdate }: ActionCardProps) {
                   handleMarkAsAborted();
                 }}
                 disabled={isUpdatingCardStatus}
-                className="hidden md:flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Ban className="w-3.5 h-3.5" />
-                Mark as Aborted
+                Move to Aborted
               </button>
-
-              {/* Mobile Selector */}
-              <div className="md:hidden flex-1">
-                <Select
-                  value={currentStatus}
-                  onValueChange={(value) => handleCardStatusChange(value as 'actioned' | 'hidden' | 'completed' | 'aborted')}
-                  disabled={isUpdatingCardStatus}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="actioned">In Progress</SelectItem>
-                    <SelectItem value="completed">Mark as Done</SelectItem>
-                    <SelectItem value="aborted">Mark as Aborted</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </div>
         )}
