@@ -130,6 +130,15 @@ Based on package.json, these ShadCN components are available:
 - **Real-time Updates**: Filters update call list dynamically
 - **Empty States**: Proper messaging when no calls match filters
 
+### Orbit Signal Action Quota System
+- **Action Limit**: Maximum of 10 actions allowed in the Actions column
+- **Purpose**: Prevents signal/action accumulation and encourages timely completion
+- **User Experience**: ShadCN dialog blocks new actions when limit is reached
+- **Dialog Message**: Users are prompted to complete or abort existing actions first
+- **Implementation**: `HiringIntentDashboard.tsx` checks `actionIntents.length` before allowing moves
+- **Configuration**: `ACTION_QUOTA_LIMIT = 10` constant (line 71)
+- **Benefits**: Promotes focused work, prevents overwhelming action lists, reduces hanging signals
+
 ### Development Workflow
 - Use TodoWrite tool for tracking complex tasks
 - Always check existing components before creating new ones

@@ -165,5 +165,25 @@ Queries and UI can safely use intent.company_profile.*.
 Spaces organize and edit beliefs; they do not own identity or profiles.
 The resulting graph is a space-scoped belief graph, not a global truth graph.
 
+## Orbit Signal Workflow & Limits
+
+### Action Quota Limit
+To prevent signal/action accumulation and encourage timely follow-through:
+
+**Limit:** Maximum of **10 actions** in the Actions column at any time
+
+**Behavior:**
+- When attempting to move a signal to actions with 10 existing actions, a dialog appears
+- Message: "You have exceeded the maximum of 10 actions. Please complete or abort existing actions first before adding new ones."
+- User must complete or abort actions to free up slots
+
+**Why this limit exists:**
+- Prevents overwhelming action lists that lead to inaction
+- Encourages users to actively manage and close out actions
+- Promotes focused work on high-priority signals
+- Prevents signals from "hanging" indefinitely without resolution
+
+**Implementation:** `src/components/interactive/HiringIntentDashboard.tsx:180-185`
+
 ## Dependencies
 - [Self-hosted Directus CMS](directus.bounteer.com)

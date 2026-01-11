@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react";
 import SpaceSelector from "@/components/interactive/SpaceSelector";
 import { SignalCard } from "@/components/interactive/SignalCard";
 import { ActionCard } from "@/components/interactive/ActionCard";
-import { PaginationControls } from "@/components/interactive/PaginationControls";
+import { ContactCard } from "@/components/interactive/ContactCard";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,6 +16,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   KanbanBoard,
   KanbanBoardProvider,
@@ -51,12 +59,14 @@ export default function HiringIntentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
+  const ITEMS_LIMIT = 20;
 
   // Mobile-only
   const [mobileTab, setMobileTab] = useState<MobileTab>("signals");
+
+  // Quota limit dialog
+  const [showQuotaDialog, setShowQuotaDialog] = useState(false);
+  const ACTION_QUOTA_LIMIT = 10;
 
   // Desktop-only - which columns to show
   const [visibleColumns, setVisibleColumns] = useState<{
@@ -79,7 +89,7 @@ export default function HiringIntentDashboard() {
 
   useEffect(() => {
     fetchHiringIntents();
-  }, [selectedSpaceId, selectedCategory, currentPage, itemsPerPage]);
+  }, [selectedSpaceId, selectedCategory]);
 
   const fetchHiringIntents = async () => {
     setIsLoading(true);
@@ -90,8 +100,6 @@ export default function HiringIntentDashboard() {
         selectedSpaceId && selectedSpaceId !== "all"
           ? parseInt(selectedSpaceId)
           : null;
-
-      const offset = (currentPage - 1) * itemsPerPage;
 
       const userStatesResult = await getUserHiringIntentStates(
         EXTERNAL.directus_url
@@ -104,32 +112,32 @@ export default function HiringIntentDashboard() {
 
       const [signals, actions, completed, aborted, hidden] = await Promise.all([
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
-          limit: itemsPerPage,
-          offset,
+          limit: ITEMS_LIMIT,
+          offset: 0,
           columnType: "signals",
           categorizedIds: userStatesResult.categories,
         }),
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
-          limit: itemsPerPage,
-          offset,
+          limit: ITEMS_LIMIT,
+          offset: 0,
           columnType: "actions",
           categorizedIds: userStatesResult.categories,
         }),
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
-          limit: itemsPerPage,
-          offset,
+          limit: ITEMS_LIMIT,
+          offset: 0,
           columnType: "completed",
           categorizedIds: userStatesResult.categories,
         }),
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
-          limit: itemsPerPage,
-          offset,
+          limit: ITEMS_LIMIT,
+          offset: 0,
           columnType: "aborted",
           categorizedIds: userStatesResult.categories,
         }),
         getHiringIntentsBySpace(spaceIdNumber, EXTERNAL.directus_url, {
-          limit: itemsPerPage,
-          offset,
+          limit: ITEMS_LIMIT,
+          offset: 0,
           columnType: "hidden",
           categorizedIds: userStatesResult.categories,
         }),
@@ -152,8 +160,6 @@ export default function HiringIntentDashboard() {
         setCompletedIntents(c);
         setAbortedIntents(ab);
         setHiddenIntents(h);
-
-        setTotalCount(s.length + a.length + c.length + ab.length + h.length);
       } else {
         setError("Failed to fetch orbit signals");
       }
@@ -166,6 +172,12 @@ export default function HiringIntentDashboard() {
   };
 
   const handleAddToActions = async (intentId: number) => {
+    // Check if we've reached the quota limit
+    if (actionIntents.length >= ACTION_QUOTA_LIMIT) {
+      setShowQuotaDialog(true);
+      return;
+    }
+
     try {
       const result = await updateHiringIntentUserState(
         intentId,
@@ -215,10 +227,7 @@ export default function HiringIntentDashboard() {
         {/* Category filter */}
         <select
           value={selectedCategory}
-          onChange={(e) => {
-            setSelectedCategory(e.target.value);
-            setCurrentPage(1);
-          }}
+          onChange={(e) => setSelectedCategory(e.target.value)}
           className="h-9 rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="all">All categories</option>
@@ -328,6 +337,10 @@ export default function HiringIntentDashboard() {
                   </KanbanBoardColumnListItem>
                 ))}
               </KanbanBoardColumnList>
+              <div className="mt-4 px-3 py-2 text-sm text-gray-500 text-center italic">
+                To see more hiring signals, move signals to actions or hide them. Increased quota available with upgraded plan.
+              </div>
+              <ContactCard />
             </KanbanBoardColumn>
 
             {/* ACTIONS */}
@@ -357,6 +370,10 @@ export default function HiringIntentDashboard() {
                   </KanbanBoardColumnListItem>
                 ))}
               </KanbanBoardColumnList>
+              <div className="mt-4 px-3 py-2 text-sm text-gray-500 text-center italic">
+                To have more than 10 actions, move actions to completed or aborted. Increased quota available with upgraded plan.
+              </div>
+              <ContactCard />
             </KanbanBoardColumn>
 
             {/* COMPLETED */}
@@ -455,19 +472,28 @@ export default function HiringIntentDashboard() {
             </KanbanBoardColumn>
           </KanbanBoard>
           </div>
-
-          <PaginationControls
-            currentPage={currentPage}
-            totalItems={totalCount}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(n) => {
-              setItemsPerPage(n);
-              setCurrentPage(1);
-            }}
-          />
         </KanbanBoardProvider>
       )}
+
+      {/* Quota Limit Dialog */}
+      <Dialog open={showQuotaDialog} onOpenChange={setShowQuotaDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Action Quota Exceeded</DialogTitle>
+            <DialogDescription>
+              You have exceeded the maximum of {ACTION_QUOTA_LIMIT} actions. Please complete or abort existing actions first before adding new ones.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setShowQuotaDialog(false)}
+              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+            >
+              OK
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
