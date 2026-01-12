@@ -167,6 +167,23 @@ The resulting graph is a space-scoped belief graph, not a global truth graph.
 
 ## Orbit Signal Workflow & Limits
 
+### Urgency Tag System
+Each signal card displays an urgency tag next to the signal strength badge, showing days to maturity based on the hiring window:
+
+**Color Coding:**
+- **Gray** - "Xd to start" - Before hiring window begins
+- **Green** - "Xd left" - During hiring window with more than 14 days remaining
+- **Yellow** - "Xd left" - During hiring window with 14 days or less remaining (urgent)
+- **Red** - "Expired" - After hiring window has ended
+
+**Purpose:**
+- Provides at-a-glance visibility of signal timing and urgency
+- Helps prioritize which signals need immediate attention
+- Prevents missing hiring windows for high-value opportunities
+- Automatically calculates days based on `predicted_window_start` and `predicted_window_end`
+
+**Implementation:** `src/components/interactive/SignalCard.tsx:44-90`
+
 ### Action Quota Limit
 To prevent signal/action accumulation and encourage timely follow-through:
 
