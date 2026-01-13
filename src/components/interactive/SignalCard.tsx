@@ -185,6 +185,31 @@ export function SignalCard({
             rounded-sm
           "
         >
+          {/* Location */}
+          <div>
+            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
+              Location
+            </div>
+            {intent.location ? (
+              <div className="flex flex-wrap gap-1.5">
+                {(Array.isArray(intent.location)
+                  ? intent.location
+                  : [intent.location]
+                ).map((loc, i) => (
+                  <Badge
+                    key={i}
+                    variant="outline"
+                    className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    {loc}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="italic text-gray-400">not found</span>
+            )}
+          </div>
+
           {/* Roles */}
           <div>
             <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">

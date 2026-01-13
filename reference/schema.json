@@ -4026,6 +4026,9 @@
             "$ref": "#/components/schemas/ItemsIngestedArticle"
           }
         ]
+      },
+      "location": {
+        "nullable": true
       }
     },
     "x-collection": "hiring_intent"
