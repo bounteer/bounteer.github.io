@@ -4,6 +4,7 @@ Allow: /
 # Keep crawlers out of non-public areas
 Disallow: /admin/
 Disallow: /dashboard/
+Disallow: /internal
 
 # Point to your sitemap (adjust the domain)
 Sitemap: https://bounteer.com/sitemap-index.xml

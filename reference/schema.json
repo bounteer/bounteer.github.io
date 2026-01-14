@@ -4029,6 +4029,20 @@
       },
       "location": {
         "nullable": true
+      },
+      "work_location": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsLocation"
+          }
+        ]
+      },
+      "commercial_region": {
+        "nullable": true
       }
     },
     "x-collection": "hiring_intent"
@@ -4491,6 +4505,17 @@
       },
       "industry": {
         "nullable": true
+      },
+      "hq_location": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsLocation"
+          }
+        ]
       }
     },
     "x-collection": "company_profile"
@@ -4618,5 +4643,62 @@
       }
     },
     "x-collection": "hiring_intent_event"
+  },
+  "ItemsLocation": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "city": {
+        "nullable": false,
+        "type": "string"
+      },
+      "country_code": {
+        "nullable": false,
+        "description": "ISO-3166. country code",
+        "type": "string"
+      }
+    },
+    "x-collection": "location",
+    "required": [
+      "city",
+      "country_code"
+    ]
   }
 }

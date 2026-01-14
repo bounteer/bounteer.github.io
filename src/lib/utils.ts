@@ -1577,6 +1577,8 @@ export type HiringIntent = {
   potential_role?: any;
   skill?: any;
   location?: any;
+  work_location?: any;
+  commercial_region?: any;
   category?: 'funding' | 'growth' | 'replacement';
   space?: number;
   confidence?: number;
@@ -1700,7 +1702,7 @@ export async function getHiringIntentsBySpace(
     const { actionedIds, hiddenIds, completedIds, abortedIds, allIds } = categorizedIds;
 
     // Build base URL with fields (excluding actions - will be fetched separately)
-    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,company_profile.reference.*,reason,potential_role,skill,location,category,space,confidence,predicted_window_start,predicted_window_end,source.*`;
+    let url = `${directusUrl}/items/hiring_intent?sort[]=-date_created&limit=${limit}&offset=${offset}&meta=filter_count&fields=id,date_created,date_updated,company_profile.*,company_profile.reference.*,reason,potential_role,skill,location,work_location.*,commercial_region,category,space,confidence,predicted_window_start,predicted_window_end,source.*`;
 
     // Add space filter if provided
     if (spaceId) {

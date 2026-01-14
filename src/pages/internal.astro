@@ -1,0 +1,28 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { InternalDashboard } from "../components/interactive/InternalDashboard.tsx";
+---
+
+<Layout
+  title="Internal Dashboard - Bounteer"
+  description="Internal data visualization dashboard"
+  url="https://bounteer.com/internal"
+>
+  <!-- Prevent search engine indexing -->
+  <meta name="robots" content="noindex, nofollow" slot="head" />
+  <meta name="googlebot" content="noindex, nofollow" slot="head" />
+
+  <Header />
+  <main class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Internal Dashboard</h1>
+        <p class="text-gray-600">Internal data visualization and analytics</p>
+      </div>
+      <InternalDashboard client:load />
+    </div>
+  </main>
+  <Footer />
+</Layout>
