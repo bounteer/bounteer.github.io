@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X, Check, Ban } from "lucide-react";
+import { ExternalLink, ChevronDown, ChevronRight, Plus, GripVertical, X, Check, Circle } from "lucide-react";
 import type { HiringIntent, HiringIntentAction } from "@/lib/utils";
 import { getUserProfile, updateHiringIntentAction, createHiringIntentAction, deleteHiringIntentAction, updateHiringIntentUserState, createHiringIntentEvent } from "@/lib/utils";
 import { EXTERNAL } from "@/constant";
@@ -15,24 +15,109 @@ import {
   parsePayload,
   extractTextFromPayload,
 } from "./ActionTypes";
+import { LocationAndCoverage } from "./LocationAndCoverage";
+import { HiringWindow } from "./HiringWindow";
+import { IntentMetaRow } from "./IntentMetaRow";
+import { IntentRoles } from "./IntentRoles";
+import { IntentSource } from "./IntentSource";
+import { IntentCompanyLinks } from "./IntentCompanyLinks";
 
 interface ActionCardProps {
   intent: HiringIntent;
   onActionUpdate?: () => void;
+  onMoveToCompleted?: (intentId: number) => Promise<void>;
+  onMoveToAborted?: (intentId: number, reason?: string) => Promise<void>;
   columnType?: 'actions' | 'completed' | 'aborted' | 'hidden';
 }
 
-export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: ActionCardProps) {
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+const getCountryName = (code?: string) =>
+  code ? regionNames.of(code.toUpperCase()) ?? code : undefined;
+
+const getCategoryColor = (category?: string) => {
+  switch (category) {
+    case "funding":
+      return "bg-blue-50 text-blue-600";
+    case "growth":
+      return "bg-green-50 text-green-600";
+    case "replacement":
+      return "bg-amber-50 text-amber-600";
+    default:
+      return "bg-gray-50 text-gray-600";
+  }
+};
+
+const getConfidenceLevel = (confidence?: number) => {
+  if (!confidence) return { label: "N/A", color: "bg-gray-50 text-gray-600" };
+  if (confidence >= 85) return { label: "High", color: "bg-green-50 text-green-700" };
+  if (confidence >= 70) return { label: "Mid", color: "bg-yellow-50 text-yellow-700" };
+  if (confidence >= 50) return { label: "Low", color: "bg-orange-50 text-orange-700" };
+  return { label: "Very Low", color: "bg-red-50 text-red-700" };
+};
+
+const getUrgency = (windowStart?: string, windowEnd?: string) => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // Normalize to start of day
+
+  if (!windowStart || !windowEnd) {
+    return null;
+  }
+
+  const startDate = new Date(windowStart);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(windowEnd);
+  endDate.setHours(0, 0, 0, 0);
+
+  const daysToStart = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysToEnd = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Before hiring window
+  if (daysToStart > 0) {
+    return {
+      label: `${daysToStart}d to start`,
+      color: "bg-gray-100 text-gray-600",
+    };
+  }
+
+  // During hiring window
+  if (daysToEnd > 0) {
+    // Window ends in less than 2 weeks (14 days)
+    if (daysToEnd <= 14) {
+      return {
+        label: `${daysToEnd}d left`,
+        color: "bg-yellow-50 text-yellow-700",
+      };
+    }
+    // Window active with more time
+    return {
+      label: `${daysToEnd}d left`,
+      color: "bg-green-50 text-green-700",
+    };
+  }
+
+  // Window has ended
+  return {
+    label: "Expired",
+    color: "bg-red-50 text-red-700",
+  };
+};
+
+
+
+export function ActionCard({ intent, onActionUpdate, onMoveToCompleted, onMoveToAborted, columnType = 'actions' }: ActionCardProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userActions, setUserActions] = useState<HiringIntentAction[]>([]);
   const [updatingActionIds, setUpdatingActionIds] = useState<Set<number>>(new Set());
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
-  const [isUpdatingCardStatus, setIsUpdatingCardStatus] = useState(false);
+  const [isCompletingCard, setIsCompletingCard] = useState(false);
+  const [isAbortingCard, setIsAbortingCard] = useState(false);
   const [showAbortDialog, setShowAbortDialog] = useState(false);
 
   // Get current card status - prefer columnType prop over user_state
@@ -125,20 +210,37 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
     setUpdatingActionIds(prev => new Set(prev).add(action.id!));
 
     const newStatus = action.status === 'completed' ? 'processing' : 'completed';
-    const result = await updateHiringIntentAction(action.id, newStatus, EXTERNAL.directus_url);
+    const oldStatus = action.status;
 
-    if (result.success) {
+    // Optimistically update UI
+    setUserActions(prev =>
+      prev.map(a => (a.id === action.id ? { ...a, status: newStatus } : a))
+    );
+
+    try {
+      const result = await updateHiringIntentAction(action.id, newStatus, EXTERNAL.directus_url);
+
+      if (result.success) {
+        onActionUpdate?.();
+      } else {
+        // Rollback on failure
+        setUserActions(prev =>
+          prev.map(a => (a.id === action.id ? { ...a, status: oldStatus } : a))
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling action:', error);
+      // Rollback on error
       setUserActions(prev =>
-        prev.map(a => (a.id === action.id ? { ...a, status: newStatus } : a))
+        prev.map(a => (a.id === action.id ? { ...a, status: oldStatus } : a))
       );
-      onActionUpdate?.();
+    } finally {
+      setUpdatingActionIds(prev => {
+        const next = new Set(prev);
+        next.delete(action.id!);
+        return next;
+      });
     }
-
-    setUpdatingActionIds(prev => {
-      const next = new Set(prev);
-      next.delete(action.id!);
-      return next;
-    });
   };
 
   // Generate lexical order between two items
@@ -221,11 +323,30 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
     if (isAdding) return;
     setIsAdding(true);
 
-    try {
-      // Generate lexical order for the new item (append to end)
-      const lastOrder = userActions.length > 0 ? userActions[userActions.length - 1].lexical_order : undefined;
-      const newOrder = generateLexicalOrder(lastOrder, undefined);
+    // Generate lexical order for the new item (append to end)
+    const lastOrder = userActions.length > 0 ? userActions[userActions.length - 1].lexical_order : undefined;
+    const newOrder = generateLexicalOrder(lastOrder, undefined);
 
+    // Create temporary action for optimistic UI update
+    const tempId = -Date.now(); // Use negative timestamp as temporary ID
+    const initialPayload = { text: "" };
+    const tempAction: HiringIntentAction = {
+      id: tempId,
+      hiring_intent: intent.id,
+      status: 'processing',
+      category: 'manual',
+      lexical_order: newOrder,
+      payload: initialPayload,
+      user: currentUserId || undefined,
+      user_created: currentUserId || undefined,
+    };
+
+    // Optimistically add to UI
+    setUserActions(prev => [...prev, tempAction]);
+    setEditingActionId(tempId);
+    setEditingText("");
+
+    try {
       const result = await createHiringIntentAction(
         intent.id,
         'processing',
@@ -233,36 +354,44 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
         EXTERNAL.directus_url
       );
 
-      if (result.success && result.action) {
+      if (result.success && result.action && result.action.id) {
         // Update the action with the lexical order and initialize payload
-        if (result.action.id) {
-          const initialPayload = { text: "" };
+        await fetch(`${EXTERNAL.directus_url}/items/hiring_intent_action/${result.action.id}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lexical_order: newOrder,
+            payload: initialPayload
+          }),
+        });
 
-          await fetch(`${EXTERNAL.directus_url}/items/hiring_intent_action/${result.action.id}`, {
-            method: 'PATCH',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              lexical_order: newOrder,
-              payload: initialPayload
-            }),
-          });
+        // Replace temp action with real one
+        const newAction = { ...result.action, lexical_order: newOrder, payload: initialPayload };
+        setUserActions(prev => prev.map(a => a.id === tempId ? newAction : a));
 
-          // Add to local state
-          const newAction = { ...result.action!, lexical_order: newOrder, payload: initialPayload };
-          setUserActions(prev => [...prev, newAction]);
-
-          // Automatically start editing the new action
+        // Update editing ID to the real ID
+        if (editingActionId === tempId) {
           setEditingActionId(newAction.id!);
-          setEditingText("");
+        }
 
-          onActionUpdate?.();
+        onActionUpdate?.();
+      } else {
+        // Remove temp action if creation failed
+        setUserActions(prev => prev.filter(a => a.id !== tempId));
+        if (editingActionId === tempId) {
+          setEditingActionId(null);
         }
       }
     } catch (error) {
       console.error('Error adding action:', error);
+      // Remove temp action on error
+      setUserActions(prev => prev.filter(a => a.id !== tempId));
+      if (editingActionId === tempId) {
+        setEditingActionId(null);
+      }
     } finally {
       setIsAdding(false);
     }
@@ -337,27 +466,61 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
   const handleDeleteAction = async (actionId: number) => {
     if (!actionId) return;
 
+    // Store the action for potential rollback
+    const deletedAction = userActions.find(a => a.id === actionId);
+    if (!deletedAction) return;
+
+    // Optimistically remove from UI
+    setUserActions(prev => prev.filter(a => a.id !== actionId));
+
     try {
       const result = await deleteHiringIntentAction(actionId, EXTERNAL.directus_url);
 
       if (result.success) {
-        // Remove from local state
-        setUserActions(prev => prev.filter(a => a.id !== actionId));
         onActionUpdate?.();
       } else {
         console.error('Failed to delete action:', result.error);
+        // Rollback: restore the action
+        setUserActions(prev => {
+          const newActions = [...prev, deletedAction];
+          // Sort by lexical order to restore correct position
+          return newActions.sort((a, b) => {
+            if (a.lexical_order && b.lexical_order) {
+              return a.lexical_order.localeCompare(b.lexical_order);
+            }
+            return 0;
+          });
+        });
       }
     } catch (error) {
       console.error('Error deleting action:', error);
+      // Rollback: restore the action
+      setUserActions(prev => {
+        const newActions = [...prev, deletedAction];
+        // Sort by lexical order to restore correct position
+        return newActions.sort((a, b) => {
+          if (a.lexical_order && b.lexical_order) {
+            return a.lexical_order.localeCompare(b.lexical_order);
+          }
+          return 0;
+        });
+      });
     }
   };
 
-  const handleCardStatusChange = async (newStatus: 'actioned' | 'hidden' | 'completed' | 'aborted') => {
-    if (isUpdatingCardStatus) return;
+  const handleMarkAsCompleted = async () => {
+    if (isCompletingCard || isAbortingCard) return;
 
-    setIsUpdatingCardStatus(true);
+    // Use optimistic update if handler is provided
+    if (onMoveToCompleted) {
+      await onMoveToCompleted(intent.id);
+      return;
+    }
+
+    // Fallback to direct API call
+    setIsCompletingCard(true);
     try {
-      const result = await updateHiringIntentUserState(intent.id, newStatus, EXTERNAL.directus_url);
+      const result = await updateHiringIntentUserState(intent.id, 'completed', EXTERNAL.directus_url);
       if (result.success) {
         onActionUpdate?.(); // Refresh the dashboard
       } else {
@@ -366,19 +529,44 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
     } catch (error) {
       console.error('Error updating card status:', error);
     } finally {
-      setIsUpdatingCardStatus(false);
+      setIsCompletingCard(false);
     }
   };
-
-  const handleMarkAsCompleted = () => handleCardStatusChange('completed');
   const handleMarkAsAborted = () => {
     setShowAbortDialog(true);
   };
 
   const handleConfirmAbort = async (reason: string) => {
-    if (isUpdatingCardStatus) return;
+    if (isCompletingCard || isAbortingCard) return;
 
-    setIsUpdatingCardStatus(true);
+    // Use optimistic update if handler is provided
+    if (onMoveToAborted) {
+      // First create the abort event for the reason
+      try {
+        const eventResult = await createHiringIntentEvent(
+          intent.id,
+          'aborted',
+          reason,
+          EXTERNAL.directus_url
+        );
+
+        if (!eventResult.success) {
+          console.error('Failed to create abort event:', eventResult.error);
+          alert('Failed to record abort reason. Please try again.');
+          return;
+        }
+
+        // Then use optimistic update
+        await onMoveToAborted(intent.id, reason);
+      } catch (error) {
+        console.error('Error aborting card:', error);
+        alert('An error occurred. Please try again.');
+      }
+      return;
+    }
+
+    // Fallback to direct API call
+    setIsAbortingCard(true);
     try {
       // First, create the hiring_intent_event with the abort reason
       const eventResult = await createHiringIntentEvent(
@@ -391,7 +579,7 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
       if (!eventResult.success) {
         console.error('Failed to create abort event:', eventResult.error);
         alert('Failed to record abort reason. Please try again.');
-        setIsUpdatingCardStatus(false);
+        setIsAbortingCard(false);
         return;
       }
 
@@ -407,7 +595,7 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
       console.error('Error aborting card:', error);
       alert('An error occurred. Please try again.');
     } finally {
-      setIsUpdatingCardStatus(false);
+      setIsAbortingCard(false);
     }
   };
 
@@ -425,25 +613,27 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
-      year: "numeric",
       month: "short",
       day: "numeric",
     });
   };
 
-  // Extract source URL and name safely
-  const sourceUrl = typeof intent.source === 'object' ? intent.source?.url : intent.source;
+  const hasActionStatus = (status: "completed" | "skipped") =>
+    intent.actions?.some((a) => a.status === status) || false;
+
+  const companyWebsite = intent.company_profile?.reference?.website_url;
+  const companyEmail = intent.company_profile?.reference?.email;
+  const sourceUrl = intent.source?.url;
+
+  // Handle source name - it could be a string or need to extract from nested structure
   const getSourceName = () => {
-    if (typeof intent.source === 'string') {
-      return intent.source;
+    if (typeof intent.source?.source === 'string') {
+      return intent.source.source;
     }
-    if (typeof intent.source === 'object' && intent.source?.source) {
-      return typeof intent.source.source === 'string' ? intent.source.source : 'Source';
-    }
-    if (typeof intent.source === 'object' && intent.source?.url) {
+    if (intent.source?.url) {
       try {
         return new URL(intent.source.url).hostname;
       } catch {
@@ -454,118 +644,103 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
   };
   const sourceName = getSourceName();
 
+  // Check if there are pending updates for visual indicator
+  const hasPendingUpdate = false; // TODO: implement this based on your logic
+
   const isReadOnly = currentStatus === 'completed' || currentStatus === 'aborted';
 
   return (
-    <div className="flex items-start gap-2 w-full">
-      <div className={`flex-1 min-w-0 space-y-1 ${isReadOnly ? 'opacity-50' : ''}`}>
-        {/* Header with company name and category */}
-        <div className="flex items-start justify-between gap-2">
-          {intent.company_profile?.url || intent.company_profile?.website ? (
-            <a
-              href={intent.company_profile.url || intent.company_profile.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-gray-900 hover:text-blue-600 line-clamp-1 flex-1 flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
+    <>
+      <div
+        className={`w-full space-y-2 cursor-pointer transition relative ${currentStatus === 'aborted' || currentStatus === 'completed' ? "opacity-50" : ""
+          } ${hasPendingUpdate ? "ring-2 ring-blue-200" : ""}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        {/* Pending Update Indicator - subtle, fits original design */}
+        {hasPendingUpdate && (
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" title="Updating..." />
+        )}
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold truncate text-gray-900">
               {intent.company_profile?.name || "Unknown Company"}
-              <ExternalLink className="w-3 h-3 flex-shrink-0" />
-            </a>
-          ) : (
-            <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">
-              {intent.company_profile?.name || "Unknown Company"}
-            </h3>
+            </div>
+
+            {intent.company_profile?.industry && (
+              <div className="mt-1">
+                <Badge
+                  variant="outline"
+                  className="text-[11px] px-2 py-0.5 bg-slate-50 text-slate-600 border-slate-200"
+                >
+                  {Array.isArray(intent.company_profile.industry)
+                    ? intent.company_profile.industry[0]
+                    : intent.company_profile.industry}
+                </Badge>
+              </div>
           )}
+          </div>
+
           {intent.category && (
-            <Badge className={`${getCategoryColor(intent.category)} flex-shrink-0 text-xs py-0 px-1.5`}>
+              <Badge
+                className={`${getCategoryColor(intent.category)} text-xs py-0 px-1.5`}
+              >
               {intent.category}
             </Badge>
           )}
         </div>
 
-        {/* Source Link and Date */}
-        {(intent.url || sourceUrl) && (
-          <div className="flex items-center gap-2">
-            <a
-              href={intent.url || sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {sourceName}
-              <ExternalLink className="w-3 h-3" />
-            </a>
-            <span className="text-xs text-gray-400">
-              {formatDate(intent.date_created)}
-            </span>
-          </div>
-        )}
-
         {/* Reason */}
-        {intent.reason && (
-          <p className="text-xs text-gray-600 line-clamp-2">{intent.reason}</p>
-        )}
+      {intent.reason && (
+        <p
+          className={`text-xs leading-relaxed text-gray-500 ${isExpanded ? "line-clamp-3" : "line-clamp-1"
+            }`}
+        >
+          {intent.reason}
+          {!isExpanded && <span className="text-gray-400"> … more</span>}
+        </p>
+      )}
 
-        {/* Potential Role */}
-        {intent.potential_role && (
-          <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
-            {(Array.isArray(intent.potential_role)
-              ? intent.potential_role
-              : typeof intent.potential_role === "string"
-                ? [intent.potential_role]
-                : []
-            ).map((role, index) => (
-              <Badge key={index} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs py-0 px-1.5 whitespace-nowrap">
-                {role}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Skills */}
-        {intent.skill && (
-          <div className="flex gap-1 overflow-x-auto whitespace-nowrap">
-            {(Array.isArray(intent.skill)
-              ? intent.skill
-              : typeof intent.skill === "string"
-                ? [intent.skill]
-                : []
-            ).map((skill, index) => (
-              <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs py-0 px-1.5 whitespace-nowrap">
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Todo List - User Actions (Collapsible) */}
-        <div className="pt-1.5 border-t border-gray-100">
+      {/* Expanded inspection panel */}
+      {isExpanded && (
+        <>
           <div
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-              }
-            }}
-            className="flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-900 mb-1 w-full cursor-pointer"
+            className="
+              mt-2
+              pl-3
+              pr-2
+              py-2
+              space-y-3
+              text-[11px]
+              text-gray-400
+              bg-gray-50
+              border-l-2
+              border-gray-200
+              rounded-sm
+            "
+            onClick={(e) => e.stopPropagation()}
           >
-            {isExpanded ? (
-              <ChevronDown className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5" />
-            )}
-            <span>Actions ({userActions.length})</span>
+            <LocationAndCoverage intent={intent} />
+            <IntentRoles intent={intent} />
+            <HiringWindow intent={intent} />
+            <IntentSource intent={intent} />
+            <IntentCompanyLinks intent={intent} />
           </div>
-          {isExpanded && (
+
+          {/* Actions Section - outside grey panel */}
+          <div
+            className="mt-2 pt-2 border-t border-gray-200 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-xs font-medium text-gray-700 mb-1 w-full"
+            >
+              <span>Actions ({userActions.length})</span>
+            </div>
             <div className="space-y-1">
               {userActions.length > 0 ? (
                 userActions.map((action, index) => (
@@ -576,17 +751,15 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
                     onDragOver={(e) => !isReadOnly && handleDragOver(e, index)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => !isReadOnly && handleDrop(e, index)}
-                    className={`flex items-start gap-2 action-item ${!isReadOnly ? 'cursor-move' : ''} ${
+                    className={`flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors ${!isReadOnly ? 'cursor-move' : ''} ${
                       dragOverIndex === index ? 'border-t-2 border-blue-500 pt-2' : ''
                     } ${draggedIndex === index ? 'opacity-50' : ''}`}
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    {!isReadOnly && <GripVertical className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />}
+                    {!isReadOnly && <GripVertical className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />}
                     <Checkbox
                       checked={action.status === 'completed'}
                       disabled={isReadOnly || updatingActionIds.has(action.id!)}
                       onCheckedChange={() => handleActionToggle(action)}
-                      className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
                       {renderActionContent(action)}
@@ -597,87 +770,103 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
                           e.stopPropagation();
                           handleDeleteAction(action.id!);
                         }}
-                        className="delete-btn opacity-0 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 flex-shrink-0"
+                        className="opacity-60 transition-opacity p-0.5 hover:bg-red-100 rounded text-gray-400 hover:text-red-500 flex-shrink-0"
                         title="Delete action"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     )}
-                    <style>{`
-                      .action-item:hover .delete-btn {
-                        opacity: 1;
-                      }
-                    `}</style>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-gray-400 py-2">No actions yet. Add one to get started.</p>
+                <div className="text-xs text-gray-400 italic p-2">No actions yet</div>
               )}
+            </div>
+
+            {/* Action Controls */}
+            <div className="pt-2 space-y-2">
+              {/* Add Action Button */}
               {!isReadOnly && (
-                <div
-                  role="button"
-                  tabIndex={0}
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!isAdding) handleAddAction();
+                    handleAddAction();
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isAdding) handleAddAction();
-                    }
-                  }}
-                  className={`w-full mt-2 h-7 text-xs inline-flex items-center justify-center rounded-md border border-dashed text-gray-600 hover:text-gray-900 hover:border-gray-400 font-medium transition-colors ${
-                    isAdding ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
+                  className="w-full h-8 text-sm inline-flex items-center justify-center rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-medium transition-colors"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  {isAdding ? 'Adding...' : 'Add Action'}
-                </div>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Action
+                </button>
               )}
             </div>
-          )}
+          </div>
+        </>
+      )}
+
+      {/* Meta row - only when not expanded */}
+      {!isExpanded && <IntentMetaRow intent={intent} />}
+
+      {/* Actions Header - when not expanded */}
+      {!isExpanded && (
+        <div className="pt-2 border-t border-gray-100">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsExpanded(true)}
+            className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1 w-full cursor-pointer hover:text-gray-800"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Actions ({userActions.length})</span>
+          </div>
         </div>
+      )}
 
-        {/* Card Status Controls */}
-        {currentStatus === 'actioned' && (
-          <div className="pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMarkAsCompleted();
-                }}
-                disabled={isUpdatingCardStatus}
-                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Check className="w-3.5 h-3.5" />
+      {/* Control Buttons - Always visible */}
+      {!isReadOnly && columnType === 'actions' && (
+        <div className="pt-2 flex gap-2">
+          <button
+            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 text-white font-medium transition disabled:opacity-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMarkAsCompleted();
+            }}
+            disabled={isCompletingCard || isAbortingCard}
+          >
+            {isCompletingCard ? (
+              <>
+                <div className="w-3 h-3 mr-1 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Moving...
+              </>
+            ) : (
+              <>
+                <Check className="w-3 h-3 mr-1" />
                 Move to Completed
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMarkAsAborted();
-                }}
-                disabled={isUpdatingCardStatus}
-                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Ban className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+          <button
+            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition disabled:opacity-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAbortDialog(true);
+            }}
+            disabled={isCompletingCard || isAbortingCard}
+          >
+            {isAbortingCard ? (
+              <>
+                <div className="w-3 h-3 mr-1 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                Hiding...
+              </>
+            ) : (
+              <>
+                <X className="w-3 h-3 mr-1 opacity-70" />
                 Move to Aborted
-              </button>
-            </div>
-          </div>
-        )}
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
-        {/* Date Added */}
-        {intent.actions && intent.actions.length > 0 && (
-          <div className="pt-1 border-t border-gray-100">
-            <p className="text-xs text-gray-400">
-              Added {formatDate(intent.actions[0].date_created)}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Abort Reason Dialog */}
@@ -687,6 +876,6 @@ export function ActionCard({ intent, onActionUpdate, columnType = 'actions' }: A
         onConfirm={handleConfirmAbort}
         companyName={intent.company_profile?.name}
       />
-    </div>
+    </>
   );
 }

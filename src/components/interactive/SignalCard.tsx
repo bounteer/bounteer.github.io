@@ -2,6 +2,12 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import type { HiringIntent } from "@/lib/utils";
+import { LocationAndCoverage } from "./LocationAndCoverage";
+import { HiringWindow } from "./HiringWindow";
+import { IntentMetaRow } from "./IntentMetaRow";
+import { IntentRoles } from "./IntentRoles";
+import { IntentSource } from "./IntentSource";
+import { IntentCompanyLinks } from "./IntentCompanyLinks";
 
 interface SignalCardProps {
   intent: HiringIntent;
@@ -9,6 +15,8 @@ interface SignalCardProps {
   onSkip: (intentId: number) => void;
   showActionButtons?: boolean;
   isHidden?: boolean;
+  isUpdating?: boolean;
+  hasPendingUpdate?: boolean;
 }
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
@@ -23,6 +31,8 @@ export function SignalCard({
   onSkip,
   showActionButtons = true,
   isHidden = false,
+  isUpdating = false,
+  hasPendingUpdate = false,
 }: SignalCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -129,10 +139,15 @@ export function SignalCard({
 
   return (
     <div
-      className={`w-full space-y-2 cursor-pointer transition ${isHidden ? "opacity-50" : ""
-        }`}
+      className={`w-full space-y-2 cursor-pointer transition relative ${isHidden ? "opacity-50" : ""
+        } ${hasPendingUpdate ? "ring-2 ring-blue-200" : ""}`}
       onClick={() => setExpanded((v) => !v)}
     >
+      {/* Pending Update Indicator - subtle, fits original design */}
+      {hasPendingUpdate && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" title="Updating..." />
+      )}
+      
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -192,209 +207,24 @@ export function SignalCard({
           "
         >
           {/* Location & Coverage */}
-          <div className="flex gap-4">
-            {/* Location */}
-            <div className="flex-1">
-              <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
-                Location
-              </div>
-              <div className="space-y-1.5">
-                {intent.work_location ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge
-                      variant="outline"
-                      className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
-                    >
-                      {intent.work_location.city && intent.work_location.country_code
-                        ? `${intent.work_location.city}, ${getCountryName(intent.work_location.country_code)}`
-                        : intent.work_location.city ||
-                          getCountryName(intent.work_location.country_code) ||
-                          'Unknown'}
-                    </Badge>
-                  </div>
-                ) : intent.commercial_region ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(Array.isArray(intent.commercial_region)
-                      ? intent.commercial_region
-                      : [intent.commercial_region]
-                    ).map((region, i) => (
-                      <Badge
-                        key={i}
-                        variant="outline"
-                        className="text-[11px] px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200"
-                      >
-                        {region}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : intent.location ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(Array.isArray(intent.location)
-                      ? intent.location
-                      : [intent.location]
-                    ).map((loc, i) => (
-                      <Badge
-                        key={i}
-                        variant="outline"
-                        className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
-                      >
-                        {loc}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="italic text-gray-400">not found</span>
-                )}
-              </div>
-            </div>
-
-            {/* Coverage */}
-            {intent.work_location && intent.commercial_region && (
-              <div className="flex-1">
-                <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
-                  Coverage
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(Array.isArray(intent.commercial_region)
-                    ? intent.commercial_region
-                    : [intent.commercial_region]
-                  ).map((region, i) => (
-                    <Badge
-                      key={i}
-                      variant="outline"
-                      className="text-[11px] px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200"
-                    >
-                      {region}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <LocationAndCoverage intent={intent} />
 
           {/* Roles */}
-          <div>
-            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
-              Roles
-            </div>
-            {intent.potential_role ? (
-              <div className="flex flex-wrap gap-1.5">
-                {(Array.isArray(intent.potential_role)
-                  ? intent.potential_role
-                  : [intent.potential_role]
-                ).map((role, i) => (
-                  <Badge
-                    key={i}
-                    variant="outline"
-                    className="text-[11px] px-2 py-0.5 bg-violet-50 text-violet-700 border-violet-200"
-                  >
-                    {role}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <span className="italic text-gray-400">not found</span>
-            )}
-          </div>
+          <IntentRoles intent={intent} />
 
           {/* Hiring window */}
-          <div>
-            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
-              Hiring window
-            </div>
-            {(intent.predicted_window_start || intent.predicted_window_end) ? (
-              <span>
-                {intent.predicted_window_start
-                  ? formatDate(intent.predicted_window_start)
-                  : "?"}
-                {" → "}
-                {intent.predicted_window_end
-                  ? formatDate(intent.predicted_window_end)
-                  : "?"}
-              </span>
-            ) : (
-              <span className="italic text-gray-400">not found</span>
-            )}
-          </div>
+          <HiringWindow intent={intent} />
 
           {/* Source */}
-          <div>
-            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
-              Source
-            </div>
-            <a
-              href={sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-blue-600"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {sourceName}
-              <ExternalLink className="w-3 h-3 opacity-70" />
-            </a>
-          </div>
+          <IntentSource intent={intent} />
 
           {/* Company links */}
-          <div>
-            <div className="uppercase tracking-wide text-[10px] text-gray-400 mb-0.5">
-              Company links
-            </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {companyWebsite ? (
-                <a
-                  href={companyWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-600"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {companyWebsite} ↗
-                </a>
-              ) : (
-                <span className="italic text-gray-400">Website — not found</span>
-              )}
-
-              {companyEmail ? (
-                <a
-                  href={`mailto:${companyEmail}`}
-                  className="hover:text-blue-600"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {companyEmail}
-                </a>
-              ) : (
-                <span className="italic text-gray-400">Email — not found</span>
-              )}
-            </div>
-          </div>
+          <IntentCompanyLinks intent={intent} />
         </div>
       )}
 
       {/* Meta row */}
-      <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1">
-        <span>{intent.date_created && formatDate(intent.date_created)}</span>
-
-        <div className="flex items-center gap-1.5">
-          {intent.confidence !== undefined && intent.confidence !== null && (
-            <Badge
-              className={`${getConfidenceLevel(intent.confidence).color} text-[11px] px-2 py-0.5`}
-            >
-              {getConfidenceLevel(intent.confidence).label}
-            </Badge>
-          )}
-
-          {(() => {
-            const urgency = getUrgency(intent.predicted_window_start, intent.predicted_window_end);
-            return urgency ? (
-              <Badge
-                className={`${urgency.color} text-[11px] px-2 py-0.5`}
-              >
-                {urgency.label}
-              </Badge>
-            ) : null;
-          })()}
-        </div>
-      </div>
+      <IntentMetaRow intent={intent} />
 
       {/* Actions */}
       {showActionButtons &&
@@ -402,25 +232,45 @@ export function SignalCard({
         !hasActionStatus("skipped") && (
           <div className="pt-2 flex gap-2">
             <button
-              className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 text-white font-medium transition"
+              className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md bg-green-500 hover:bg-green-600 text-white font-medium transition disabled:opacity-50"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddToActions(intent.id);
-            }}
-          >
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            Move to Actions
-          </button>
+              }}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <div className="w-3 h-3 mr-1 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Moving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Move to Actions
+                </>
+              )}
+            </button>
 
-          <button
-            className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition"
-            onClick={(e) => {
+            <button
+              className="flex-1 h-7 text-xs inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition disabled:opacity-50"
+              onClick={(e) => {
                 e.stopPropagation();
                 onSkip(intent.id);
-            }}
-          >
-              <XCircle className="w-3 h-3 mr-1 opacity-70" />
-              Hide
+              }}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <div className="w-3 h-3 mr-1 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  Hiding...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-3 h-3 mr-1 opacity-70" />
+                  Hide
+                </>
+              )}
             </button>
           </div>
         )}

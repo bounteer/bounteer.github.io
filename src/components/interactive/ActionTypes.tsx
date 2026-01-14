@@ -32,7 +32,7 @@ export function LinkedinOutreachAction({
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className={`text-xs flex items-start gap-1.5 linkedin-action ${isCompleted ? 'opacity-50' : ''}`}
+      className={`text-xs flex items-center gap-1.5 linkedin-action ${isCompleted ? 'opacity-50' : ''}`}
     >
       <span className="bg-blue-600 linkedin-action:hover:bg-blue-700 text-white text-xs py-1 px-3 rounded-md cursor-pointer transition-colors font-medium linkedin-badge flex-shrink-0 whitespace-nowrap">
         Outreach on LinkedIn
@@ -76,7 +76,7 @@ export function OrbitCompanyCallScheduleAction({
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className={`text-xs flex items-start gap-1.5 orbit-action ${isCompleted ? 'opacity-50' : ''}`}
+      className={`text-xs flex items-center gap-1.5 orbit-action ${isCompleted ? 'opacity-50' : ''}`}
     >
       <span className="bg-orange-600 text-white text-xs py-1 px-3 rounded-md cursor-pointer transition-colors font-medium orbit-badge flex-shrink-0 whitespace-nowrap">
         Schedule Orbit Call
@@ -122,7 +122,7 @@ export function OrbitCompanyCallReviewAction({
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className={`text-xs flex items-start gap-1.5 orbit-review-action ${isCompleted ? 'opacity-50' : ''}`}
+      className={`text-xs flex items-center gap-1.5 orbit-review-action ${isCompleted ? 'opacity-50' : ''}`}
     >
       <span className="bg-orange-600 text-white text-xs py-1 px-3 rounded-md cursor-pointer transition-colors font-medium orbit-review-badge flex-shrink-0 whitespace-nowrap">
         Review Orbit Call

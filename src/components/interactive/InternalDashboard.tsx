@@ -18,13 +18,22 @@ export function InternalDashboard() {
     const fetchHiringIntentData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         console.log('[InternalDashboard] Fetching hiring intent data...');
 
+        const startTime = performance.now();
+        
         const response = await fetch('/api/hiring-intent-location', {
           credentials: 'include',
         });
 
+        const endTime = performance.now();
+        console.log(`[InternalDashboard] API response time: ${(endTime - startTime).toFixed(2)}ms`);
         console.log('[InternalDashboard] Response status:', response.status);
+
+        // Check if response is from cache
+        const fromCache = response.headers.get('X-Cache') === 'HIT';
+        console.log('[InternalDashboard] From cache:', fromCache);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -37,6 +46,7 @@ export function InternalDashboard() {
 
         if (result.success && result.data) {
           setHiringIntentByLocation(result.data);
+          console.log(`[InternalDashboard] Loaded ${result.data.length} countries with ${result.total} total records`);
         } else if (result.error) {
           throw new Error(result.error);
         }
@@ -49,6 +59,10 @@ export function InternalDashboard() {
     };
 
     fetchHiringIntentData();
+
+    // Optional: Add a refresh button functionality or periodic refresh
+    // const refreshInterval = setInterval(fetchHiringIntentData, 5 * 60 * 1000); // Refresh every 5 minutes
+    // return () => clearInterval(refreshInterval);
   }, []);
 
   return (

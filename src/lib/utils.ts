@@ -1590,7 +1590,7 @@ export type HiringIntent = {
 }
 
 // Helper type for categorized intent IDs
-type CategorizedIntentIds = {
+export type CategorizedIntentIds = {
   actionedIds: number[];
   hiddenIds: number[];
   completedIds: number[];
