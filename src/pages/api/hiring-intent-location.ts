@@ -60,18 +60,9 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       },
       groupBy: ['work_location.country_code', 'work_location.city'],
       filter: {
-        _and: [
-          {
-            work_location: {
-              country_code: { _nempty: true }
-            }
-          },
-          {
-            work_location: {
-              city: { _nempty: true }
-            }
-          }
-        ]
+        work_location: {
+          country_code: { _nempty: true }
+        }
       },
       limit: 500 // Increased limit for aggregation since we're getting grouped data
     };
@@ -126,10 +117,10 @@ export const GET: APIRoute = async ({ request, cookies }) => {
         // Process aggregated results
         aggregatedResults.forEach((group: any) => {
           const countryCode = group.group[0];
-          const city = group.group[1];
+          const city = group.group[1] || 'Not specified';
           const count = group.count.count;
 
-          if (!countryCode || !city) return;
+          if (!countryCode) return;
 
           // Initialize country if not exists
           if (!locationMap[countryCode]) {
@@ -141,7 +132,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
 
           // Increment counts
           locationMap[countryCode].total += count;
-          locationMap[countryCode].cities[city] = count;
+          locationMap[countryCode].cities[city] = (locationMap[countryCode].cities[city] || 0) + count;
           totalRecords += count;
         });
 
@@ -177,12 +168,12 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       // Process the raw data (original method)
       hiringIntents.forEach((intent: any) => {
         const location = intent.work_location;
-        if (!location || !location.country_code || !location.city) {
-          return; // Skip entries without location data
+        if (!location || !location.country_code) {
+          return; // Skip entries without country_code
         }
 
         const countryCode = location.country_code;
-        const city = location.city;
+        const city = location.city || 'Not specified';
 
         // Initialize country if not exists
         if (!locationMap[countryCode]) {
