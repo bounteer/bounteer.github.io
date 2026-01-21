@@ -1,0 +1,359 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { Users, Bell, TrendingUp, Target, Sparkles, Clock } from "lucide-react";
+---
+
+<Layout title="Orbit Talent Tracker - Never lose track of your talent pool">
+  <Header />
+
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-br from-primary-50 via-orange-50 to-red-50 pt-32 pb-20 overflow-hidden">
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <!-- Status Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-md mb-6 animate-slide-down">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+          </span>
+          <span class="text-sm font-semibold text-gray-700">Automated Career Movement Tracking</span>
+        </div>
+
+        <!-- Hero Title -->
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 animate-slide-up leading-tight">
+          Never lose track of<br />
+          <span class="bg-gradient-to-r from-primary-600 to-orange-600 bg-clip-text text-transparent">
+            your talent pool.
+          </span>
+        </h1>
+
+        <!-- Hero Subtitle -->
+        <p class="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto animate-slide-up" style="animation-delay: 0.1s;">
+          Orbit Talent Tracker monitors your talent pool for career movements and generates AI summaries,
+          so you can re-engage with candidates at the perfect moment—no guesswork required.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up" style="animation-delay: 0.2s;">
+          <a
+            href="/contact"
+            class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-2xl"
+          >
+            Get Early Access
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </a>
+          <a
+            href="#how-it-works"
+            class="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:scale-105 transition-all duration-300 shadow-md hover:shadow-xl border border-primary-200"
+          >
+            See How It Works
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decorative Elements -->
+    <div class="absolute top-20 left-10 w-72 h-72 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+    <div class="absolute top-40 right-10 w-72 h-72 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-20 left-1/2 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Your talent pool, <span class="text-primary-600">always current</span>
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Orbit Talent Tracker automatically monitors your candidates' career movements so you're always ready to re-engage.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <!-- Feature 1: Profile Storage -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Users class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Centralized Talent Pool</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Store and organize all your talent pool profiles in one place. Keep track of every candidate you've engaged with.
+          </p>
+        </div>
+
+        <!-- Feature 2: Automated Tracking -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <TrendingUp class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Career Movement Tracking</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Automatically detect when your candidates change jobs, get promoted, or update their profiles.
+          </p>
+        </div>
+
+        <!-- Feature 3: AI Summaries -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Sparkles class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">AI-Generated Summaries</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Get instant summaries of what changed in each candidate's profile—no more manual comparison needed.
+          </p>
+        </div>
+
+        <!-- Feature 4: Real-time Notifications -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Bell class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Instant Alerts</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Receive notifications the moment a candidate makes a career move. Never miss an opportunity to reconnect.
+          </p>
+        </div>
+
+        <!-- Feature 5: Perfect Timing -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Clock class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Optimal Re-engagement</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Know exactly when to reach out based on career transitions. Re-engage when candidates are most open to opportunities.
+          </p>
+        </div>
+
+        <!-- Feature 6: No Guesswork -->
+        <div class="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-primary-200">
+          <div class="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Target class="w-7 h-7 text-white" />
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Zero Guesswork</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Real-time intelligence eliminates uncertainty. You'll always know what's changed and why it matters.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="py-20 bg-gradient-to-br from-gray-50 to-primary-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          How Orbit Talent Tracker Works
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          A simple, automated workflow to stay connected with your talent pool
+        </p>
+      </div>
+
+      <div class="max-w-4xl mx-auto space-y-12">
+        <!-- Step 1 -->
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl font-bold text-white">1</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Store Your Talent Pool</h3>
+            <p class="text-lg text-gray-600 leading-relaxed">
+              Add candidate profiles to your Orbit Talent Tracker workspace. Import from LinkedIn, your ATS,
+              or add them manually. Once stored, the system automatically begins monitoring their career activity.
+            </p>
+          </div>
+        </div>
+
+        <!-- Connector Line -->
+        <div class="hidden md:block w-px h-12 bg-gradient-to-b from-primary-300 to-primary-400 ml-8"></div>
+
+        <!-- Step 2 -->
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl font-bold text-white">2</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Automated Movement Detection</h3>
+            <p class="text-lg text-gray-600 leading-relaxed">
+              Orbit Talent Tracker continuously monitors your candidates for career movements—job changes, promotions,
+              new skills, or profile updates. When something changes, our AI generates a clear, actionable summary
+              highlighting what's different and why it matters.
+            </p>
+          </div>
+        </div>
+
+        <!-- Connector Line -->
+        <div class="hidden md:block w-px h-12 bg-gradient-to-b from-orange-300 to-red-400 ml-8"></div>
+
+        <!-- Step 3 -->
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl font-bold text-white">3</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Re-engage at the Right Time</h3>
+            <p class="text-lg text-gray-600 leading-relaxed">
+              Receive instant notifications when candidates make career moves. Review the AI summary to understand
+              their new context, then reach out with timely, relevant opportunities. No more cold outreach—every
+              conversation is backed by real intelligence.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benefits Section -->
+  <section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Why recruiters love Orbit Talent Tracker
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Turn passive talent pools into active pipelines with automated intelligence
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <!-- Benefit 1 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Never lose touch with candidates</h3>
+              <p class="text-gray-600">
+                Your talent pool stays current automatically. No more outdated contact lists or forgotten candidates.
+              </p>
+            </div>
+          </div>
+
+          <!-- Benefit 2 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Re-engage with perfect timing</h3>
+              <p class="text-gray-600">
+                Catch candidates when they're most open to new opportunities—right after a career transition.
+              </p>
+            </div>
+          </div>
+
+          <!-- Benefit 3 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">Zero manual tracking work</h3>
+              <p class="text-gray-600">
+                No more checking LinkedIn profiles manually. Orbit Talent Tracker does the monitoring for you 24/7.
+              </p>
+            </div>
+          </div>
+
+          <!-- Benefit 4 -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">AI-powered insights</h3>
+              <p class="text-gray-600">
+                Understand exactly what changed and why it matters. Every movement comes with context and relevance.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 bg-gradient-to-br from-primary-600 via-primary-700 to-orange-600 relative overflow-hidden">
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+          Ready to stay connected with your talent pool?
+        </h2>
+        <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+          Join the waitlist for Orbit Talent Tracker and never lose track of a great candidate again.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a
+            href="/contact"
+            class="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-2xl"
+          >
+            Request Early Access
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </a>
+          <a
+            href="/"
+            class="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/30"
+          >
+            Explore Other Products
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decorative Elements -->
+    <div class="absolute top-10 left-10 w-64 h-64 bg-white/10 rounded-full filter blur-3xl"></div>
+    <div class="absolute bottom-10 right-10 w-64 h-64 bg-orange-400/20 rounded-full filter blur-3xl"></div>
+  </section>
+
+  <Footer />
+</Layout>
+
+<style>
+  @keyframes blob {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+</style>
