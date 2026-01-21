@@ -4,10 +4,11 @@ This file contains important information for Claude Code to understand the Bount
 
 ## 📁 Project Overview
 
-**Framework**: Astro with React components  
-**Styling**: Tailwind CSS + ShadCN/UI components  
-**Package Manager**: pnpm  
+**Framework**: Astro with React components
+**Styling**: Tailwind CSS + ShadCN/UI components
+**Package Manager**: pnpm
 **CMS**: Self-hosted Directus (directus.bounteer.com)
+**Hosting**: GitHub Pages (static site hosting)
 
 ## 🔧 Development Commands
 
@@ -18,7 +19,7 @@ pnpm install
 # Start development server
 pnpm dev
 
-# Build for production  
+# Build for production
 pnpm build
 
 # Preview production build
@@ -37,6 +38,9 @@ pnpm test
 - `src/components/ui/` - ShadCN UI components (.tsx files)
 - `src/components/interactive/` - Custom React components (.tsx files)
 - `src/layouts/` - Page layouts
+- `src/lib/` - Utility functions and shared libraries
+- `src/client_side/fetch/` - Client-side data fetching functions (Directus queries)
+- `src/client_side/hydration/` - Client-side hydration components
 - `src/scripts/` - JavaScript utilities
 - `src/assets/` - Images and static assets
 
@@ -59,6 +63,7 @@ pnpm test
 - Interactive components in `src/components/interactive/`
 - Page-specific components can be inline in `.astro` files
 - Reusable logic in `src/scripts/`
+- Client-side data fetching utilities in `src/lib/`
 
 ## 🔍 Common Patterns
 
@@ -92,7 +97,7 @@ import { ComponentName } from "../components/interactive/ComponentName.tsx";
 
 Based on package.json, these ShadCN components are available:
 - Avatar
-- Button  
+- Button
 - Card
 - Checkbox
 - Dialog/Sheet
@@ -109,6 +114,27 @@ Based on package.json, these ShadCN components are available:
 - Badge
 
 ## 📋 Recent Development Notes
+
+### Internal Dashboard - Client-Side Data Fetching (v1.1.0+)
+- **Problem**: GitHub Pages only serves static files, so API routes return build-time snapshots instead of live data
+- **Solution**: Implemented client-side data fetching that bypasses API routes and queries Directus directly
+- **Implementation**:
+  - Created specific fetch functions in `src/client_side/fetch/` directory
+  - Updated `/src/components/interactive/InternalDashboard.tsx` - Uses multiple fetch functions for different data
+  - Component uses `client:load` directive to ensure hydration and client-side execution
+- **Dashboard Sections**:
+  - **Hiring Intent by Location**: Groups hiring signals by country and city using `fetchHiringIntentByLocation()`
+  - **Article by Source**: Shows ingested article counts by source using `fetchArticlesBySource()`
+- **Query Strategy**:
+  - Uses Directus aggregation API for efficient grouping at query level
+  - **No fallback** - aggregation is done entirely at the query/database level
+  - Results are sorted by count descending after aggregation
+- **Key Files**:
+  - `src/client_side/fetch/hiring_intent_count.ts` - Hiring intent aggregation query
+  - `src/client_side/fetch/article_source_count.ts` - Article source aggregation query
+  - `src/components/interactive/InternalDashboard.tsx` - Dashboard component with multiple data sections
+  - `src/pages/internal.astro` - Internal dashboard page
+- **Pattern**: For any page requiring live data on GitHub Pages, create specific fetch functions in `src/client_side/fetch/` and use with React components hydrated via `client:load`
 
 ### Space Management System (v0.8.0+)
 - **Space Management Dashboard**: New `/dashboard/spaces` page for managing workspaces
@@ -155,15 +181,67 @@ Based on package.json, these ShadCN components are available:
 
 ## ⚡ Performance Notes
 
-- Use `client:load` directive for interactive React components
+- Use `client:load` directive for interactive React components that need immediate hydration
+- Use `client:visible` for components that can be lazy-loaded
 - Optimize images with Astro's built-in Sharp integration
-- Lazy load components when appropriate with `client:visible`
 - Keep bundle size minimal by importing only needed components
+- For GitHub Pages deployments, client-side data fetching is required for dynamic content
 
 ## 🚨 Important Reminders
 
 - **Never commit sensitive data** or API keys
-- **Always validate URLs** for Google Meet links and external resources  
+- **Always validate URLs** for Google Meet links and external resources
 - **Test all interactive features** before deployment
 - **Maintain accessibility** standards in all components
 - **Follow security best practices** for user inputs and external integrations
+- **GitHub Pages Limitation**: API routes are static snapshots - use client-side fetching for live data
+
+## 🏗️ GitHub Pages Deployment Architecture
+
+### Static Site Generation
+- Astro builds all pages to static HTML at build time
+- API routes (`src/pages/api/*`) are executed during build and output static JSON
+- Static files are deployed to GitHub Pages
+
+### Client-Side Hydration Pattern
+When you need live data from Directus on GitHub Pages:
+
+1. **Create client library** in `src/lib/` that fetches data directly from Directus
+2. **Use React components** with `client:load` or `client:visible` directives
+3. **Import and use** the client library functions in your component's useEffect
+4. **Authentication**: Use the guest token from `EXTERNAL.directus_key` for public data
+
+Example:
+```tsx
+// src/lib/my-data-client.ts
+import { EXTERNAL } from '@/constant';
+
+export async function fetchMyData() {
+  const response = await fetch(`${EXTERNAL.directus_url}/items/my_collection`, {
+    headers: {
+      'Authorization': `Bearer ${EXTERNAL.directus_key}`
+    }
+  });
+  return response.json();
+}
+
+// src/components/interactive/MyComponent.tsx
+import { useEffect, useState } from 'react';
+import { fetchMyData } from '@/lib/my-data-client';
+
+export function MyComponent() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchMyData().then(result => setData(result.data));
+  }, []);
+
+  // ... render data
+}
+
+// src/pages/my-page.astro
+---
+import { MyComponent } from "../components/interactive/MyComponent.tsx";
+---
+<MyComponent client:load />
+```
