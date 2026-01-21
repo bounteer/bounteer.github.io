@@ -739,7 +739,7 @@ Add action tracking to Orbit Signal dashboard, allowing users to mark signals as
 - ✅ Dedicated "Actions" section displaying signals with completed status
 - ✅ Automatic removal of skipped signals from UI
 - ✅ Real-time state updates when actions are created
-- ✅ Count badges for both Actions and Orbit Signals sections
+- ✅ Count badges for both Actions and Orbit Signal sections
 - ✅ Visual distinction between pending and actioned signals
 - ✅ Proper relationship loading (hiring_intent with actions)
 
@@ -756,7 +756,7 @@ Add action tracking to Orbit Signal dashboard, allowing users to mark signals as
   - Added action buttons (Move to Actions, Skip) with icons
   - Implemented `hasActionStatus()` helper to check action array
   - Filtering logic checks actions array for completed/skipped status
-  - Created separate sections: "Actions" and "Orbit Signals"
+  - Created separate sections: "Actions" and "Orbit Signal"
   - Real-time state management adds new action records to intents
   - Conditional rendering based on action existence
 
@@ -792,7 +792,7 @@ hiring_intent_action:
 - Cards without action buttons (already actioned)
 - Visually separated from pending signals
 
-#### Orbit Signals Section
+#### Orbit Signal Section
 - Shows pending/new signals only
 - Each card has "Move to Actions" (green) and "Skip" (red) buttons
 - Badges show count of pending signals

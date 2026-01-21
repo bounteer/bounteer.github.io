@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Clock } from "lucide-react";
 
 interface ProductCardProps {
-  stage: string;
   title: string;
   subtitle: string;
   launchDate: string;
@@ -23,7 +22,6 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({
-  stage,
   title,
   subtitle,
   launchDate,
@@ -51,7 +49,7 @@ export default function ProductCard({
         </div>
 
         <h3 className="mt-2 text-lg font-semibold text-gray-900">
-          {stage} · {title}
+          {title}
         </h3>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </CardHeader>

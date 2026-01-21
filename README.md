@@ -153,7 +153,7 @@ See [TODO.md](./TODO.md) for:
 - [Directus Documentation](https://directus.io/docs)
 
 
-# Orbit Signals – Final Model Summary
+# Orbit Signal – Final Model Summary
 The system is reference-centric, not entity-centric.
 Identity is handled by company_reference (stable, enrichable handle).
 Knowledge snapshots live in company_profile (replaceable, enrichable).

@@ -3,11 +3,10 @@ import ProductCard from "../components/interactive/ProductCard.tsx";
 
 const stages = [
   {
-    stage: "Orbit Intelligence",
-    title: "Bounteer Orbit Signal",
+    title: "Orbit Signal",
     subtitle:
       "Curated company lists for outreach based on latest M&A news and market intelligence.",
-    launchDate: "December 2025",
+    launchDate: "January 2025",
     currentStage: "In Development",
     tagColor: "bg-primary-100 text-primary-700",
     features: [
@@ -18,16 +17,15 @@ const stages = [
       "Integration with Orbit Call for seamless outreach",
       "Custom list building based on industry and role criteria",
     ],
-    buttonLabel: "Coming Soon",
+    buttonLabel: "Request a Demo",
     buttonHref: "/orbit-signal",
   },
   {
-    stage: "Orbit Automation",
-    title: "Bounteer Orbit Call",
+    title: "Orbit Call",
     subtitle:
       "AI-powered outreach calls to hiring managers with personalized scripts.",
     launchDate: "December 2025",
-    currentStage: "Released",
+    currentStage: "Beta Release",
     tagColor: "bg-emerald-100 text-emerald-700",
     features: [
       "AI-generated personalized outreach scripts for hiring managers",
@@ -41,8 +39,25 @@ const stages = [
     buttonHref: "/orbit-call",
   },
   {
-    stage: "Role Fit Matching",
-    title: "Bounteer Role Fit Index",
+    title: "Orbit Pulse",
+    subtitle:
+      "Track your talent pool's career movements and re-engage at the perfect moment.",
+    launchDate: "February 2026",
+    currentStage: "In Development",
+    tagColor: "bg-primary-100 text-primary-700",
+    features: [
+      "Store and organize your talent pool profiles in one place",
+      "Automated tracking of candidate career movements",
+      "AI-generated summaries of profile changes and updates",
+      "Instant notifications when candidates make career moves",
+      "Eliminate guesswork with real-time intelligence",
+      "Re-engage with candidates at the optimal timing",
+    ],
+    buttonLabel: "Learn More",
+    buttonHref: "/orbit-pulse",
+  },
+  {
+    title: "Role Fit Index",
     subtitle: "Instant, AI-powered JD to CV match analysis.",
     launchDate: "September 2025",
     currentStage: "Released",
@@ -59,27 +74,7 @@ const stages = [
     buttonHref: "/role-fit-index",
   },
   {
-    stage: "Orbit Talent Tracker",
-    title: "Orbit Talent Tracker",
-    subtitle:
-      "Track your talent pool's career movements and re-engage at the perfect moment.",
-    launchDate: "January 2026",
-    currentStage: "In Development",
-    tagColor: "bg-primary-100 text-primary-700",
-    features: [
-      "Store and organize your talent pool profiles in one place",
-      "Automated tracking of candidate career movements",
-      "AI-generated summaries of profile changes and updates",
-      "Instant notifications when candidates make career moves",
-      "Eliminate guesswork with real-time intelligence",
-      "Re-engage with candidates at the optimal timing",
-    ],
-    buttonLabel: "Learn More",
-    buttonHref: "/orbit-talent-tracker",
-  },
-  {
-    stage: "Role Fit Optimization",
-    title: "Bounteer Role Fit Studio",
+    title: "Role Fit Studio",
     subtitle: "Incrementally improve your RFI with AI-powered CV optimization.",
     launchDate: "October 2025",
     currentStage: "Released",
@@ -104,7 +99,6 @@ const stages = [
       stages.map((stage) => (
         <ProductCard
           client:only="react"
-          stage={stage.stage}
           title={stage.title}
           subtitle={stage.subtitle}
           launchDate={stage.launchDate}
