@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { EXTERNAL } from '@/constant';
-import fetchAffiliatePrograms, { type AffiliateProgramResponseData } from '../fetch/AffiliatePrograms';
+import fetchAffiliatePrograms, { type AffiliateProgramResponseData } from '../fetch/affiliate_program';
 
 export default function AffiliateGrid() {
     const [data, setData] = useState<AffiliateProgramResponseData[]>([]);

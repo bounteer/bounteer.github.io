@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import fetchBlogPostModel, { type BlogPostResponseData } from '../fetch/BlogPosts';
+import fetchBlogPostModel, { type BlogPostResponseData } from '../fetch/blog_post';
 
 export default function BlogGrid() {
     const [posts, setPosts] = useState<BlogPostResponseData[]>([]);
