@@ -13,17 +13,17 @@ const productsForRecruiters = [
   {
     title: "Orbit Signal",
     href: "/orbit-signal",
-    description: "AI-powered market intelligence for recruiting agencies"
+    description: "Early hiring-intent signals from company activity, team changes, and market movements before roles go public"
   },
   {
     title: "Orbit Call",
     href: "/orbit-call",
-    description: "Automated outreach and engagement tracking"
+    description: "AI-assisted recruiter calls that capture intent, qualify demand, and log structured signals automatically"
   },
   {
     title: "Orbit Pulse",
     href: "/orbit-pulse",
-    description: "Real-time insights and analytics dashboard"
+    description: "Live view of hiring momentum, active signals, and conversion outcomes across your accounts"
   },
 ];
 
@@ -31,12 +31,12 @@ const productsForCandidates = [
   {
     title: "Role Fit Index",
     href: "/role-fit-index",
-    description: "Measure your match score with job opportunities"
+    description: "Data-driven score showing how closely your background matches real market demand, not job ads"
   },
   {
     title: "Role Fit Studio",
     href: "/role-fit-studio",
-    description: "Optimize your profile and applications"
+    description: "Tools to refine your profile and positioning based on how recruiters actually evaluate candidates"
   },
 ];
 
