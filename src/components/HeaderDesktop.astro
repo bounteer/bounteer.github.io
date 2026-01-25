@@ -1,72 +1,76 @@
 ---
-import { getUserProfile, getLoginUrl, getUserDisplayName } from "@/lib/utils";
-import { EXTERNAL } from "@/constant";
+import { Image } from "astro:assets";
+import Icon from "../assets/icon.png";
+import { EXTERNAL, KEYWORDS } from "@/constant";
+import UserMenu from "@/components/interactive/UserMenu";
 
-const products = [
+const productsForRecruiters = [
   { text: "Orbit Signal", url: "/orbit-signal" },
   { text: "Orbit Call", url: "/orbit-call" },
   { text: "Orbit Pulse", url: "/orbit-pulse" },
 ];
 
-// Check auth status server-side (will be re-checked client-side)
-const userProfile = await getUserProfile(EXTERNAL.directus_url);
-const isLoggedIn = !!userProfile;
-const userDisplayName = getUserDisplayName(userProfile);
+const productsForCandidates = [
+  { text: "Role Fit Index", url: "/role-fit-index" },
+  { text: "Role Fit Studio", url: "/role-fit-studio" },
+];
 ---
 
-<header class="hidden lg:block fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full">
-  <div class="mx-auto w-[calc(100vw-2rem)] max-w-6xl relative">
+<header
+  class="hidden lg:block fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full"
+>
+  <div class="mx-auto w-[calc(100vw-2rem)] max-w-7xl relative">
     <!-- TOP BAR -->
     <div
       id="topbar-desktop"
       class="h-16 px-6
-        flex items-center justify-between
+        flex items-center justify-between gap-8
         rounded-2xl
         bg-white/70 backdrop-blur-lg
         border border-black/10
         shadow-xl
         text-black"
     >
-      <a href="/" class="font-semibold text-lg hover:opacity-80 transition-opacity">
-        Bounteer
+      <!-- Logo -->
+      <a
+        href="/"
+        class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+      >
+        <Image src={Icon} alt="Logo" class="h-8 w-auto" loading="eager" />
+        <span class="text-lg font-semibold">
+          {KEYWORDS.name}
+        </span>
       </a>
 
-      <nav class="flex gap-6 text-sm text-black/70">
-        <button id="products-btn-desktop" class="hover:text-black transition-colors">
+      <!-- Navigation -->
+      <nav
+        class="flex items-center gap-6 text-sm text-black/70 flex-1 justify-center"
+      >
+        <button
+          id="products-btn-desktop"
+          class="hover:text-black transition-colors"
+        >
           Products
         </button>
-        <a href="/pricing" class="hover:text-black transition-colors">Pricing</a>
-        <a href="/contact" class="hover:text-black transition-colors">Contact</a>
+        <a href="/contact" class="hover:text-black transition-colors">Contact</a
+        >
       </nav>
 
-      <div class="flex items-center gap-3">
+      <!-- Right Actions -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div id="auth-section-desktop">
+          <UserMenu
+            client:load
+            directusUrl={EXTERNAL.directus_url}
+            provider={EXTERNAL.auth_idp_key}
+          />
+        </div>
         <a
           href="/contact"
           class="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium transition-colors"
         >
           Book Demo
         </a>
-
-        <div id="auth-section-desktop" class="flex items-center">
-          {isLoggedIn ? (
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-black/60">{userDisplayName}</span>
-              <a
-                href="/logout"
-                class="px-3 py-1.5 rounded-lg border border-black/20 hover:bg-black/5 text-xs font-medium transition-colors"
-              >
-                Logout
-              </a>
-            </div>
-          ) : (
-            <a
-              href={getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, Astro.url.pathname)}
-              class="px-3 py-1.5 rounded-lg border border-black/20 hover:bg-black/5 text-xs font-medium transition-colors"
-            >
-              Login
-            </a>
-          )}
-        </div>
       </div>
     </div>
 
@@ -84,17 +88,44 @@ const userDisplayName = getUserDisplayName(userProfile);
         transition-opacity duration-200 ease-out"
       style="backdrop-filter: blur(100px);"
     >
-      <div class="space-y-4">
-        {
-          products.map((p) => (
-            <a
-              href={p.url}
-              class="block text-lg text-black/70 hover:text-black transition-colors"
-            >
-              {p.text}
-            </a>
-          ))
-        }
+      <div class="grid grid-cols-2 gap-8">
+        <!-- For Recruiters -->
+        <div>
+          <div class="text-xs font-semibold text-black/50 uppercase tracking-wide mb-3">
+            For Recruiters
+          </div>
+          <div class="space-y-2">
+            {
+              productsForRecruiters.map((p) => (
+                <a
+                  href={p.url}
+                  class="block text-base text-black/70 hover:text-black transition-colors"
+                >
+                  {p.text}
+                </a>
+              ))
+            }
+          </div>
+        </div>
+
+        <!-- For Candidates -->
+        <div>
+          <div class="text-xs font-semibold text-black/50 uppercase tracking-wide mb-3">
+            For Candidates
+          </div>
+          <div class="space-y-2">
+            {
+              productsForCandidates.map((p) => (
+                <a
+                  href={p.url}
+                  class="block text-base text-black/70 hover:text-black transition-colors"
+                >
+                  {p.text}
+                </a>
+              ))
+            }
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -111,18 +142,21 @@ const userDisplayName = getUserDisplayName(userProfile);
     const newBtn = btn.cloneNode(true) as HTMLElement;
     btn.parentNode?.replaceChild(newBtn, btn);
 
+    // Ensure dropdown is available in closure
+    const dropdownEl = dropdown;
+
     function open() {
-      dropdown.classList.remove("opacity-0", "pointer-events-none");
+      dropdownEl.classList.remove("opacity-0", "pointer-events-none");
     }
 
     function close() {
-      dropdown.classList.add("opacity-0", "pointer-events-none");
+      dropdownEl.classList.add("opacity-0", "pointer-events-none");
     }
 
     newBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
-      if (dropdown.classList.contains("opacity-0")) {
+      if (dropdownEl.classList.contains("opacity-0")) {
         open();
       } else {
         close();
@@ -132,7 +166,7 @@ const userDisplayName = getUserDisplayName(userProfile);
     // Use a named function so we can remove it later if needed
     const handleClickOutside = (e: Event) => {
       const target = e.target as Node;
-      if (!dropdown.contains(target) && !newBtn.contains(target)) {
+      if (!dropdownEl.contains(target) && !newBtn.contains(target)) {
         close();
       }
     };
@@ -147,4 +181,4 @@ const userDisplayName = getUserDisplayName(userProfile);
 
   // Initialize on page load
   document.addEventListener("astro:page-load", initHeaderDesktop);
-
+</script>

@@ -1,17 +1,19 @@
 ---
-import { getUserProfile, getLoginUrl, getUserDisplayName } from "@/lib/utils";
-import { EXTERNAL } from "@/constant";
+import { Image } from "astro:assets";
+import Icon from "../assets/icon.png";
+import { EXTERNAL, KEYWORDS } from "@/constant";
+import UserMenu from "@/components/interactive/UserMenu";
 
-const products = [
+const productsForRecruiters = [
   { text: "Orbit Signal", url: "/orbit-signal" },
   { text: "Orbit Call", url: "/orbit-call" },
   { text: "Orbit Pulse", url: "/orbit-pulse" },
 ];
 
-// Check auth status server-side (will be re-checked client-side)
-const userProfile = await getUserProfile(EXTERNAL.directus_url);
-const isLoggedIn = !!userProfile;
-const userDisplayName = getUserDisplayName(userProfile);
+const productsForCandidates = [
+  { text: "Role Fit Index", url: "/role-fit-index" },
+  { text: "Role Fit Studio", url: "/role-fit-studio" },
+];
 ---
 
 <header class="lg:hidden fixed top-0 left-0 right-0 z-50">
@@ -26,14 +28,28 @@ const userDisplayName = getUserDisplayName(userProfile);
         shadow-xl
         text-black"
     >
-      <a href="/" class="font-semibold text-base hover:opacity-80 transition-opacity">
-        Bounteer
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Image src={Icon} alt="Logo" class="h-7 w-auto" loading="eager" />
+        <span class="text-base font-semibold">
+          {KEYWORDS.name}
+        </span>
       </a>
 
       <div class="flex items-center gap-2">
+        <!-- UserMenu always visible -->
+        <div id="auth-section-mobile">
+          <UserMenu
+            client:load
+            directusUrl={EXTERNAL.directus_url}
+            provider={EXTERNAL.auth_idp_key}
+          />
+        </div>
+
+        <!-- Book Demo Button -->
         <a
           href="/contact"
-          class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-white text-xs font-medium transition-colors"
+          class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-white text-xs font-medium transition-colors whitespace-nowrap"
         >
           Book Demo
         </a>
@@ -90,12 +106,30 @@ const userDisplayName = getUserDisplayName(userProfile);
       style="backdrop-filter: blur(100px);"
     >
       <nav class="space-y-4">
+        <!-- For Recruiters -->
         <div class="space-y-3">
           <div class="text-xs font-semibold text-black/50 uppercase tracking-wide">
-            Products
+            For Recruiters
           </div>
           {
-            products.map((p) => (
+            productsForRecruiters.map((p) => (
+              <a
+                href={p.url}
+                class="block text-base text-black/70 hover:text-black transition-colors pl-2"
+              >
+                {p.text}
+              </a>
+            ))
+          }
+        </div>
+
+        <!-- For Candidates -->
+        <div class="border-t border-black/10 pt-4 space-y-3">
+          <div class="text-xs font-semibold text-black/50 uppercase tracking-wide">
+            For Candidates
+          </div>
+          {
+            productsForCandidates.map((p) => (
               <a
                 href={p.url}
                 class="block text-base text-black/70 hover:text-black transition-colors pl-2"
@@ -107,33 +141,9 @@ const userDisplayName = getUserDisplayName(userProfile);
         </div>
 
         <div class="border-t border-black/10 pt-4 space-y-3">
-          <a href="/pricing" class="block text-base text-black/70 hover:text-black transition-colors">
-            Pricing
-          </a>
           <a href="/contact" class="block text-base text-black/70 hover:text-black transition-colors">
             Contact
           </a>
-        </div>
-
-        <div class="border-t border-black/10 pt-4" id="auth-section-mobile">
-          {isLoggedIn ? (
-            <div class="space-y-2">
-              <div class="text-xs text-black/60 px-2">{userDisplayName}</div>
-              <a
-                href="/logout"
-                class="block px-3 py-2 rounded-lg border border-black/20 hover:bg-black/5 text-sm font-medium text-center transition-colors"
-              >
-                Logout
-              </a>
-            </div>
-          ) : (
-            <a
-              href={getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, Astro.url.pathname)}
-              class="block px-3 py-2 rounded-lg border border-black/20 hover:bg-black/5 text-sm font-medium text-center transition-colors"
-            >
-              Login
-            </a>
-          )}
         </div>
       </nav>
     </div>

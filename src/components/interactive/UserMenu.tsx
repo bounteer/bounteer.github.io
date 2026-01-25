@@ -38,16 +38,19 @@ export default function UserMenu({ directusUrl, provider = EXTERNAL.auth_idp_key
   const initials = getUserInitials(displayName, user?.email ?? null);
 
   if (loading) {
-    return <div className="flex w-28 h-9 rounded-full bg-secondary-100 animate-pulse" />;
+    return <div className="flex w-20 lg:w-28 h-7 lg:h-9 rounded-lg bg-gray-200 animate-pulse" />;
   }
 
   // Logged out → show Login button
   if (!user) {
     const loginHref = getLoginUrl(directusUrl, provider, "/dashboard");
     return (
-      <Button asChild variant="secondary" className="inline-flex">
-        <a href={loginHref}>Login</a>
-      </Button>
+      <a
+        href={loginHref}
+        className="px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black text-xs lg:text-sm font-medium transition-colors inline-flex items-center whitespace-nowrap"
+      >
+        Login
+      </a>
     );
   }
 
@@ -56,12 +59,12 @@ export default function UserMenu({ directusUrl, provider = EXTERNAL.auth_idp_key
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="items-center gap-2 rounded-full">
-          <Avatar className="h-6 w-6">
+        <button className="px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-black text-xs lg:text-sm font-medium transition-colors inline-flex items-center gap-2 whitespace-nowrap">
+          <Avatar className="h-3 w-3 lg:h-4 lg:w-4">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
-          <span className="max-w-[12rem] truncate">{displayName}</span>
-        </Button>
+          <span className="max-w-[8rem] lg:max-w-[12rem] truncate">{displayName}</span>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         {/* Dashboard button */}
