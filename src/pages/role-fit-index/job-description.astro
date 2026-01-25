@@ -1,12 +1,10 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import JobDescriptionCard from "@/components/interactive/JobDescriptionCard";
 ---
 
 <Layout title="Job Description - Bounteer">
-  <Header />
   <main class="py-16 bg-gray-50">
     <div class="container-custom max-w-4xl mx-auto px-4 pb-8">
       <JobDescriptionCard client:only="react" />

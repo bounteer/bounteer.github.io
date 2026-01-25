@@ -3,6 +3,7 @@ import "../styles/global.css";
 import "../styles/transitions.css";
 import { ViewTransitions } from "astro:transitions";
 import ReferralHandler from "@/components/interactive/ReferralHandler";
+import Header from "@/components/Header.astro";
 
 export interface Props {
   name: string;
@@ -71,6 +72,7 @@ const {
     duration-300"
   >
     <ReferralHandler client:load />
+    <Header />
     <div id="page-wrapper" class="page-transition-wrapper">
       <slot />
     </div>

@@ -1,12 +1,10 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import CandidateProfileCard from "@/components/interactive/CandidateProfileCard";
 ---
 
 <Layout title="Candidate Profile - Bounteer">
-  <Header />
   <main class="py-16 bg-gray-50">
     <div class="container-custom max-w-4xl mx-auto px-4 pb-8">
       <CandidateProfileCard client:only="react" />

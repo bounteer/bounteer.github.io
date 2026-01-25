@@ -1,6 +1,5 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import HeroSection from "@/components/HeroSection.astro";
 import BlogGrid from "../../client_side/hydration/BlogGrid";
@@ -42,7 +41,6 @@ const categories = [...new Set(posts.map((post) => post.category))];
   title="Blog - Bounteer"
   description="Latest product updates, feature releases, and company news from Bounteer."
 >
-  <Header />
   <main>
     <HeroSection
       title="Latest Updates & News"

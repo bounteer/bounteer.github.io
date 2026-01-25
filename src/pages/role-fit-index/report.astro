@@ -1,12 +1,10 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import ReportCard from "@/components/interactive/ReportCard";
 ---
 
 <Layout title="Role Fit Index Report - Bounteer">
-  <Header />
   <main class="py-16 bg-gray-50">
     <div class="container-custom max-w-5xl mx-auto px-4 pb-8">
       <ReportCard client:only="react" />
