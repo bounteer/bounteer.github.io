@@ -5,7 +5,7 @@ import OrbitCallDashboard from "@/components/interactive/OrbitCallDashboard";
 import AuthGuard from "@/components/interactive/AuthGuard";
 ---
 
-<Layout title="Orbit Call Dashboard">
+<Layout title="Orbit Call Dashboard" showHeader={false}>
   <AuthGuard client:load>
     <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
       <!-- Sidebar handles both mobile topbar + desktop sidebar -->

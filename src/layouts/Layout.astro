@@ -11,6 +11,7 @@ export interface Props {
   description: string;
   url: string;
   image_url: string;
+  showHeader?: boolean;
 }
 
 const {
@@ -19,6 +20,7 @@ const {
   description = "Get hired with confidence. We analyze your CV and job descriptions to boost your match score and increase your chances of success.",
   url = "https://bounteer.com",
   image_url = "https://bounteer.com/og.png",
+  showHeader = true,
 } = Astro.props;
 ---
 
@@ -57,7 +59,7 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <!-- alpine -->
@@ -72,7 +74,7 @@ const {
     duration-300"
   >
     <ReferralHandler client:load />
-    <Header />
+    {showHeader && <Header />}
     <div id="page-wrapper" class="page-transition-wrapper">
       <slot />
     </div>

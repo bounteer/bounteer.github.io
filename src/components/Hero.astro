@@ -1,88 +1,151 @@
----
-import { Image } from "astro:assets";
-import BtFlatSquare from "../assets/bt_flat_square.png"; // adjust path
----
-
 <section
-  class="relative pt-32 pb-10 lg:pt-40 lg:pb-20 overflow-hidden hero-section bg-gray-50 antialiased"
+  class="relative min-h-screen overflow-hidden hero-section antialiased flex items-center justify-center"
 >
+  <!-- Mesh Gradient Background -->
+  <div class="mesh-background">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+  </div>
+
   <div class="container-custom relative z-10">
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
-      <!-- left: image location -->
-      <div class="relative fade-" transition:animate="fade">
-        <!-- Wrapper -->
-        <div class="relative w-56 lg:w-80 mx-auto lg:ml-auto">
-          <div
-            class="relative aspect-square w-full flex items-center justify-center"
-          >
-            <!-- Orange circle -->
-            <div
-              class="absolute inset-0 rounded-full
-               bg-gradient-to-br from-amber-300 via-orange-400 to-amber-500
-               shadow-2xl"
-            >
-            </div>
-
-            <!-- Avatar -->
-            <Image
-              src={BtFlatSquare}
-              alt="Bounteer avatar"
-              loading="eager"
-              widths={[64, 128, 256, 512]}
-              class="relative rounded-full object-cover ring-8 ring-white shadow-xl"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- right: text location -->
+    <div class="flex items-center justify-center text-center">
       <div class="slide-up" transition:animate="slide">
         <h1
-          class="mb-6 text-secondary-900 leading-[1.1] tracking-tight text-4xl sm:text-5xl lg:text-6xltext-balance"
+          class="mb-4 text-white leading-[1.1] tracking-tight text-4xl sm:text-5xl lg:text-6xl text-balance font-light"
+          style="font-family: Assistant, sans-serif;"
         >
-          <span class="text-accent-600">Become a 10x</span>
-          <br />Recruiter
+          Less noise. More intent.
         </h1>
         <p
-          class="text-secondary-600 mb-8 max-w-xl text-xl lg:text-2xl leading-relaxed"
+          class="text-lg lg:text-xl max-w-3xl mx-auto"
+          style="font-family: Assistant, sans-serif;"
         >
-          10x Your recruiting agency with AI-powered market intelligence —
-          <br />
-          🎯 Orbit Signal: Curated hiring intents from funding, expansion, and org-change
-          signals
-          <br />
-          📞 Orbit Call: Real-time AI copilot that surfaces objections, intent, and
-          close signals during calls
-          <br />
-          🚀 Orbit Pulse: Tracks candidate job changes, promotions, and availability
-          <br />
+          <span class="highlight-wrap">
+            <span class="highlight-negative">
+              Hiring Intent and Candidate Availability Signals for UK boutique
+              recruiters.
+            </span>
+          </span>
         </p>
-        <div class="mt-8">
-          <a
-            href="/orbit-signal"
-            class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg shadow-lg hover:bg-primary-700 transition-colors duration-200"
-          >
-            Try Orbit Signal
-          </a>
-        </div>
       </div>
     </div>
   </div>
 </section>
 
 <style>
-  @keyframes float {
-    0% {
-      transform: translateY(0px);
+  .mesh-background {
+    position: absolute;
+    inset: 0;
+    background: #ff3b1f; /* LinkedIn-style assertive orange */
+    overflow: hidden;
+  }
+
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.65;
+    mix-blend-mode: normal;
+  }
+
+  .blob-1 {
+    width: 700px;
+    height: 700px;
+    top: -20%;
+    left: -10%;
+    background: radial-gradient(
+      circle at 30% 30%,
+      #ff2a00 0%,
+      #ff3b00 25%,
+      #ff6000 65%,
+      rgba(255, 96, 0, 0) 100%
+    );
+    animation: float-1 30s ease-in-out infinite;
+  }
+
+  .blob-2 {
+    width: 800px;
+    height: 800px;
+    bottom: -25%;
+    right: -15%;
+    background: radial-gradient(
+      circle at 70% 70%,
+      #ff2a00 0%,
+      #ff3b00 22%,
+      #ff6000 60%,
+      rgba(255, 96, 0, 0) 100%
+    );
+    animation: float-2 36s ease-in-out infinite;
+  }
+
+  .blob-3 {
+    width: 600px;
+    height: 600px;
+    top: 30%;
+    right: 10%;
+    background: radial-gradient(
+      circle at 40% 60%,
+      #ff2a00 0%,
+      #ff3b00 28%,
+      #ff6000 68%,
+      rgba(255, 96, 0, 0) 100%
+    );
+    animation: float-3 32s ease-in-out infinite;
+  }
+
+  /* Kill the 4th blob. You don’t need it. */
+  .blob-4 {
+    display: none;
+  }
+
+  /* Slower, more deliberate motion */
+
+  @keyframes float-1 {
+    0%,
+    100% {
+      transform: translate(0, 0);
     }
     50% {
-      transform: translateY(-10px);
-    }
-    100% {
-      transform: translateY(0px);
+      transform: translate(60px, 40px);
     }
   }
-  .fade-in svg {
-    animation: float 6s ease-in-out infinite;
+
+  @keyframes float-2 {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(-50px, -30px);
+    }
+  }
+
+  @keyframes float-3 {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(30px, -40px);
+    }
+  }
+
+  .highlight-wrap {
+    display: inline;
+    background: #ffffff; /* FULL white */
+    padding: 0.12em 0.28em; /* tighter, punchier */
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+
+    /* Subtle authority edge */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1);
+  }
+
+  .highlight-negative {
+    color: #ff3b1f; /* brand orange */
+    font-weight: 200;
+    line-height: 1;
   }
 </style>

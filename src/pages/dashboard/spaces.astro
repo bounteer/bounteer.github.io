@@ -15,6 +15,7 @@ const spaceId = url.searchParams.get("id");
   description="Manage your spaces, invite team members, and configure settings."
   url="https://bounteer.com/dashboard/spaces"
   image_url="https://bounteer.com/og.png"
+  showHeader={false}
 >
   <AuthGuard client:load>
     <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
