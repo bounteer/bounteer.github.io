@@ -1,0 +1,200 @@
+---
+import { getUserProfile, getLoginUrl, getUserDisplayName } from "@/lib/utils";
+import { EXTERNAL } from "@/constant";
+
+const products = [
+  { text: "Orbit Signal", url: "/orbit-signal" },
+  { text: "Orbit Call", url: "/orbit-call" },
+  { text: "Orbit Pulse", url: "/orbit-pulse" },
+];
+
+// Check auth status server-side (will be re-checked client-side)
+const userProfile = await getUserProfile(EXTERNAL.directus_url);
+const isLoggedIn = !!userProfile;
+const userDisplayName = getUserDisplayName(userProfile);
+---
+
+<header class="lg:hidden fixed top-0 left-0 right-0 z-50">
+  <div class="mx-4 my-4">
+    <!-- MOBILE TOP BAR -->
+    <div
+      class="h-14 px-4
+        flex items-center justify-between
+        rounded-2xl
+        bg-white/70 backdrop-blur-lg
+        border border-black/10
+        shadow-xl
+        text-black"
+    >
+      <a href="/" class="font-semibold text-base hover:opacity-80 transition-opacity">
+        Bounteer
+      </a>
+
+      <div class="flex items-center gap-2">
+        <a
+          href="/contact"
+          class="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-white text-xs font-medium transition-colors"
+        >
+          Book Demo
+        </a>
+
+        <button
+          id="menu-btn-mobile"
+          class="p-2 hover:bg-black/5 rounded-lg transition-colors"
+          aria-label="Menu"
+        >
+          <svg
+            id="hamburger-icon"
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+          <svg
+            id="close-icon"
+            class="w-5 h-5 hidden"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- MOBILE MENU PANEL -->
+    <div
+      id="mobile-menu"
+      class="mt-2 rounded-2xl
+        bg-white/95
+        border border-black/10
+        shadow-xl
+        px-6 py-6
+        text-black
+        opacity-0 pointer-events-none scale-95
+        transition-all duration-200 ease-out
+        origin-top"
+      style="backdrop-filter: blur(100px);"
+    >
+      <nav class="space-y-4">
+        <div class="space-y-3">
+          <div class="text-xs font-semibold text-black/50 uppercase tracking-wide">
+            Products
+          </div>
+          {
+            products.map((p) => (
+              <a
+                href={p.url}
+                class="block text-base text-black/70 hover:text-black transition-colors pl-2"
+              >
+                {p.text}
+              </a>
+            ))
+          }
+        </div>
+
+        <div class="border-t border-black/10 pt-4 space-y-3">
+          <a href="/pricing" class="block text-base text-black/70 hover:text-black transition-colors">
+            Pricing
+          </a>
+          <a href="/contact" class="block text-base text-black/70 hover:text-black transition-colors">
+            Contact
+          </a>
+        </div>
+
+        <div class="border-t border-black/10 pt-4" id="auth-section-mobile">
+          {isLoggedIn ? (
+            <div class="space-y-2">
+              <div class="text-xs text-black/60 px-2">{userDisplayName}</div>
+              <a
+                href="/logout"
+                class="block px-3 py-2 rounded-lg border border-black/20 hover:bg-black/5 text-sm font-medium text-center transition-colors"
+              >
+                Logout
+              </a>
+            </div>
+          ) : (
+            <a
+              href={getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, Astro.url.pathname)}
+              class="block px-3 py-2 rounded-lg border border-black/20 hover:bg-black/5 text-sm font-medium text-center transition-colors"
+            >
+              Login
+            </a>
+          )}
+        </div>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<script>
+  function initHeaderMobile() {
+    const menuBtn = document.getElementById("menu-btn-mobile");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const hamburgerIcon = document.getElementById("hamburger-icon");
+    const closeIcon = document.getElementById("close-icon");
+
+    if (!menuBtn || !mobileMenu || !hamburgerIcon || !closeIcon) return;
+
+    // Remove any existing listeners by cloning (prevents duplicates)
+    const newMenuBtn = menuBtn.cloneNode(true) as HTMLElement;
+    menuBtn.parentNode?.replaceChild(newMenuBtn, menuBtn);
+
+    function openMenu() {
+      mobileMenu.classList.remove("opacity-0", "pointer-events-none", "scale-95");
+      hamburgerIcon.classList.add("hidden");
+      closeIcon.classList.remove("hidden");
+    }
+
+    function closeMenu() {
+      mobileMenu.classList.add("opacity-0", "pointer-events-none", "scale-95");
+      hamburgerIcon.classList.remove("hidden");
+      closeIcon.classList.add("hidden");
+    }
+
+    newMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (mobileMenu.classList.contains("opacity-0")) {
+        openMenu();
+      } else {
+        closeMenu();
+      }
+    });
+
+    const handleClickOutside = (e: Event) => {
+      const target = e.target as Node;
+      if (!mobileMenu.contains(target) && !newMenuBtn.contains(target)) {
+        closeMenu();
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMenu();
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    // Close menu when clicking a link
+    mobileMenu.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", closeMenu);
+    });
+  }
+
+  // Initialize on page load
+  document.addEventListener("astro:page-load", initHeaderMobile);
+</script>

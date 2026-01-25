@@ -1,0 +1,150 @@
+---
+import { getUserProfile, getLoginUrl, getUserDisplayName } from "@/lib/utils";
+import { EXTERNAL } from "@/constant";
+
+const products = [
+  { text: "Orbit Signal", url: "/orbit-signal" },
+  { text: "Orbit Call", url: "/orbit-call" },
+  { text: "Orbit Pulse", url: "/orbit-pulse" },
+];
+
+// Check auth status server-side (will be re-checked client-side)
+const userProfile = await getUserProfile(EXTERNAL.directus_url);
+const isLoggedIn = !!userProfile;
+const userDisplayName = getUserDisplayName(userProfile);
+---
+
+<header class="hidden lg:block fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full">
+  <div class="mx-auto w-[calc(100vw-2rem)] max-w-6xl relative">
+    <!-- TOP BAR -->
+    <div
+      id="topbar-desktop"
+      class="h-16 px-6
+        flex items-center justify-between
+        rounded-2xl
+        bg-white/70 backdrop-blur-lg
+        border border-black/10
+        shadow-xl
+        text-black"
+    >
+      <a href="/" class="font-semibold text-lg hover:opacity-80 transition-opacity">
+        Bounteer
+      </a>
+
+      <nav class="flex gap-6 text-sm text-black/70">
+        <button id="products-btn-desktop" class="hover:text-black transition-colors">
+          Products
+        </button>
+        <a href="/pricing" class="hover:text-black transition-colors">Pricing</a>
+        <a href="/contact" class="hover:text-black transition-colors">Contact</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a
+          href="/contact"
+          class="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium transition-colors"
+        >
+          Book Demo
+        </a>
+
+        <div id="auth-section-desktop" class="flex items-center">
+          {isLoggedIn ? (
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-black/60">{userDisplayName}</span>
+              <a
+                href="/logout"
+                class="px-3 py-1.5 rounded-lg border border-black/20 hover:bg-black/5 text-xs font-medium transition-colors"
+              >
+                Logout
+              </a>
+            </div>
+          ) : (
+            <a
+              href={getLoginUrl(EXTERNAL.directus_url, EXTERNAL.auth_idp_key, Astro.url.pathname)}
+              class="px-3 py-1.5 rounded-lg border border-black/20 hover:bg-black/5 text-xs font-medium transition-colors"
+            >
+              Login
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <!-- DROPDOWN PANEL -->
+    <div
+      id="dropdown-desktop"
+      class="absolute left-0 right-0 mt-2
+        rounded-2xl
+        bg-white/95
+        border border-black/10
+        shadow-xl
+        px-6 py-6
+        text-black
+        opacity-0 pointer-events-none
+        transition-opacity duration-200 ease-out"
+      style="backdrop-filter: blur(100px);"
+    >
+      <div class="space-y-4">
+        {
+          products.map((p) => (
+            <a
+              href={p.url}
+              class="block text-lg text-black/70 hover:text-black transition-colors"
+            >
+              {p.text}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  function initHeaderDesktop() {
+    const btn = document.getElementById("products-btn-desktop");
+    const dropdown = document.getElementById("dropdown-desktop");
+
+    if (!btn || !dropdown) return;
+
+    // Remove any existing listeners by cloning (prevents duplicates)
+    const newBtn = btn.cloneNode(true) as HTMLElement;
+    btn.parentNode?.replaceChild(newBtn, btn);
+
+    function open() {
+      dropdown.classList.remove("opacity-0", "pointer-events-none");
+    }
+
+    function close() {
+      dropdown.classList.add("opacity-0", "pointer-events-none");
+    }
+
+    newBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (dropdown.classList.contains("opacity-0")) {
+        open();
+      } else {
+        close();
+      }
+    });
+
+    // Use a named function so we can remove it later if needed
+    const handleClickOutside = (e: Event) => {
+      const target = e.target as Node;
+      if (!dropdown.contains(target) && !newBtn.contains(target)) {
+        close();
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+  }
+
+  // Initialize on page load
+  document.addEventListener("astro:page-load", initHeaderDesktop);
+
