@@ -83,8 +83,11 @@ export function CareerGraph() {
         if (results.data.length > 0) {
           const cols = Object.keys(results.data[0]);
           setColumns(cols);
-          // Auto-select first two columns as default
-          if (cols.length >= 2) {
+          // Auto-select from_organization and to_organization if available, otherwise first two columns
+          if (cols.includes("from_organization") && cols.includes("to_organization")) {
+            setFromColumn("from_organization");
+            setToColumn("to_organization");
+          } else if (cols.length >= 2) {
             setFromColumn(cols[0]);
             setToColumn(cols[1]);
           }
