@@ -178,83 +178,111 @@ export default function OrbitPulse() {
       let failed = 0;
       let duplicates = 0;
 
-      // Upload each candidate reference
-      for (let i = 0; i < uniqueHandles.length; i++) {
-        const handle = uniqueHandles[i];
-        const linkedinUrl = buildLinkedInUrl(handle);
+      // Process in batches of 100
+      const BATCH_SIZE = 100;
+      const batches: string[][] = [];
+
+      for (let i = 0; i < uniqueHandles.length; i += BATCH_SIZE) {
+        batches.push(uniqueHandles.slice(i, i + BATCH_SIZE));
+      }
+
+      // Process each batch in parallel
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        const batchStart = batchIndex * BATCH_SIZE + 1;
+        const batchEnd = Math.min((batchIndex + 1) * BATCH_SIZE, uniqueHandles.length);
 
         setProcessingStatus(
-          `Uploading ${i + 1} of ${uniqueHandles.length}: ${handle}...`
+          `Processing batch ${batchIndex + 1}/${batches.length} (${batchStart}-${batchEnd} of ${uniqueHandles.length})...`
         );
 
-        try {
-          // Create candidate_reference
-          const candidateRefResponse = await fetch(
-            `${EXTERNAL.directus_url}/items/candidate_reference`,
-            {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                ...authHeaders,
-              },
-              body: JSON.stringify({
-                linkedin_handle: handle,
-              }),
+        // Process all handles in this batch in parallel
+        const batchResults = await Promise.allSettled(
+          batch.map(async (handle) => {
+            try {
+              // Create candidate_reference
+              const candidateRefResponse = await fetch(
+                `${EXTERNAL.directus_url}/items/candidate_reference`,
+                {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders,
+                  },
+                  body: JSON.stringify({
+                    linkedin_handle: handle,
+                  }),
+                }
+              );
+
+              if (!candidateRefResponse.ok) {
+                const errorText = await candidateRefResponse.text();
+
+                // Check if it's a duplicate error
+                if (errorText.includes('duplicate') || candidateRefResponse.status === 409) {
+                  return { status: 'duplicate', handle };
+                } else {
+                  console.error(`Failed to create candidate_reference for ${handle}:`, errorText);
+                  return { status: 'failed', handle };
+                }
+              }
+
+              const candidateRefData = await candidateRefResponse.json();
+              const candidateRefId = candidateRefData.data.id;
+
+              // Create space_candidate_reference link
+              const spaceLinkResponse = await fetch(
+                `${EXTERNAL.directus_url}/items/space_candidate_reference`,
+                {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders,
+                  },
+                  body: JSON.stringify({
+                    space: parseInt(selectedSpaceId),
+                    candidate_reference: candidateRefId,
+                  }),
+                }
+              );
+
+              if (!spaceLinkResponse.ok) {
+                const errorText = await spaceLinkResponse.text();
+
+                // Check if it's a duplicate error
+                if (errorText.includes('duplicate') || spaceLinkResponse.status === 409) {
+                  return { status: 'duplicate', handle };
+                } else {
+                  console.error(`Failed to link candidate_reference ${candidateRefId} to space:`, errorText);
+                  return { status: 'failed', handle };
+                }
+              }
+
+              return { status: 'success', handle };
+            } catch (error) {
+              console.error(`Error processing handle ${handle}:`, error);
+              return { status: 'failed', handle };
             }
-          );
+          })
+        );
 
-          if (!candidateRefResponse.ok) {
-            const errorText = await candidateRefResponse.text();
-            console.error(`Failed to create candidate_reference for ${handle}:`, errorText);
-
-            // Check if it's a duplicate error
-            if (errorText.includes('duplicate') || candidateRefResponse.status === 409) {
+        // Count results from this batch
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            const value = result.value as { status: string; handle: string };
+            if (value.status === 'success') {
+              successful++;
+            } else if (value.status === 'duplicate') {
               duplicates++;
             } else {
               failed++;
             }
-            continue;
+          } else {
+            failed++;
           }
-
-          const candidateRefData = await candidateRefResponse.json();
-          const candidateRefId = candidateRefData.data.id;
-
-          // Create space_candidate_reference link
-          const spaceLinkResponse = await fetch(
-            `${EXTERNAL.directus_url}/items/space_candidate_reference`,
-            {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                ...authHeaders,
-              },
-              body: JSON.stringify({
-                space: parseInt(selectedSpaceId),
-                candidate_reference: candidateRefId,
-              }),
-            }
-          );
-
-          if (!spaceLinkResponse.ok) {
-            const errorText = await spaceLinkResponse.text();
-            console.error(`Failed to link candidate_reference ${candidateRefId} to space:`, errorText);
-
-            // Check if it's a duplicate error
-            if (errorText.includes('duplicate') || spaceLinkResponse.status === 409) {
-              duplicates++;
-            } else {
-              failed++;
-            }
-            continue;
-          }
-
-          successful++;
-        } catch (error) {
-          console.error(`Error processing handle ${handle}:`, error);
-          failed++;
-        }
+        });
       }
 
       setUploadResults({
