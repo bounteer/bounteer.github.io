@@ -1,0 +1,20 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { Sidebar } from "@/components/interactive/Sidebar";
+import OrbitPulse from "@/components/interactive/OrbitPulse";
+import AuthGuard from "@/components/interactive/AuthGuard";
+---
+
+<Layout title="Orbit Pulse - Experimental" showHeader={false}>
+  <AuthGuard client:load>
+    <main class="bg-gray-50 min-h-screen flex flex-col lg:flex-row">
+      <!-- Sidebar handles both mobile topbar + desktop sidebar -->
+      <Sidebar client:load />
+
+      <!-- Main content -->
+      <section class="flex-1 px-6 py-10">
+        <OrbitPulse client:load />
+      </section>
+    </main>
+  </AuthGuard>
+</Layout>

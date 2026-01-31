@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { DirectedGraph } from "graphology";
 import Sigma from "sigma";
 import Papa from "papaparse";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import noverlap from "graphology-layout-noverlap";
+import circular from "graphology-layout/circular";
+import random from "graphology-layout/random";
 import { EdgeCurvedArrowProgram } from "@sigma/edge-curve";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
@@ -17,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface CSVRow {
   [key: string]: string;
@@ -53,6 +56,20 @@ export function CareerGraph() {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [minDate, setMinDate] = useState<Date | null>(null);
   const [maxDate, setMaxDate] = useState<Date | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(100);
+  const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
+  const tableParentRef = useRef<HTMLDivElement>(null);
+  const [layoutType, setLayoutType] = useState<string>("force");
+
+  // Debounce search input to avoid excessive re-renders
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   // Helper function to parse various date formats
   const parseDate = (dateStr: string): Date | null => {
@@ -153,9 +170,9 @@ export function CareerGraph() {
   const filteredData = useMemo((): ProcessedRow[] => {
     let filtered = processedData;
 
-    // Filter by search text
-    if (searchText) {
-      const search = searchText.toLowerCase();
+    // Filter by search text (debounced)
+    if (debouncedSearchText) {
+      const search = debouncedSearchText.toLowerCase();
       filtered = filtered.filter((row) => {
         return (
           row.fromValue.toLowerCase().includes(search) ||
@@ -173,7 +190,16 @@ export function CareerGraph() {
     }
 
     return filtered;
-  }, [processedData, searchText, dateColumn, dateRange]);
+  }, [processedData, debouncedSearchText, dateColumn, dateRange]);
+
+  // Paginate filtered data for table display
+  const paginatedData = useMemo((): ProcessedRow[] => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(filteredData.length / pageSize);
 
   // Toggle row enabled state
   const toggleRow = (index: number) => {
@@ -318,6 +344,14 @@ export function CareerGraph() {
     const companies = Array.from(companyCount.keys());
     const maxCount = Math.max(...companyCount.values());
 
+    // Calculate dynamic scale BEFORE using it in node positioning
+    const nodeCount = companies.length;
+    const baseScale = 1;
+    const scaleMultiplier = nodeCount > 100 ? Math.log10(nodeCount / 100) * 2 + 1 : 1;
+    const dynamicScale = baseScale * scaleMultiplier;
+
+    console.log(`[CareerGraph] Nodes: ${nodeCount}, Scale multiplier: ${scaleMultiplier.toFixed(2)}x`);
+
     // Vibrant color palette
     const colorPalette = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
@@ -326,16 +360,57 @@ export function CareerGraph() {
       '#C7CEEA', '#B4F8C8', '#FBE7C6', '#A0E7E5', '#FFAEBC',
     ];
 
-    companies.forEach((company, index) => {
-      const count = companyCount.get(company) || 0;
+    // Calculate degree (connection count) for better initial positioning
+    const tempGraph = new DirectedGraph();
+    companies.forEach(c => tempGraph.addNode(c));
 
-      // Random initial positions for force layout
-      const x = (Math.random() - 0.5) * 10;
-      const y = (Math.random() - 0.5) * 10;
+    filteredData.forEach((row) => {
+      if (!row.enabled) return;
+      const from = row.fromValue;
+      const to = row.toValue;
+      if (tempGraph.hasNode(from) && tempGraph.hasNode(to)) {
+        try {
+          if (!tempGraph.hasEdge(from, to)) {
+            tempGraph.addEdge(from, to);
+          }
+        } catch (e) {}
+      }
+    });
+
+    const companyDegree = new Map<string, number>();
+    companies.forEach((company) => {
+      const inDegree = tempGraph.inDegree(company);
+      const outDegree = tempGraph.outDegree(company);
+      companyDegree.set(company, inDegree + outDegree);
+    });
+
+    const maxDegree = Math.max(...Array.from(companyDegree.values()));
+    const minDegree = Math.min(...Array.from(companyDegree.values()));
+
+    console.log(`[CareerGraph] Degree range: ${minDegree} to ${maxDegree}`);
+
+    companies.forEach((company, origIndex) => {
+      const count = companyCount.get(company) || 0;
+      const degree = companyDegree.get(company) || 0;
+
+      // Initial positions based on degree: high degree = near center, low degree = far out
+      // Normalize degree to 0-1 range
+      const normalizedDegree = maxDegree > minDegree ?
+        (degree - minDegree) / (maxDegree - minDegree) : 0.5;
+
+      // Distance from center: inverse of degree (high degree = close, low degree = far)
+      // Use exponential curve to spread out more
+      const distanceFromCenter = (1 - normalizedDegree) * 50 * dynamicScale + 5;
+
+      // Random angle for natural distribution
+      const angle = (origIndex / companies.length) * 2 * Math.PI + (Math.random() - 0.5) * 0.5;
+
+      const x = Math.cos(angle) * distanceFromCenter;
+      const y = Math.sin(angle) * distanceFromCenter;
 
       // Use color palette or generate vibrant HSL color
-      const color = colorPalette[index % colorPalette.length] ||
-        `hsl(${(index * 137.5) % 360}, 85%, 65%)`; // Golden angle distribution
+      const color = colorPalette[origIndex % colorPalette.length] ||
+        `hsl(${(origIndex * 137.5) % 360}, 85%, 65%)`; // Golden angle distribution
 
       graph.addNode(company, {
         label: company,
@@ -388,28 +463,61 @@ export function CareerGraph() {
       }
     });
 
-    // Apply ForceAtlas2 layout to spread nodes based on connections
-    forceAtlas2.assign(graph, {
-      iterations: 500,
-      settings: {
-        gravity: 1,
-        scalingRatio: 10,
-        strongGravityMode: false,
-        barnesHutOptimize: true,
-        barnesHutTheta: 0.5,
-        slowDown: 1,
-        edgeWeightInfluence: 1.5, // Higher value = edge weights have more influence
-      },
-    });
+    // Apply layout based on selected type
+    const edgeCount = graph.size;
 
-    // Apply NoOverlap to prevent nodes from overlapping
-    noverlap.assign(graph, {
-      maxIterations: 100,
-      settings: {
-        ratio: 1.5, // Spacing ratio
-        margin: 5, // Minimum margin between nodes
-      },
-    });
+    if (layoutType === "force") {
+      // Force-directed layout with dynamic scaling and degree-aware positioning
+      const iterations = companies.length > 1000 ? 100 : companies.length > 500 ? 200 : companies.length > 100 ? 350 : 500;
+
+      forceAtlas2.assign(graph, {
+        iterations,
+        settings: {
+          gravity: 0.5, // Reduced gravity to allow more spread
+          scalingRatio: 50 * dynamicScale, // Increased from 30 to 50 for more spacing
+          strongGravityMode: false,
+          barnesHutOptimize: true,
+          barnesHutTheta: 0.5,
+          slowDown: 1,
+          edgeWeightInfluence: 2.5, // Increased from 1.5 to 2.5 - edges pull connected nodes together more
+          linLogMode: false,
+          outboundAttractionDistribution: false,
+          adjustSizes: false,
+        },
+      });
+
+      noverlap.assign(graph, {
+        maxIterations: 150, // Increased from 100
+        settings: {
+          ratio: 3.5 * dynamicScale, // Increased from 2.5 to 3.5 for more spacing
+          margin: 15 * dynamicScale, // Increased from 10 to 15 for larger margins
+        },
+      });
+    } else if (layoutType === "circular") {
+      // Circular layout - dynamically scaled radius
+      circular.assign(graph, { scale: 200 * dynamicScale });
+    } else if (layoutType === "circular-sized") {
+      // Circular layout with size-based positioning - dynamically scaled
+      const sortedCompanies = companies.sort((a, b) => {
+        return (companyCount.get(b) || 0) - (companyCount.get(a) || 0);
+      });
+
+      sortedCompanies.forEach((company, index) => {
+        const angle = (index / sortedCompanies.length) * 2 * Math.PI;
+        const radius = 200 * dynamicScale; // Dynamically scaled
+        graph.setNodeAttribute(company, "x", Math.cos(angle) * radius);
+        graph.setNodeAttribute(company, "y", Math.sin(angle) * radius);
+      });
+    } else if (layoutType === "grid") {
+      // Grid layout with dynamic spacing
+      const cols = Math.ceil(Math.sqrt(companies.length));
+      companies.forEach((company, index) => {
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        graph.setNodeAttribute(company, "x", col * 30 * dynamicScale); // Dynamically scaled
+        graph.setNodeAttribute(company, "y", row * 30 * dynamicScale); // Dynamically scaled
+      });
+    }
 
     // Render with Sigma
     try {
@@ -516,7 +624,7 @@ export function CareerGraph() {
         sigmaRef.current = null;
       }
     };
-  }, [filteredData]);
+  }, [filteredData, layoutType]);
 
   return (
     <div className="space-y-6">
@@ -596,6 +704,29 @@ export function CareerGraph() {
               )}
             </div>
           </div>
+
+          {/* Layout Selector */}
+          {processedData.length > 0 && (
+            <div className="pt-4 border-t">
+              <Label htmlFor="layout-type" className="font-semibold mb-2 block">
+                Graph Layout Style
+              </Label>
+              <select
+                id="layout-type"
+                value={layoutType}
+                onChange={(e) => setLayoutType(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-white"
+              >
+                <option value="force">Natural Clustering (Default) - Hub companies at center with organic connections</option>
+                <option value="circular">Circular - All nodes in a single circle</option>
+                <option value="circular-sized">Circular by Size - Largest companies first</option>
+                <option value="grid">Grid - Organized rows and columns</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                Try different layouts to find the best visualization for your data
+              </p>
+            </div>
+          )}
 
           {/* Column Selectors */}
           {columns.length > 0 && (
@@ -778,18 +909,79 @@ export function CareerGraph() {
       {processedData.length > 0 && (
         <Card className="p-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <h2 className="text-xl font-semibold">CSV Data Preview</h2>
-              <div className="w-64">
-                <Input
-                  type="text"
-                  placeholder="Search companies..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  className="w-full"
-                />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="page-size" className="text-sm whitespace-nowrap">Rows per page:</Label>
+                  <select
+                    id="page-size"
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 border rounded-md bg-white text-sm"
+                  >
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={250}>250</option>
+                    <option value={500}>500</option>
+                    <option value={1000}>1000</option>
+                  </select>
+                </div>
+                <div className="w-64">
+                  <Input
+                    type="text"
+                    placeholder="Search companies..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Pagination Controls - Top */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t pt-3">
+                <p className="text-sm text-slate-600">
+                  Page {currentPage} of {totalPages} ({filteredData.length} total transitions)
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm px-2">{currentPage}</span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="max-h-[400px] overflow-auto border rounded">
               <Table>
                 <TableHeader>
@@ -801,7 +993,7 @@ export function CareerGraph() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredData.map((row) => (
+                  {paginatedData.map((row) => (
                     <TableRow key={row.index}>
                       <TableCell>
                         <Checkbox
@@ -821,9 +1013,46 @@ export function CareerGraph() {
                 </TableBody>
               </Table>
             </div>
-            <p className="text-sm text-slate-600">
-              Showing {filteredData.length} of {processedData.length} transitions
-            </p>
+
+            {/* Pagination Controls - Bottom */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t pt-3">
+                <p className="text-sm text-slate-600">
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} transitions
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm px-2">{currentPage}</span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 text-sm"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}
