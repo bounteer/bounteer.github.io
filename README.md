@@ -1,6 +1,28 @@
-# Bounteer website (Astro)
+# Bounteer
 
-This is the official website code of [Bounteer](https://bounteer.com). 
+**AI-Powered Recruitment Intelligence Platform**
+
+Bounteer is a modern recruitment intelligence platform that combines AI-driven candidate matching, real-time job description enrichment, and orbit signal tracking to help organizations identify and engage with top talent efficiently.
+
+## ✨ Key Features
+
+- **Orbit Call Management** - Real-time job description enrichment and candidate search orchestration
+- **AI-Powered Matching** - Intelligent CV-to-JD matching with detailed role fit analysis
+- **Role Fit Studio** - Interactive workspace for evaluating candidate-role alignment
+- **Cover Letter Generation** - AI-generated, editable cover letters tailored to job descriptions
+- **Orbit Signal Tracking** - Monitor hiring intent signals with urgency tags and action quotas
+- **WebSocket Integration** - Real-time updates for candidate profiles and job enrichment
+- **Space Management** - Multi-tenant workspace system with role-based permissions
+- **Previous Call History** - Access and load past orbit call sessions
+
+## 🏗️ Tech Stack
+
+- **Framework:** Astro with React components
+- **Styling:** Tailwind CSS + ShadCN/UI
+- **CMS:** Self-hosted Directus (directus.bounteer.com)
+- **Package Manager:** pnpm
+- **Hosting:** GitHub Pages (static site with client-side hydration)
+- **Real-time:** WebSocket subscriptions for live data updates 
 
 ## 📦 Project Structure
 
@@ -202,5 +224,26 @@ To prevent signal/action accumulation and encourage timely follow-through:
 
 **Implementation:** `src/components/interactive/HiringIntentDashboard.tsx:180-185`
 
-## Dependencies
-- [Self-hosted Directus CMS](directus.bounteer.com)
+## 📖 Version History
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
+
+**Latest Release: v0.8.0** - Schema optimization and migration to integer-based source IDs
+
+**Recent Major Updates:**
+- **v0.7.0** - Real-time candidate profile enrichment with WebSocket subscriptions
+- **v0.6.0** - Previous orbit call history and WebSocket heartbeat implementation
+- **v0.4.0** - Role Fit Index with LinkedIn URL support and rainbow effects
+- **v0.3.0** - Role Fit Studio launch
+- **v0.2.0** - AI-powered cover letter generation
+
+## 🔗 Dependencies & External Services
+
+- **CMS:** [Self-hosted Directus](https://directus.bounteer.com)
+- **Icons:** Lucide React
+- **Forms:** React Hook Form with Zod validation
+- **UI Components:** ShadCN/UI component library
+
+## 📄 License
+
+Copyright © 2025 Bounteer. All rights reserved.

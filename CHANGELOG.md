@@ -1,5 +1,20 @@
 # Bounteer Changelog
 
+## Summary
+
+Bounteer has evolved from a basic CV-to-JD matching tool into a comprehensive AI-powered recruitment intelligence platform with real-time enrichment capabilities, WebSocket integrations, and sophisticated orbit call management.
+
+**Major Milestones:**
+- **v0.8.0** - Schema optimization and migration to integer-based source IDs
+- **v0.7.0** - Real-time candidate profile enrichment with WebSocket subscriptions
+- **v0.6.0** - Previous call history and WebSocket heartbeat for stable connections
+- **v0.4.0-v0.4.2** - Role Fit Index (RFI) flow with LinkedIn URL support
+- **v0.3.0** - Introduction of Role Fit Studio
+- **v0.2.0-v0.2.1** - AI-powered cover letter generation and editable outputs
+- **v0.1.x** - Foundation: Reports, talent pools, authentication, and core matching
+
+---
+
 ## [0.8.0] - 2025-12-04
 ### Changed
 - Updated candidate profile schema: migrated from `client_id` (string) to `source_item_id` (integer)
