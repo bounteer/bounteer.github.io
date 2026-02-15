@@ -4328,58 +4328,6 @@
     },
     "x-collection": "product_access"
   },
-  "ItemsIngestedArticle": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "nullable": false,
-        "type": "integer"
-      },
-      "user_created": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_created": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "user_updated": {
-        "nullable": true,
-        "oneOf": [
-          {
-            "type": "string",
-            "format": "uuid"
-          },
-          {
-            "$ref": "#/components/schemas/Users"
-          }
-        ]
-      },
-      "date_updated": {
-        "nullable": true,
-        "type": "string",
-        "format": "timestamp"
-      },
-      "url": {
-        "nullable": true,
-        "type": "string"
-      },
-      "source": {
-        "nullable": true,
-        "type": "string"
-      }
-    },
-    "x-collection": "ingested_article"
-  },
   "ItemsHiringIntentContact": {
     "type": "object",
     "properties": {
@@ -4519,6 +4467,58 @@
       }
     },
     "x-collection": "company_profile"
+  },
+  "ItemsIngestedArticle": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "source": {
+        "nullable": true,
+        "type": "string"
+      },
+      "url": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "x-collection": "ingested_article"
   },
   "ItemsHiringIntentUserState": {
     "type": "object",
@@ -4765,6 +4765,236 @@
     "required": [
       "city",
       "country_code"
+    ]
+  },
+  "ItemsCandidateSerpRequest": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "space": {
+        "nullable": false,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsSpace"
+          }
+        ]
+      },
+      "limit": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "period": {
+        "nullable": false,
+        "type": "string"
+      },
+      "mode": {
+        "nullable": false,
+        "description": "Options: [\"data\", \"event\", \"signal\"]",
+        "type": "string"
+      },
+      "category": {
+        "nullable": false,
+        "description": "Options: [\"all\", \"missing_subtitle\"]",
+        "type": "string"
+      }
+    },
+    "x-collection": "candidate_serp_request",
+    "required": [
+      "space",
+      "limit",
+      "period",
+      "mode",
+      "category"
+    ]
+  },
+  "ItemsCandidateSerpData": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "request": {
+        "nullable": false,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsCandidateSerpRequest"
+          }
+        ]
+      },
+      "handle": {
+        "nullable": false,
+        "type": "string"
+      },
+      "subtitle": {
+        "nullable": false,
+        "type": "string"
+      },
+      "last_indexed": {
+        "nullable": true,
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "x-collection": "candidate_serp_data",
+    "required": [
+      "request",
+      "handle",
+      "subtitle"
+    ]
+  },
+  "ItemsCandidateSerpEvent": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "nullable": false,
+        "type": "integer"
+      },
+      "user_created": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_created": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "user_updated": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "$ref": "#/components/schemas/Users"
+          }
+        ]
+      },
+      "date_updated": {
+        "nullable": true,
+        "type": "string",
+        "format": "timestamp"
+      },
+      "handle": {
+        "nullable": false,
+        "type": "string"
+      },
+      "before_subtitle": {
+        "nullable": false,
+        "type": "string"
+      },
+      "after_subtitle": {
+        "nullable": false,
+        "type": "string"
+      },
+      "last_indexed": {
+        "nullable": true,
+        "type": "string",
+        "format": "date-time"
+      },
+      "request": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "$ref": "#/components/schemas/ItemsCandidateSerpRequest"
+          }
+        ]
+      }
+    },
+    "x-collection": "candidate_serp_event",
+    "required": [
+      "handle",
+      "before_subtitle",
+      "after_subtitle"
     ]
   }
 }
